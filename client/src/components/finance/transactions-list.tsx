@@ -1,22 +1,48 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '../ui/card';
 import { TransactionItem, Transaction } from './transaction-item';
+import { TransactionDetailsModal } from './transaction-details-modal';
 import { cn } from '@/lib/utils';
 import { useTransactions } from '@/hooks/use-transactions';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface TransactionsListProps {
   className?: string;
   walletId?: string;
   categoryId?: string;
   limit?: number;
+  onTransactionChange?: () => void;
 }
 
-export function TransactionsList({ className, walletId, categoryId, limit = 10 }: TransactionsListProps) {
+export function TransactionsList({ className, walletId, categoryId, limit = 10, onTransactionChange }: TransactionsListProps) {
   const { transactions, loading, error, refetch } = useTransactions({
     limit,
     walletId,
     categoryId,
   });
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+  const handleTransactionClick = (transaction: Transaction) => {
+    setSelectedTransaction(transaction);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleUpdate = () => {
+    refetch();
+    onTransactionChange?.();
+  };
+
+  const handleDelete = () => {
+    refetch();
+    onTransactionChange?.();
+  };
+
+  const handleModalClose = () => {
+    setIsDetailsModalOpen(false);
+    setSelectedTransaction(null);
+  };
 
   if (loading) {
     return (
@@ -62,9 +88,21 @@ export function TransactionsList({ className, walletId, categoryId, limit = 10 }
       <h2 className="text-lg font-semibold mb-4 text-pastel-blue">Recent Transactions</h2>
       <ul className="divide-y divide-pastel-green-dark/20">
         {transactions.map((transaction) => (
-          <TransactionItem key={transaction.id} transaction={transaction} />
+          <TransactionItem
+            key={transaction.id}
+            transaction={transaction}
+            onClick={() => handleTransactionClick(transaction)}
+          />
         ))}
       </ul>
+      
+      <TransactionDetailsModal
+        transaction={selectedTransaction}
+        isOpen={isDetailsModalOpen}
+        onClose={handleModalClose}
+        onUpdate={handleUpdate}
+        onDelete={handleDelete}
+      />
     </Card>
   );
 }

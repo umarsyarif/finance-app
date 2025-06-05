@@ -72,16 +72,20 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
       const transformedTransactions: Transaction[] = data.transactions.map((apiTransaction: ApiTransaction) => ({
         id: apiTransaction.id,
         title: apiTransaction.description,
-        date: new Date(apiTransaction.date).toLocaleString('en-ID', {
-          day: 'numeric',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-        }),
-        amount: `${apiTransaction.wallet.currency} ${Math.abs(apiTransaction.amount).toFixed(2)}`,
+        description: apiTransaction.description,
+        date: apiTransaction.date,
+        amount: apiTransaction.amount,
         type: apiTransaction.category.type as 'income' | 'expense',
+        walletId: apiTransaction.walletId,
+        categoryId: apiTransaction.categoryId,
+        wallet: {
+          id: apiTransaction.wallet.id,
+          name: apiTransaction.wallet.name,
+        },
+        category: {
+          id: apiTransaction.category.id,
+          name: apiTransaction.category.name,
+        },
       }));
 
       setTransactions(transformedTransactions);

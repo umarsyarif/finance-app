@@ -1,6 +1,5 @@
-import { PrismaClient, Prisma, Transaction } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Prisma, Transaction } from '@prisma/client';
+import prisma from '../middleware/prismaMiddleware';
 
 export const createTransaction = async (input: Prisma.TransactionCreateInput) => {
   return (await prisma.transaction.create({

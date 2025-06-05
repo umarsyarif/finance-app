@@ -5,7 +5,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import validateEnv from './utils/validateEnv';
-import { PrismaClient } from '@prisma/client';
+import prisma from './middleware/prismaMiddleware';
 import authRouter from './routes/auth.routes';
 import userRouter from './routes/user.routes';
 import transactionRouter from './routes/transaction.routes';
@@ -20,8 +20,6 @@ import AppError from './utils/appError';
 // })();
 
 validateEnv();
-
-const prisma = new PrismaClient();
 const app = express();
 
 async function bootstrap() {

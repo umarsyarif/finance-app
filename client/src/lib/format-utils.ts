@@ -1,0 +1,75 @@
+/**
+ * Utility functions for formatting dates and amounts in the finance app
+ */
+
+/**
+ * Formats a date string to display format: "2 Jan 2024 15:04"
+ * @param dateString - ISO date string
+ * @returns Formatted date string
+ */
+export const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    return date.toLocaleDateString('en-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  } catch (error) {
+    return 'Invalid Date';
+  }
+};
+
+/**
+ * Formats a date string for detailed view: "January 2, 2024"
+ * @param dateString - ISO date string
+ * @returns Formatted date string for detailed view
+ */
+export const formatDateDetailed = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  } catch (error) {
+    return 'Invalid Date';
+  }
+};
+
+/**
+ * Formats an amount with currency and sign based on transaction type
+ * @param amount - The transaction amount
+ * @param type - Transaction type ('income' or 'expense')
+ * @returns Formatted amount string with appropriate sign
+ */
+export const formatAmount = (amount: number, type: string): string => {
+  const formattedAmount = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(Math.abs(amount));
+  
+  return type === 'income' ? `+${formattedAmount}` : `-${formattedAmount}`;
+};
+
+/**
+ * Formats an amount as currency without sign
+ * @param amount - The amount to format
+ * @returns Formatted currency string
+ */
+export const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+  }).format(amount);
+};

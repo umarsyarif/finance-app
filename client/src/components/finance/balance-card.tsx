@@ -1,16 +1,17 @@
 import { Card } from '../ui/card';
 import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
-import { AddExpenseSheet } from './add-expense-sheet';
+import { AddTransactionSheet } from './add-transaction-sheet';
 
 interface BalanceCardProps {
   balance: string;
   income: string;
   expense: string;
   className?: string;
+  onTransactionChange?: () => void;
 }
 
-export function BalanceCard({ balance, income, expense, className }: BalanceCardProps) {
+export function BalanceCard({ balance, income, expense, className, onTransactionChange }: BalanceCardProps) {
   return (
     <Card className={cn("bg-pastel-yellow rounded-2xl shadow p-8 mb-6 flex flex-col items-center", className)}>
       <span className="text-gray-600 text-sm">Current Balance</span>
@@ -19,19 +20,12 @@ export function BalanceCard({ balance, income, expense, className }: BalanceCard
         <div className="flex flex-col items-center">
           <span className="text-xs text-gray-600">Income</span>
           <span className="text-pastel-green-dark text-lg font-medium">{income}</span>
-          <Button 
-            onClick={() => {}}
-            variant={"default"}
-            size={"sm"}
-            className="text-xs mt-2"
-          >
-            Add Income
-          </Button>
+          <AddTransactionSheet type="income" onTransactionChange={onTransactionChange} />
         </div>
         <div className="flex flex-col items-center">
           <span className="text-xs text-gray-600">Expense</span>
           <span className="text-pastel-red text-lg font-medium">{expense}</span>
-          <AddExpenseSheet />
+          <AddTransactionSheet type="expense" onTransactionChange={onTransactionChange} />
         </div>
       </div>
     </Card>
