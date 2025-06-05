@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import axios from '../lib/axios';
+import axios from '@/lib/axios';
 
 interface Category {
   id: string;
   name: string;
-  type: 'income' | 'expense';
+  type: 'INCOME' | 'EXPENSE';
+  color: string;
 }
 
 interface UseCategoriesReturn {

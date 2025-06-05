@@ -58,7 +58,7 @@ async function updateWalletBalanceOnCreate(transaction: any) {
   if (!categoryData) return;
 
   // Calculate balance change based on category type
-  const balanceChange = categoryData.type === 'income' ? amount : -amount;
+  const balanceChange = categoryData.type === 'INCOME' ? amount : -amount;
 
   // Update wallet balance
   await prisma.wallet.update({
@@ -88,12 +88,12 @@ async function updateWalletBalanceOnUpdate(originalTransaction: any, updatedTran
   }
 
   // Calculate the original balance change
-  const originalBalanceChange = originalTransaction.category.type === 'income' 
+  const originalBalanceChange = originalTransaction.category.type === 'INCOME' 
     ? originalTransaction.amount 
     : -originalTransaction.amount;
 
   // Calculate the new balance change
-  const newBalanceChange = updatedCategory.type === 'income' 
+  const newBalanceChange = updatedCategory.type === 'INCOME' 
     ? updatedTransaction.amount 
     : -updatedTransaction.amount;
 
@@ -142,7 +142,7 @@ async function updateWalletBalanceOnDelete(originalTransaction: any) {
   const { walletId, amount, category } = originalTransaction;
 
   // Calculate the balance change to revert (opposite of what was applied)
-  const balanceChange = category.type === 'income' ? -amount : amount;
+  const balanceChange = category.type === 'INCOME' ? -amount : amount;
 
   // Update wallet balance
   await prisma.wallet.update({

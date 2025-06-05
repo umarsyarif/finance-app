@@ -27,7 +27,7 @@ const mockIncomeCategory = {
   id: 'income-category123',
   userId: 'user123',
   name: 'Salary',
-  type: 'income' as any,
+  type: 'INCOME' as any,
   createdAt: new Date()
 };
 
@@ -35,7 +35,7 @@ const mockExpenseCategory = {
   id: 'expense-category123',
   userId: 'user123',
   name: 'Food',
-  type: 'expense' as any,
+  type: 'EXPENSE' as any,
   createdAt: new Date()
 };
 

@@ -20,12 +20,12 @@ export function BalanceCard({ balance, income, expense, className, onTransaction
         <div className="flex flex-col items-center">
           <span className="text-xs text-gray-600">Income</span>
           <span className="text-pastel-green-dark text-lg font-medium">{income}</span>
-          <AddTransactionSheet type="income" onTransactionChange={onTransactionChange} />
+          <AddTransactionSheet type="INCOME" onTransactionChange={onTransactionChange} />
         </div>
         <div className="flex flex-col items-center">
           <span className="text-xs text-gray-600">Expense</span>
           <span className="text-pastel-red text-lg font-medium">{expense}</span>
-          <AddTransactionSheet type="expense" onTransactionChange={onTransactionChange} />
+          <AddTransactionSheet type="EXPENSE" onTransactionChange={onTransactionChange} />
         </div>
       </div>
     </Card>

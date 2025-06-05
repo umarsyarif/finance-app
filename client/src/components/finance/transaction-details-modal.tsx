@@ -13,8 +13,8 @@ import { Edit, Trash2, Calendar, Wallet, Tag } from 'lucide-react';
 import { EditTransactionSheet } from './edit-transaction-sheet';
 import { ConfirmationModal } from '../ui/confirmation-modal';
 import { Transaction } from './transactions-list';
-import axios from '../../lib/axios';
-import { formatDateDetailed, formatAmount, formatDate } from '../../lib/format-utils';
+import axios from '@/lib/axios';
+import { formatAmount, formatDate } from '../../lib/format-utils';
 // Using console.log instead of toast since sonner is not installed
 
 interface TransactionDetailsModalProps {
@@ -79,7 +79,7 @@ export function TransactionDetailsModal({
             <div className="flex justify-end">
               <Badge 
                 className={`px-3 py-1 text-sm font-medium ${
-                  transaction.type === 'income' 
+                  transaction.type === 'INCOME' 
                     ? 'bg-blue-100 text-blue-800 hover:bg-blue-100' 
                     : 'bg-orange-100 text-orange-800 hover:bg-orange-100'
                 }`}

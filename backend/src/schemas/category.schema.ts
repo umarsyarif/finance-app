@@ -1,8 +1,8 @@
 import { object, string, TypeOf, z } from 'zod';
 
 enum CategoryTypeEnum {
-  INCOME = 'income',
-  EXPENSE = 'expense',
+  INCOME = 'INCOME',
+  EXPENSE = 'EXPENSE',
 }
 
 export const createCategorySchema = object({
@@ -13,6 +13,7 @@ export const createCategorySchema = object({
     type: z.nativeEnum(CategoryTypeEnum, {
       required_error: 'Category type is required',
     }),
+    color: string().regex(/^#[0-9A-F]{6}$/i, 'Color must be a valid hex color').default('#10B981'),
   }),
 });
 
@@ -23,6 +24,7 @@ export const updateCategorySchema = object({
   body: object({
     name: string().min(1, 'Category name cannot be empty').optional(),
     type: z.nativeEnum(CategoryTypeEnum).optional(),
+    color: string().regex(/^#[0-9A-F]{6}$/i, 'Color must be a valid hex color').optional(),
   }),
 });
 

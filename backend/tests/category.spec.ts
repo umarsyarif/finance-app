@@ -46,13 +46,15 @@ describe('Category Controller Tests', () => {
     it('should create a new category successfully', async () => {
       const categoryData = {
         name: 'Food & Dining',
-        description: 'Expenses for food and dining'
+        type: 'EXPENSE',
+        color: '#10B981'
       };
 
       const mockCategory = {
         id: 'category123',
         name: 'Food & Dining',
-        description: 'Expenses for food and dining',
+        type: 'EXPENSE',
+        color: '#10B981',
         userId: 'user123'
       };
 
@@ -73,14 +75,16 @@ describe('Category Controller Tests', () => {
     it('should handle category already exists error', async () => {
       const categoryData = {
         name: 'Existing Category',
-        type: 'expense'
+        type: 'EXPENSE',
+        color: '#10B981'
       };
 
       const existingCategory = {
         id: 'existing123',
         userId: 'user123',
         name: 'Existing Category',
-        type: 'expense'
+        type: 'EXPENSE',
+        color: '#10B981'
       };
 
       req.body = categoryData;
@@ -111,13 +115,15 @@ describe('Category Controller Tests', () => {
         {
           id: 'category1',
           name: 'Food',
-          type: 'expense',
+          type: 'EXPENSE',
+          color: '#10B981',
           userId: 'user123'
         },
         {
           id: 'category2',
           name: 'Salary',
-          type: 'income',
+          type: 'INCOME',
+          color: '#3B82F6',
           userId: 'user123'
         }
       ];
@@ -171,7 +177,8 @@ describe('Category Controller Tests', () => {
       const mockCategory = {
         id: 'category123',
         name: 'Food & Dining',
-        type: 'expense',
+        type: 'EXPENSE',
+        color: '#10B981',
         userId: 'user123'
       };
 
@@ -203,12 +210,15 @@ describe('Category Controller Tests', () => {
     it('should update category successfully', async () => {
       const updateData = {
         name: 'Updated Food & Dining',
-        description: 'Updated description'
+        type: 'EXPENSE',
+        color: '#FF6B6B'
       };
 
       const existingCategory = {
         id: 'category123',
         name: 'Food & Dining',
+        type: 'EXPENSE',
+        color: '#10B981',
         userId: 'user123'
       };
 
@@ -249,6 +259,8 @@ describe('Category Controller Tests', () => {
       const existingCategory = {
         id: 'category123',
         name: 'Food & Dining',
+        type: 'EXPENSE',
+        color: '#10B981',
         userId: 'user123'
       };
 

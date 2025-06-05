@@ -14,7 +14,7 @@ export interface Transaction {
   description: string;
   date: string;
   amount: number;
-  type: 'income' | 'expense';
+  type: 'INCOME' | 'EXPENSE';
   walletId: string;
   categoryId: string;
   wallet?: {
@@ -48,7 +48,7 @@ const TransactionListItem: React.FC<{
   onClick: () => void;
   variant?: 'card' | 'full';
 }> = ({ transaction, onClick, variant = 'card' }) => {
-  const isIncome = transaction.type === 'income';
+  const isIncome = transaction.type === 'INCOME';
   
   return (
     <div 

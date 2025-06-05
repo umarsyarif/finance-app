@@ -7,6 +7,7 @@ import ComingSoon from './pages/ComingSoon';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { MonthlyTransactionsView } from './pages/Transactions';
+import { Wallets } from './pages/Wallets';
 import { useAuth } from '@/contexts/auth.context';
 
 const ProtectedRoutes = ({ children }: { children: React.ReactNode }) => {
@@ -25,6 +26,7 @@ export default function Router() {
             <Route element={<ProtectedRoutes><AppLayout /></ProtectedRoutes>}>
                 <Route path="" element={<Dashboard />} />
                 <Route path="transactions" element={<MonthlyTransactionsView />} />
+                <Route path="wallets" element={<Wallets />} />
                 <Route path="pages">
                     <Route path="sample" element={<Sample />} />
                     <Route path="feature" element={<ComingSoon />} />

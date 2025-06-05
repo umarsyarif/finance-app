@@ -22,7 +22,7 @@ interface ApiTransaction {
     id: string;
     userId: string;
     name: string;
-    type: 'income' | 'expense';
+    type: 'INCOME' | 'EXPENSE';
     createdAt: string;
   };
 }
@@ -79,7 +79,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
         description: apiTransaction.description,
         date: apiTransaction.date,
         amount: apiTransaction.amount,
-        type: apiTransaction.category.type as 'income' | 'expense',
+        type: apiTransaction.category.type as 'INCOME' | 'EXPENSE',
         walletId: apiTransaction.walletId,
         categoryId: apiTransaction.categoryId,
         wallet: {

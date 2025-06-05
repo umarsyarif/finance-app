@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useWallets } from './use-wallets';
 import { useCategories } from './use-categories';
 import { Transaction } from '../components/finance/transactions-list';
-import axios from '../lib/axios';
+import axios from '@/lib/axios';
 
-type TransactionType = 'income' | 'expense';
+type TransactionType = 'INCOME' | 'EXPENSE';
 
 interface UseTransactionFormProps {
   type?: TransactionType;
@@ -34,7 +34,7 @@ export function useTransactionForm({ type, transaction, onSuccess }: UseTransact
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const { wallets, loading: loadingWallets, error: walletsError } = useWallets();
-  const { categories, loading: loadingCategories, error: categoriesError } = useCategories();
+  const { categories, loading: loadingCategories, error: categoriesError, refetch: refetchCategories } = useCategories();
 
   // Filter categories based on transaction type
   const filteredCategories = type 
@@ -165,5 +165,6 @@ export function useTransactionForm({ type, transaction, onSuccess }: UseTransact
     loadingCategories,
     walletsError,
     categoriesError,
+    refetchCategories,
   };
 }

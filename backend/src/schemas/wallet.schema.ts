@@ -11,6 +11,7 @@ export const createWalletSchema = object({
     balance: number({
       required_error: 'Initial balance is required',
     }).default(0),
+    color: string().regex(/^#[0-9A-F]{6}$/i, 'Color must be a valid hex color').default('#3B82F6'),
   }),
 });
 
@@ -22,6 +23,7 @@ export const updateWalletSchema = object({
     name: string().optional(),
     currency: string().optional(),
     balance: number().optional(),
+    color: string().regex(/^#[0-9A-F]{6}$/i, 'Color must be a valid hex color').optional(),
   }),
 });
 

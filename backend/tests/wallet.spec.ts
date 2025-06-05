@@ -55,7 +55,8 @@ describe('Wallet Controller Tests', () => {
       const walletData = {
         name: 'Main Wallet',
         currency: 'USD',
-        balance: 1000
+        balance: 1000,
+        color: '#3B82F6'
       };
 
       const mockWallet = {
@@ -64,6 +65,7 @@ describe('Wallet Controller Tests', () => {
         name: 'Main Wallet',
         currency: 'USD',
         balance: 1000,
+        color: '#3B82F6',
         createdAt: new Date(),
         user: {
           id: 'user123',
@@ -81,6 +83,7 @@ describe('Wallet Controller Tests', () => {
         name: 'Main Wallet',
         currency: 'USD',
         balance: 1000,
+        color: '#3B82F6',
         user: {
           connect: { id: 'user123' }
         }
@@ -98,7 +101,8 @@ describe('Wallet Controller Tests', () => {
       const walletData = {
         name: 'Main Wallet',
         currency: 'USD',
-        balance: 1000
+        balance: 1000,
+        color: '#3B82F6'
       };
 
       req.body = walletData;
@@ -123,6 +127,7 @@ describe('Wallet Controller Tests', () => {
         name: 'Main Wallet',
         currency: 'USD',
         balance: 1000,
+        color: '#3B82F6',
         createdAt: new Date(),
         user: {
           id: 'user123',
@@ -165,7 +170,8 @@ describe('Wallet Controller Tests', () => {
         userId: 'otheruser',
         name: 'Main Wallet',
         currency: 'USD',
-        balance: 1000
+        balance: 1000,
+        color: '#3B82F6'
       };
 
       req.params = { walletId: 'wallet123' };
@@ -189,6 +195,7 @@ describe('Wallet Controller Tests', () => {
           name: 'Main Wallet',
           currency: 'USD',
           balance: 1000,
+          color: '#3B82F6',
           createdAt: new Date(),
           user: {
             id: 'user123',
@@ -205,6 +212,7 @@ describe('Wallet Controller Tests', () => {
           name: 'Savings',
           currency: 'USD',
           balance: 5000,
+          color: '#10B981',
           createdAt: new Date(),
           user: {
             id: 'user123',
@@ -243,6 +251,7 @@ describe('Wallet Controller Tests', () => {
           name: 'EUR Wallet',
           currency: 'EUR',
           balance: 1000,
+          color: '#3B82F6',
           createdAt: new Date()
         }
       ];
@@ -266,7 +275,8 @@ describe('Wallet Controller Tests', () => {
         userId: 'user123',
         name: 'Main Wallet',
         currency: 'USD',
-        balance: 1000
+        balance: 1000,
+        color: '#3B82F6'
       };
 
       const updatedWallet = {
@@ -312,7 +322,8 @@ describe('Wallet Controller Tests', () => {
       const existingWallet = {
         id: 'wallet123',
         userId: 'otheruser',
-        name: 'Main Wallet'
+        name: 'Main Wallet',
+        color: '#3B82F6'
       };
 
       req.params = { walletId: 'wallet123' };
@@ -334,6 +345,7 @@ describe('Wallet Controller Tests', () => {
         id: 'wallet123',
         userId: 'user123',
         name: 'Main Wallet',
+        color: '#3B82F6',
         transactions: []
       };
 
@@ -367,7 +379,8 @@ describe('Wallet Controller Tests', () => {
       const existingWallet = {
         id: 'wallet123',
         userId: 'otheruser',
-        name: 'Main Wallet'
+        name: 'Main Wallet',
+        color: '#3B82F6'
       };
 
       req.params = { walletId: 'wallet123' };
@@ -386,6 +399,7 @@ describe('Wallet Controller Tests', () => {
         id: 'wallet123',
         userId: 'user123',
         name: 'Main Wallet',
+        color: '#3B82F6',
         transactions: [{ id: 'transaction1' }]
       };
 
@@ -410,6 +424,7 @@ describe('Wallet Controller Tests', () => {
           name: 'Main Wallet',
           currency: 'USD',
           balance: 1000,
+          color: '#3B82F6',
           _count: {
             transactions: 5
           }
@@ -420,6 +435,7 @@ describe('Wallet Controller Tests', () => {
           name: 'Savings',
           currency: 'USD',
           balance: 5000,
+          color: '#10B981',
           _count: {
             transactions: 2
           }

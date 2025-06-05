@@ -8,9 +8,13 @@
     "start": "ts-node-dev --respawn --transpile-only --exit-child src/app.ts",
     "db:migrate": "npx prisma migrate dev --name user-entity --create-only && yarn prisma generate",
     "db:push": "npx prisma db push",
+    "db:seed": "ts-node prisma/seed.ts",
     "build": "tsc . -p",
     "test": "cross-env NODE_ENV=development jest",
     "test:watch": "cross-env NODE_ENV=development jest --watch"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

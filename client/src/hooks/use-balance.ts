@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from '../lib/axios';
+import axios from '@/lib/axios';
 
 interface BalanceData {
   totalBalance: number;
@@ -40,9 +40,9 @@ export function useBalance(): UseBalanceReturn {
       let totalExpense = 0;
       
       transactions.forEach((transaction: any) => {
-        if (transaction.category.type === 'income') {
+        if (transaction.category.type === 'INCOME') {
           totalIncome += transaction.amount;
-        } else if (transaction.category.type === 'expense') {
+        } else if (transaction.category.type === 'EXPENSE') {
           totalExpense += Math.abs(transaction.amount);
         }
       });

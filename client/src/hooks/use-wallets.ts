@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import axios from '../lib/axios';
+import axios from '@/lib/axios';
 
 interface Wallet {
   id: string;
   name: string;
   balance: number;
   currency: string;
+  color: string;
 }
 
 interface UseWalletsReturn {

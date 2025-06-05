@@ -1,10 +1,20 @@
 import React from 'react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
+import { Combobox } from '../ui/combobox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../ui/select';
+import { Label } from '../ui/label';
 import { useTransactionForm } from '../../hooks/use-transaction-form';
 import { Transaction } from './transactions-list';
+import axios from '@/lib/axios';
 
-type TransactionType = 'income' | 'expense';
+type TransactionType = 'INCOME' | 'EXPENSE';
 
 interface TransactionFormProps {
   type?: TransactionType;
@@ -32,7 +42,48 @@ export function TransactionForm({
     loadingCategories,
     walletsError,
     categoriesError,
+    refetchCategories,
   } = useTransactionForm({ type, transaction, onSuccess });
+
+  // Generate random color for new categories
+  const generateRandomColor = () => {
+    const colors = [
+      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+      '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2'
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+
+  // Handle creating new category
+  const handleCreateCategory = async (name: string) => {
+    try {
+      const color = generateRandomColor();
+      const response = await axios.post('/api/categories', {
+        name,
+        type: type || 'EXPENSE',
+        color
+      });
+      
+      // Refetch categories to update the list
+      if (refetchCategories) {
+        await refetchCategories();
+      }
+      
+      // Set the newly created category as selected
+      updateField('categoryId', response.data.id);
+      
+      return response.data.id;
+    } catch (error) {
+      console.error('Error creating category:', error);
+      throw error;
+    }
+  };
+
+  // Filter categories based on transaction type
+  const filteredCategories = categories.filter(category => 
+    !type || category.type === type
+  );
 
   if (loadingWallets || loadingCategories) {
     return (
@@ -101,44 +152,43 @@ export function TransactionForm({
           />
         </div>
 
-        <div>
-          <label htmlFor="wallet" className="block text-sm font-medium text-gray-700 mb-1">
-            Wallet
-          </label>
-          <select
-            id="wallet"
+        <div className="space-y-2">
+          <Label htmlFor="wallet">Wallet</Label>
+          <Select
             value={formData.walletId}
-            onChange={(e) => updateField('walletId', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
+            onValueChange={(value) => updateField('walletId', value)}
           >
-            <option value="">Select a wallet</option>
-            {wallets.map((wallet) => (
-              <option key={wallet.id} value={wallet.id}>
-                {wallet.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a wallet" />
+            </SelectTrigger>
+            <SelectContent>
+              {wallets.map((wallet) => (
+                <SelectItem key={wallet.id} value={wallet.id}>
+                  {wallet.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
           <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
             Category
           </label>
-          <select
+          <Combobox
             id="category"
             value={formData.categoryId}
-            onChange={(e) => updateField('categoryId', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-            <option value="">Select a category</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+            onValueChange={(value) => updateField('categoryId', value)}
+            placeholder="Select or create a category"
+            searchPlaceholder="Search categories..."
+            emptyText="No categories found."
+            options={filteredCategories.map((category) => ({
+              value: category.id,
+              label: category.name,
+              color: category.color
+            }))}
+            onCreateNew={handleCreateCategory}
+          />
         </div>
 
         {submitError && (

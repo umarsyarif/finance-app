@@ -2,6 +2,7 @@ import {
     CircleAlert,
     Files,
     Gauge,
+    Wallet,
     LucideIcon
 } from 'lucide-react'
 
@@ -19,6 +20,11 @@ export const mainMenu: MenuType = [
         title: 'Dashboard',
         url: '/',
         icon: Gauge
+    },
+    {
+        title: 'Wallets & Categories',
+        url: '/wallets',
+        icon: Wallet
     },
     {
         title: 'Pages',

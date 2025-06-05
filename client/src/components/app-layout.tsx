@@ -1,7 +1,7 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { AppHeader } from './app-header'
 import { AppFooter } from './app-footer'
-import { HomeIcon, ProfileIcon, StatsIcon } from './icons/menu-icons'
+import { HomeIcon, ProfileIcon, StatsIcon, WalletIcon } from './icons/menu-icons'
 
 export function AppLayout() {
     const navigate = useNavigate();
@@ -19,6 +19,12 @@ export function AppLayout() {
             label: 'Transactions',
             active: location.pathname === '/transactions',
             onClick: () => navigate('/transactions'),
+        },
+        {
+            icon: <WalletIcon />,
+            label: 'Wallets',
+            active: location.pathname === '/wallets',
+            onClick: () => navigate('/wallets'),
         },
         {
             icon: <ProfileIcon />,

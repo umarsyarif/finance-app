@@ -236,7 +236,7 @@ describe('Transaction Controller Tests', () => {
         category: {
           id: 'category123',
           name: 'Test Category',
-          type: 'expense' as any,
+          type: 'EXPENSE' as any,
           userId: 'user123',
           createdAt: new Date()
         }

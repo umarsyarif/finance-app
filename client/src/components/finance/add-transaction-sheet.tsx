@@ -2,7 +2,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Button } from '../ui/button';
 import { TransactionForm } from './transaction-form';
 
-type TransactionType = 'income' | 'expense';
+type TransactionType = 'INCOME' | 'EXPENSE';
 
 interface AddTransactionSheetProps {
   type: TransactionType;
@@ -10,7 +10,7 @@ interface AddTransactionSheetProps {
 }
 
 export function AddTransactionSheet({ type, onTransactionChange }: AddTransactionSheetProps) {
-  const isIncome = type === 'income';
+  const isIncome = type === 'INCOME';
   const buttonText = isIncome ? 'Add Income' : 'Add Expense';
   const sheetTitle = isIncome ? 'Add New Income' : 'Add New Expense';
   const sheetDescription = isIncome ? 'Add your income transaction here.' : 'Add your expense transaction here.';
