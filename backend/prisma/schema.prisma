@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String     @id @default(uuid())
+  name String  @db.VarChar(255)
+  email      String     @unique
+  password   String
+  role RoleEnumType? @default(user)
+  
+  wallets    Wallet[]
+  categories Category[]
+
+  photo String? @default("default.png")
+  verified Boolean? @default(false) 
+  verificationCode String? @db.Text @unique
+
+  provider String?
+  passwordResetToken String?
+  passwordResetAt DateTime?
+
+  createdAt  DateTime   @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, verificationCode, passwordResetToken])
+  @@index([email, verificationCode,passwordResetToken])
+  @@map("users")
+}
+
+enum RoleEnumType {
+  user
+  admin
+}
+
+model Wallet {
+  id        String        @id @default(uuid())
+  userId    String
+  name      String
+  currency  String
+  balance   Float         @default(0.0)
+  createdAt DateTime      @default(now())
+
+  user        User        @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+
+  @@map("wallets")
+}
+
+model Category {
+  id        String        @id @default(uuid())
+  userId    String?       // nullable for default/global categories
+  name      String
+  type      CategoryType
+  createdAt DateTime      @default(now())
+
+  user         User?      @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+
+  @@map("categories")
+}
+
+model Transaction {
+  id          String      @id @default(uuid())
+  walletId    String
+  categoryId  String
+  amount      Float
+  description String?
+  date        DateTime
+  createdAt   DateTime    @default(now())
+
+  wallet   Wallet     @relation(fields: [walletId], references: [id])
+  category Category   @relation(fields: [categoryId], references: [id])
+
+  @@map("transactions")
+}
+
+enum CategoryType {
+  income
+  expense
+}
