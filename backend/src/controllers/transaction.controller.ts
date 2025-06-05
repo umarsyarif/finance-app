@@ -81,7 +81,7 @@ export const getTransactionsHandler = async (
   next: NextFunction
 ) => {
   try {
-    const { walletId, categoryId, page = 1, limit = 10 } = req.query;
+    const { walletId, categoryId, month, year, page = 1, limit = 10 } = req.query;
     
     const pageNum = Number(page);
     const limitNum = Number(limit);
@@ -90,9 +90,23 @@ export const getTransactionsHandler = async (
     const where: any = {};
     if (walletId) where.walletId = walletId;
     if (categoryId) where.categoryId = categoryId;
+    
+    // Add date filtering for month and year
+    if (month || year) {
+      const currentYear = year || new Date().getFullYear();
+      const currentMonth = month || new Date().getMonth() + 1;
+      
+      const startDate = new Date(currentYear, currentMonth - 1, 1);
+      const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+      
+      where.date = {
+        gte: startDate,
+        lte: endDate,
+      };
+    }
 
     const [transactions, total] = await Promise.all([
-      findTransactions(where, { createdAt: 'desc' }, skip, limitNum),
+      findTransactions(where, { date: 'desc' }, skip, limitNum),
       countTransactions(where),
     ]);
 

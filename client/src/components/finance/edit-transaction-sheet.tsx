@@ -5,7 +5,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { Transaction } from './transaction-item';
+import { Transaction } from './transactions-list';
 import { TransactionForm } from './transaction-form';
 
 interface EditTransactionSheetProps {

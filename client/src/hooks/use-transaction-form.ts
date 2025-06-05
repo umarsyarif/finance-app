@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useWallets } from './use-wallets';
 import { useCategories } from './use-categories';
-import { Transaction } from '../components/finance/transaction-item';
+import { Transaction } from '../components/finance/transactions-list';
 import axios from '../lib/axios';
 
 type TransactionType = 'income' | 'expense';

@@ -12,9 +12,9 @@ import { Separator } from '@/components/ui/separator';
 import { Edit, Trash2, Calendar, Wallet, Tag } from 'lucide-react';
 import { EditTransactionSheet } from './edit-transaction-sheet';
 import { ConfirmationModal } from '../ui/confirmation-modal';
-import { Transaction } from './transaction-item';
+import { Transaction } from './transactions-list';
 import axios from '../../lib/axios';
-import { formatDateDetailed, formatAmount } from '../../lib/format-utils';
+import { formatDateDetailed, formatAmount, formatDate } from '../../lib/format-utils';
 // Using console.log instead of toast since sonner is not installed
 
 interface TransactionDetailsModalProps {
@@ -64,90 +64,86 @@ export function TransactionDetailsModal({
   };
 
 
-
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Transaction Details</span>
-              {/* <Badge 
-                variant="outline"
-                className={transaction.type === 'income' 
-                  ? 'bg-pastel-green text-pastel-green-dark border-pastel-green-dark' 
-                  : 'bg-pastel-red text-red-800 border-red-300'
-                }
-              >
-                {transaction.type}
-              </Badge> */}
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-lg font-semibold">
+              Transaction Details
             </DialogTitle>
-            <DialogDescription>
-              View and manage your transaction information
-            </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4">
-            {/* Title and Description */}
-            <div>
-              <h3 className="text-lg font-semibold">{transaction.title}</h3>
-              {transaction.type && (
-                <p className="text-sm text-muted-foreground mt-1 mb-2">
-                  {transaction.type}
-                </p>
-              )}
-              {transaction.category && (
-                <Badge 
-                  variant="outline"
-                  className={transaction.type === 'income' 
-                    ? 'bg-pastel-green text-pastel-green-dark border-pastel-green-dark' 
-                    : 'bg-pastel-red text-red-800 border-red-300'
-                  }
-                >
-                  {transaction.category.name}
-                </Badge>
-              )}
-            </div>
 
-            <Separator />
+          <div className="space-y-6">
+            {/* Category Badge */}
+            <div className="flex justify-end">
+              <Badge 
+                className={`px-3 py-1 text-sm font-medium ${
+                  transaction.type === 'income' 
+                    ? 'bg-blue-100 text-blue-800 hover:bg-blue-100' 
+                    : 'bg-orange-100 text-orange-800 hover:bg-orange-100'
+                }`}
+              >
+                {transaction.category?.name}
+              </Badge>
+            </div>
 
             {/* Amount */}
             <div className="text-center">
-              <p className="text-2xl font-bold">
-                <span className={transaction.type === 'income' ? 'text-pastel-green-dark' : 'text-pastel-red'}>
-                  {formatAmount(transaction.amount, transaction.type)}
-                </span>
-              </p>
-            </div>
-
-            <Separator />
-
-            {/* Details */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{formatDateDetailed(transaction.date)}</span>
+              <div className="text-3xl font-bold text-gray-900 mb-2">
+                {formatAmount(transaction.amount, transaction.type)}
               </div>
-              
-              {transaction.wallet && (
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{transaction.wallet.name}</span>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-sm">{transaction.description}</span>
+              </div>
+            </div>
+
+            {/* Transaction Details */}
+            <div className="bg-blue-50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">💳</span>
                 </div>
-              )}
+                <span className="text-sm font-medium text-blue-800">
+                  메모 결제를 떠미다 직접
+                </span>
+                <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
+                  확인
+                </Badge>
+              </div>
+            </div>
+
+            {/* Details List */}
+            <div className="space-y-4">
+
+              <div className="flex justify-between">
+                <span className="text-gray-600">Transaction Type</span>
+                <span className="font-medium">{transaction.type}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-600">Transaction Date</span>
+                <span className="font-medium">{formatDate(transaction.date)}</span>
+              </div>
+
+              <Separator />
+
+              <div className="flex justify-between">
+                <span className="text-gray-600">Wallet</span>
+                <span className="font-medium">{transaction.wallet?.name}</span>
+              </div>
 
             </div>
 
-            <Separator />
 
             {/* Action Buttons */}
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2 pt-4">
               <Button
                 variant="outline"
                 className="flex-1"
                 onClick={handleEdit}
               >
-                <Edit className="h-4 w-4 mr-2" />
+                <Edit className="w-4 h-4 mr-2" />
                 Edit
               </Button>
               <Button
@@ -155,7 +151,7 @@ export function TransactionDetailsModal({
                 className="flex-1"
                 onClick={() => setIsDeleteModalOpen(true)}
               >
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash2 className="w-4 h-4 mr-2" />
                 Delete
               </Button>
             </div>

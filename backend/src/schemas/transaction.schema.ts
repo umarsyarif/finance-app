@@ -51,6 +51,14 @@ export const getTransactionsSchema = object({
   query: object({
     walletId: string().optional(),
     categoryId: string().optional(),
+    month: z.preprocess(
+      (val) => val ? parseInt(val as string, 10) : undefined,
+      z.number().int().min(1).max(12).optional()
+    ),
+    year: z.preprocess(
+      (val) => val ? parseInt(val as string, 10) : undefined,
+      z.number().int().min(2000).max(2100).optional()
+    ),
     page: z.preprocess(
       (val) => val ? parseInt(val as string, 10) : undefined,
       z.number().int().positive().optional()

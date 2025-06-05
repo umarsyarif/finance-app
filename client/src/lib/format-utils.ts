@@ -27,6 +27,26 @@ export const formatDate = (dateString: string): string => {
 };
 
 /**
+ * Formats a date string to display format: "January 2024"
+ * @param dateString - ISO date string
+ * @returns Formatted date string
+ */
+export const formatMonthAndYear = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric'
+    });
+  } catch (error) {
+    return 'Invalid Date';
+  }
+};
+
+/**
  * Formats a date string for detailed view: "January 2, 2024"
  * @param dateString - ISO date string
  * @returns Formatted date string for detailed view

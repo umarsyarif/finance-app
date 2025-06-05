@@ -1,9 +1,33 @@
-import { Outlet } from 'react-router'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { AppHeader } from './app-header'
 import { AppFooter } from './app-footer'
 import { HomeIcon, ProfileIcon, StatsIcon } from './icons/menu-icons'
 
 export function AppLayout() {
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const navigationItems = [
+        {
+            icon: <HomeIcon />,
+            label: 'Home',
+            active: location.pathname === '/',
+            onClick: () => navigate('/'),
+        },
+        {
+            icon: <StatsIcon />,
+            label: 'Transactions',
+            active: location.pathname === '/transactions',
+            onClick: () => navigate('/transactions'),
+        },
+        {
+            icon: <ProfileIcon />,
+            label: 'Profile',
+            active: location.pathname === '/profile',
+            onClick: () => navigate('/profile'),
+        },
+    ];
+
     return (
         <div className="min-h-screen flex flex-col w-full ~bg-muted/50">
             <AppHeader />
@@ -11,21 +35,7 @@ export function AppLayout() {
                 <div className='flex flex-grow flex-col'>
                     <Outlet />
                 </div>
-                <AppFooter items={[
-                    {
-                        icon: <HomeIcon />,
-                        label: 'Home',
-                        active: true,
-                    },
-                    {
-                        icon: <StatsIcon />,
-                        label: 'Stats',
-                    },
-                    {
-                        icon: <ProfileIcon />,
-                        label: 'Profile',
-                    },
-                ]}/>
+                <AppFooter items={navigationItems}/>
             </div>
         </div>
     )

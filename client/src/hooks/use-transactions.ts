@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from '@/lib/axios';
-import { Transaction } from '@/components/finance/transaction-item';
+import { Transaction } from '@/components/finance/transactions-list';
 
 interface ApiTransaction {
   id: string;
@@ -32,6 +32,8 @@ interface UseTransactionsOptions {
   limit?: number;
   walletId?: string;
   categoryId?: string;
+  month?: number;
+  year?: number;
 }
 
 interface UseTransactionsReturn {
@@ -50,7 +52,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
 
-  const { page = 1, limit = 10, walletId, categoryId } = options;
+  const { page = 1, limit = 10, walletId, categoryId, month, year } = options;
 
   const fetchTransactions = async () => {
     try {
@@ -64,6 +66,8 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
 
       if (walletId) params.append('walletId', walletId);
       if (categoryId) params.append('categoryId', categoryId);
+      if (month) params.append('month', month.toString());
+      if (year) params.append('year', year.toString());
 
       const response = await axios.get(`/api/transactions?${params.toString()}`);
       const { data } = response.data;
@@ -101,7 +105,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
 
   useEffect(() => {
     fetchTransactions();
-  }, [page, limit, walletId, categoryId]);
+  }, [page, limit, walletId, categoryId, month, year]);
 
   return {
     transactions,

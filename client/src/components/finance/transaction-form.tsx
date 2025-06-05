@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { useTransactionForm } from '../../hooks/use-transaction-form';
-import { Transaction } from './transaction-item';
+import { Transaction } from './transactions-list';
 
 type TransactionType = 'income' | 'expense';
 

@@ -53,7 +53,11 @@ export default function Dashboard() {
                 onTransactionChange={handleTransactionChange}
             />
             
-            <TransactionsList onTransactionChange={handleTransactionChange} />
+            <TransactionsList 
+                limit={5}
+                showSeeAllLink={true}
+                onTransactionChange={handleTransactionChange} 
+            />
         </main>
         
         </div>
