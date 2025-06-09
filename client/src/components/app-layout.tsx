@@ -21,16 +21,16 @@ export function AppLayout() {
             onClick: () => navigate('/transactions'),
         },
         {
+            icon: <StatsIcon />,
+            label: 'Stats',
+            active: location.pathname === '/stats',
+            onClick: () => navigate('/stats'),
+        },
+        {
             icon: <WalletIcon />,
             label: 'Wallets',
             active: location.pathname === '/wallets',
             onClick: () => navigate('/wallets'),
-        },
-        {
-            icon: <ProfileIcon />,
-            label: 'Profile',
-            active: location.pathname === '/profile',
-            onClick: () => navigate('/profile'),
         },
     ];
 

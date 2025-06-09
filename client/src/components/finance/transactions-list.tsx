@@ -6,6 +6,7 @@ import { useTransactions } from '@/hooks/use-transactions';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import { formatDate, formatAmount, formatMonthAndYear } from '@/lib/format-utils';
+import { getPreviousMonth, getNextMonth, dateToISOString } from '@/lib/date-utils';
 import { Link } from 'react-router-dom';
 
 export interface Transaction {
@@ -112,12 +113,7 @@ export function TransactionsList({
   const navigateMonth = (direction: 'prev' | 'next') => {
     if (!currentDate || !onMonthChange) return;
     
-    const newDate = new Date(currentDate);
-    if (direction === 'prev') {
-      newDate.setMonth(newDate.getMonth() - 1);
-    } else {
-      newDate.setMonth(newDate.getMonth() + 1);
-    }
+    const newDate = direction === 'prev' ? getPreviousMonth(currentDate) : getNextMonth(currentDate);
     onMonthChange(newDate);
   };
 
@@ -182,7 +178,7 @@ export function TransactionsList({
               
               <div className="flex items-center space-x-2">
                 <span className="text-lg font-semibold">
-                  {formatMonthAndYear(currentDate.toDateString())}
+                  {formatMonthAndYear(dateToISOString(currentDate))}
                 </span>
               </div>
               

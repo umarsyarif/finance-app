@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatDateForInput, convertFormDateToISO } from '@/lib/date-utils';
 import { useWallets } from './use-wallets';
 import { useCategories } from './use-categories';
 import { Transaction } from '../components/finance/transactions-list';
@@ -62,18 +63,7 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
     }
   }, [defaultWalletId, transaction]);
 
-  const formatDateForInput = (dateString: string): string => {
-    try {
-      const date = new Date(dateString);
-      if (!isNaN(date.getTime())) {
-        return date.toISOString().slice(0, 16);
-      }
-    } catch (error) {
-      console.error('Error formatting date:', error);
-    }
-    // Fallback to current date
-    return new Date().toISOString().slice(0, 16);
-  };
+
 
   const updateField = (field: keyof TransactionFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -130,7 +120,7 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
       const transactionData = {
         description: formData.description,
         amount: parseFloat(formData.amount),
-        date: new Date(formData.date).toISOString(),
+        date: convertFormDateToISO(formData.date),
         walletId: formData.walletId,
         categoryId: formData.categoryId,
       };

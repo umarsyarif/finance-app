@@ -7,6 +7,7 @@ import { useWallets } from '@/hooks/use-wallets';
 import { useTransactions } from '@/hooks/use-transactions';
 import axios from '@/lib/axios';
 import { formatAmount } from '@/lib/format-utils';
+import { getStartOfCurrentMonth, getEndOfCurrentMonth, isDateInRange, parseDate } from '@/lib/date-utils';
 
 interface Wallet {
   id: string;
@@ -35,12 +36,16 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
     }
   }, [initialWallets]);
 
-  // Fetch wallet-specific statistics
+  // Fetch wallet-specific statistics for current month only
   useEffect(() => {
     const fetchWalletStats = async () => {
       if (wallets.length === 0) return;
       
       const stats: Record<string, { income: number; expense: number }> = {};
+      
+      // Get current month's start and end dates
+      const startOfMonth = getStartOfCurrentMonth();
+      const endOfMonth = getEndOfCurrentMonth();
       
       for (const wallet of wallets) {
         try {
@@ -51,10 +56,15 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
           let expense = 0;
           
           transactions.forEach((transaction: any) => {
-            if (transaction.category.type === 'INCOME') {
-              income += transaction.amount;
-            } else if (transaction.category.type === 'EXPENSE') {
-              expense += Math.abs(transaction.amount);
+            const transactionDate = parseDate(transaction.date);
+            
+            // Only include transactions from current month
+            if (isDateInRange(transactionDate, startOfMonth, endOfMonth)) {
+              if (transaction.category.type === 'INCOME') {
+                income += transaction.amount;
+              } else if (transaction.category.type === 'EXPENSE') {
+                expense += Math.abs(transaction.amount);
+              }
             }
           });
           

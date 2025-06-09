@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
+import { getCurrentDate, getCurrentMonth, getCurrentYear, formatDateToLocaleString } from '../lib/date-utils'
 import { MonthlyTransactionsView } from '../pages/Transactions'
 import { useTransactions } from '@/hooks/use-transactions'
 
@@ -77,8 +78,8 @@ describe('MonthlyTransactionsView', () => {
   it('displays current month and year', () => {
     renderComponent()
     
-    const currentDate = new Date()
-    const expectedText = currentDate.toLocaleDateString('en-US', {
+    const currentDate = getCurrentDate()
+    const expectedText = formatDateToLocaleString(currentDate, 'en-US', {
       month: 'long',
       year: 'numeric'
     })
@@ -89,9 +90,8 @@ describe('MonthlyTransactionsView', () => {
   it('calls useTransactions with correct month and year parameters', () => {
     renderComponent()
     
-    const currentDate = new Date()
-    const expectedMonth = currentDate.getMonth() + 1
-    const expectedYear = currentDate.getFullYear()
+    const expectedMonth = getCurrentMonth()
+    const expectedYear = getCurrentYear()
     
     expect(mockUseTransactions).toHaveBeenCalledWith({
       month: expectedMonth,

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getCurrentDate, getCurrentMonth, getCurrentYear } from '@/lib/date-utils';
 import { TransactionsList } from '@/components/finance/transactions-list';
 import { cn } from '@/lib/utils';
 
@@ -7,10 +8,10 @@ interface MonthlyTransactionsViewProps {
 }
 
 export function MonthlyTransactionsView({ className }: MonthlyTransactionsViewProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(getCurrentDate());
 
-  const currentMonth = currentDate.getMonth() + 1;
-  const currentYear = currentDate.getFullYear();
+  const currentMonth = getCurrentMonth();
+  const currentYear = getCurrentYear();
 
   const handleMonthChange = (newDate: Date) => {
     setCurrentDate(newDate);
