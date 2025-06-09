@@ -6,6 +6,7 @@ import { AddTransactionSheet } from './add-transaction-sheet';
 import { useWallets } from '@/hooks/use-wallets';
 import { useTransactions } from '@/hooks/use-transactions';
 import axios from '@/lib/axios';
+import { formatAmount } from '@/lib/format-utils';
 
 interface Wallet {
   id: string;
@@ -195,7 +196,7 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
           <span className="text-gray-600 text-sm">Current Balance</span>
           <h3 className="text-lg font-semibold text-gray-800 mt-1">{currentWallet.name}</h3>
           <span className="text-3xl font-semibold text-pastel-blue mt-2 block">
-            {currentWallet.currency} {currentWallet.balance.toFixed(2)}
+            {currentWallet.currency} {formatAmount(currentWallet.balance)}
           </span>
         </div>
 
@@ -240,7 +241,7 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
               className={cn(
                 "w-12 h-8 rounded-lg border-2 cursor-pointer transition-all duration-200 flex items-center justify-center text-xs font-medium",
                 index === currentIndex
-                  ? "border-pastel-blue bg-pastel-blue text-white"
+                  ? "border-gray-200 bg-gray-200 text-gray-600"
                   : "border-gray-300 bg-white text-gray-600 hover:border-pastel-blue",
                 draggedIndex === index && "opacity-50"
               )}
@@ -254,7 +255,7 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
 
       {/* Wallet Count Info */}
       {wallets.length > 1 && (
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-xs text-gray-500">
           Wallet {currentIndex + 1} of {wallets.length} • Drag indicators to reorder
         </p>
       )}

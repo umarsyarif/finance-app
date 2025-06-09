@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
 import { Button } from '../ui/button';
 import { TransactionForm } from './transaction-form';
@@ -11,13 +12,19 @@ interface AddTransactionSheetProps {
 }
 
 export function AddTransactionSheet({ type, onTransactionChange, defaultWalletId }: AddTransactionSheetProps) {
+  const [isOpen, setIsOpen] = useState(false);
   const isIncome = type === 'INCOME';
   const buttonText = isIncome ? 'Add Income' : 'Add Expense';
   const sheetTitle = isIncome ? 'Add New Income' : 'Add New Expense';
   const sheetDescription = isIncome ? 'Add your income transaction here.' : 'Add your expense transaction here.';
 
+  const handleSuccess = () => {
+    onTransactionChange?.();
+    setIsOpen(false);
+  };
+
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <Button 
           variant={"default"}
@@ -37,7 +44,7 @@ export function AddTransactionSheet({ type, onTransactionChange, defaultWalletId
         <div className="mt-6">
           <TransactionForm 
             type={type}
-            onSuccess={onTransactionChange}
+            onSuccess={handleSuccess}
             submitButtonText={buttonText}
             defaultWalletId={defaultWalletId}
           />

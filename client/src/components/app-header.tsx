@@ -33,7 +33,7 @@ export function AppHeader() {
                 </div>
 
                 <div className='ml-4 flex-1 flex items-center justify-between'>
-                    <div className='flex-1'>
+                    {/* <div className='flex-1'>
                         <nav className="hidden md:flex gap-1">
                             {mainMenu.map((item, index) => (
                                 (item.items && item.items.length > 0) ? (
@@ -82,8 +82,8 @@ export function AppHeader() {
                                 )
                             ))}
                         </nav>
-                    </div>
-                    <nav className="flex gap-1">
+                    </div> */}
+                    <nav className="flex gap-1 ml-auto">
                         <ModeToggle />
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>

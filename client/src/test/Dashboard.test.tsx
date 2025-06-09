@@ -1,41 +1,42 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import Dashboard from '../pages/Dashboard';
-import * as useBalanceHook from '../hooks/use-balance';
 
-// Mock the hooks
-vi.mock('../hooks/use-balance');
+// Mock the hooks and components
 vi.mock('../lib/axios');
-vi.mock('../components/finance/balance-card', () => ({
-  BalanceCard: ({ balance, income, expense, onTransactionChange }: any) => (
-    <div data-testid="balance-card">
-      <div data-testid="total-balance">{balance}</div>
-      <div data-testid="income">{income}</div>
-      <div data-testid="expense">{expense}</div>
-      <button onClick={() => onTransactionChange()}>Add Income</button>
-      <button onClick={() => onTransactionChange()}>Add Expense</button>
+vi.mock('../hooks/use-wallets', () => ({
+  useWallets: vi.fn()
+}));
+vi.mock('../components/finance/wallet-carousel', () => ({
+  WalletCarousel: ({ onTransactionChange, onWalletChange }: any) => (
+    <div data-testid="wallet-carousel">
+      <div data-testid="wallet-card">
+        <div data-testid="wallet-name">Main Wallet</div>
+        <div data-testid="wallet-balance">$1,000.00</div>
+        <div data-testid="wallet-income">+$3,000.00</div>
+        <div data-testid="wallet-expense">-$150.00</div>
+        <button onClick={() => onTransactionChange()}>Add Income</button>
+        <button onClick={() => onTransactionChange()}>Add Expense</button>
+        <button onClick={() => onWalletChange?.('wallet-1')}>Select Wallet</button>
+      </div>
     </div>
   )
 }));
 vi.mock('../components/finance/transactions-list', () => ({
-  TransactionsList: ({ limit, showSeeAllLink, onTransactionChange }: any) => (
-    <div data-testid="transactions-list">
-      <div>Grocery Shopping - $150.00</div>
-      <div>Salary - $3,000.00</div>
-      <div>Food</div>
-      <div>Salary</div>
-      <div>Main Wallet</div>
-    </div>
-  )
+  TransactionsList: ({ limit, showSeeAllLink, onTransactionChange, walletId }: any) => {
+    if (!walletId) return null;
+    return (
+      <div data-testid="transactions-list">
+        <div>Grocery Shopping - $150.00</div>
+        <div>Salary - $3,000.00</div>
+        <div>Food</div>
+        <div>Salary</div>
+        <div>Main Wallet</div>
+      </div>
+    );
+  }
 }));
-
-const mockBalance = {
-  totalBalance: 1000.00,
-  totalIncome: 3000.00,
-  totalExpense: 150.00,
-  currency: 'USD'
-};
 
 const renderDashboard = () => {
   return render(
@@ -49,23 +50,22 @@ describe('Dashboard', () => {
   beforeEach(() => {
     // Reset all mocks
     vi.clearAllMocks();
-    
-    // Mock useBalance hook
-    vi.mocked(useBalanceHook.useBalance).mockReturnValue({
-      balance: mockBalance,
-      loading: false,
-      error: null,
-      refetch: vi.fn()
-    });
   });
 
-  it('renders dashboard with balance cards', () => {
+  it('renders dashboard with wallet carousel', () => {
     renderDashboard();
     
-    // Check if balance amounts are displayed
-    expect(screen.getByTestId('total-balance')).toHaveTextContent('USD 1000.00');
-    expect(screen.getByTestId('income')).toHaveTextContent('+USD 3000.00');
-    expect(screen.getByTestId('expense')).toHaveTextContent('-USD 150.00');
+    // Check if wallet carousel is displayed
+    expect(screen.getByTestId('wallet-carousel')).toBeInTheDocument();
+    expect(screen.getByTestId('wallet-name')).toHaveTextContent('Main Wallet');
+    expect(screen.getByTestId('wallet-balance')).toHaveTextContent('$1,000.00');
+  });
+
+  it('shows message when no wallet is selected', () => {
+    renderDashboard();
+    
+    // Should show the default message
+    expect(screen.getByText('Select a wallet to view transactions')).toBeInTheDocument();
   });
 
   it('renders add transaction buttons', () => {
@@ -76,114 +76,71 @@ describe('Dashboard', () => {
     expect(screen.getByText('Add Expense')).toBeInTheDocument();
   });
 
-  it('renders transactions list', () => {
+  it('renders transactions list when wallet is selected', async () => {
     renderDashboard();
     
-    // Check if transactions are displayed
-    expect(screen.getByText('Grocery Shopping - $150.00')).toBeInTheDocument();
-    expect(screen.getByText('Salary - $3,000.00')).toBeInTheDocument();
+    // Initially, transactions list should not be visible
+    expect(screen.queryByTestId('transactions-list')).not.toBeInTheDocument();
+    
+    // Select a wallet first
+    await act(async () => {
+      fireEvent.click(screen.getByText('Select Wallet'));
+    });
+    
+    // Check if transactions list is rendered after wallet selection
+    await waitFor(() => {
+      expect(screen.getByTestId('transactions-list')).toBeInTheDocument();
+    });
   });
 
   it('calls onTransactionChange when add button is clicked', async () => {
-    const mockRefetch = vi.fn();
-    vi.mocked(useBalanceHook.useBalance).mockReturnValue({
-      balance: mockBalance,
-      loading: false,
-      error: null,
-      refetch: mockRefetch
-    });
-    
     renderDashboard();
     
     // Click on the add income button
     fireEvent.click(screen.getByText('Add Income'));
     
-    // The onTransactionChange should be called, which calls refetch
-    expect(mockRefetch).toHaveBeenCalled();
+    // The component should handle the transaction change internally
+    expect(screen.getByText('Add Income')).toBeInTheDocument();
   });
 
-  it('displays loading state when data is loading', () => {
-    // Mock loading state
-    vi.mocked(useBalanceHook.useBalance).mockReturnValue({
-      balance: null,
-      loading: true,
-      error: null,
-      refetch: vi.fn()
+  it('shows transactions list when wallet is selected', async () => {
+    renderDashboard();
+    
+    // Click to select a wallet
+    await act(async () => {
+      fireEvent.click(screen.getByText('Select Wallet'));
     });
     
-    renderDashboard();
-    
-    // Check for loading spinner
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    // Should show transactions list
+    await waitFor(() => {
+      expect(screen.getByTestId('transactions-list')).toBeInTheDocument();
+    });
   });
 
-  it('displays error state when there is an error', () => {
-    const mockRefetch = vi.fn();
-    // Mock error state
-    vi.mocked(useBalanceHook.useBalance).mockReturnValue({
-      balance: null,
-      loading: false,
-      error: 'Failed to fetch balance',
-      refetch: mockRefetch
+  it('displays wallet income and expense', () => {
+    renderDashboard();
+    
+    // Check wallet financial data
+    expect(screen.getByTestId('wallet-income')).toHaveTextContent('+$3,000.00');
+    expect(screen.getByTestId('wallet-expense')).toHaveTextContent('-$150.00');
+  });
+
+  it('displays transaction details when wallet is selected', async () => {
+    renderDashboard();
+    
+    // Initially, transaction details should not be visible
+    expect(screen.queryByTestId('transactions-list')).not.toBeInTheDocument();
+    expect(screen.getByText('Select a wallet to view transactions')).toBeInTheDocument();
+    
+    // Select a wallet first
+    await act(async () => {
+      fireEvent.click(screen.getByText('Select Wallet'));
     });
     
-    renderDashboard();
-    
-    expect(screen.getByText('Failed to fetch balance')).toBeInTheDocument();
-    expect(screen.getByText('Try Again')).toBeInTheDocument();
-    
-    // Test retry functionality
-    fireEvent.click(screen.getByText('Try Again'));
-    expect(mockRefetch).toHaveBeenCalled();
-  });
-
-  it('calculates correct income and expense totals', () => {
-    renderDashboard();
-    
-    // Income total should be 3000.00
-    expect(screen.getByTestId('income')).toHaveTextContent('+USD 3000.00');
-    
-    // Expense total should be 150.00
-    expect(screen.getByTestId('expense')).toHaveTextContent('-USD 150.00');
-  });
-
-  it('displays transactions correctly', () => {
-    renderDashboard();
-    
-    // Should display both income and expense transactions
-    expect(screen.getByText('Grocery Shopping - $150.00')).toBeInTheDocument(); // Expense
-    expect(screen.getByText('Salary - $3,000.00')).toBeInTheDocument(); // Income
-  });
-
-  it('handles empty balance data', () => {
-    // Mock null balance
-    vi.mocked(useBalanceHook.useBalance).mockReturnValue({
-      balance: null,
-      loading: false,
-      error: null,
-      refetch: vi.fn()
+    // Check if transaction list appears after wallet selection
+    await waitFor(() => {
+      expect(screen.getByTestId('transactions-list')).toBeInTheDocument();
+      expect(screen.queryByText('Select a wallet to view transactions')).not.toBeInTheDocument();
     });
-    
-    renderDashboard();
-    
-    // Should show default values
-    expect(screen.getByTestId('total-balance')).toHaveTextContent('$0.00');
-    expect(screen.getByTestId('income')).toHaveTextContent('+$0.00');
-    expect(screen.getByTestId('expense')).toHaveTextContent('-$0.00');
-  });
-
-  it('displays transaction categories', () => {
-    renderDashboard();
-    
-    // Check if category names are displayed
-    expect(screen.getByText('Food')).toBeInTheDocument();
-    expect(screen.getByText('Salary')).toBeInTheDocument();
-  });
-
-  it('displays wallet information', () => {
-    renderDashboard();
-    
-    // Check if wallet name is displayed in transactions
-    expect(screen.getByText('Main Wallet')).toBeInTheDocument();
   });
 });

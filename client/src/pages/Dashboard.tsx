@@ -1,9 +1,12 @@
 import { WalletCarousel } from '@/components/finance/wallet-carousel';
 import { TransactionsList } from '@/components/finance/transactions-list';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 export default function Dashboard() {
     const [currentWalletId, setCurrentWalletId] = useState<string | undefined>();
+    const [refreshKey, setRefreshKey] = useState(0);
+    const walletCarouselRef = useRef<{ refetchWallets: () => void } | null>(null);
+    const transactionsListRef = useRef<{ refetch: () => void } | null>(null);
 
     // Handle wallet change from carousel
     const handleWalletChange = (walletId: string) => {
@@ -12,7 +15,8 @@ export default function Dashboard() {
 
     // Handle transaction changes
     const handleTransactionChange = () => {
-        // This will trigger refetch in both components
+        // Trigger refetch in both components by updating refresh key
+        setRefreshKey(prev => prev + 1);
     };
 
 
@@ -22,6 +26,7 @@ export default function Dashboard() {
         
         <main className="flex-1 w-full max-w-2xl px-6">
             <WalletCarousel 
+                key={`wallet-carousel-${refreshKey}`}
                 onTransactionChange={handleTransactionChange}
                 onWalletChange={handleWalletChange}
             />
@@ -32,6 +37,7 @@ export default function Dashboard() {
                 </div>
             ) : (
                 <TransactionsList 
+                    key={`transactions-list-${refreshKey}-${currentWalletId}`}
                     limit={5}
                     showSeeAllLink={true}
                     onTransactionChange={handleTransactionChange}
