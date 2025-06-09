@@ -10,6 +10,7 @@ interface UseTransactionFormProps {
   type?: TransactionType;
   transaction?: Transaction;
   onSuccess?: () => void;
+  defaultWalletId?: string;
 }
 
 interface TransactionFormData {
@@ -20,7 +21,7 @@ interface TransactionFormData {
   categoryId: string;
 }
 
-export function useTransactionForm({ type, transaction, onSuccess }: UseTransactionFormProps) {
+export function useTransactionForm({ type, transaction, onSuccess, defaultWalletId }: UseTransactionFormProps) {
   const [formData, setFormData] = useState<TransactionFormData>({
     description: '',
     amount: '',
@@ -53,6 +54,13 @@ export function useTransactionForm({ type, transaction, onSuccess }: UseTransact
       });
     }
   }, [transaction]);
+
+  // Set default wallet when provided and not editing
+  useEffect(() => {
+    if (defaultWalletId && !transaction) {
+      setFormData(prev => ({ ...prev, walletId: defaultWalletId }));
+    }
+  }, [defaultWalletId, transaction]);
 
   const formatDateForInput = (dateString: string): string => {
     try {

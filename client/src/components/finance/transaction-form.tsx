@@ -21,13 +21,15 @@ interface TransactionFormProps {
   transaction?: Transaction;
   onSuccess?: () => void;
   submitButtonText?: string;
+  defaultWalletId?: string;
 }
 
 export function TransactionForm({ 
   type, 
   transaction, 
   onSuccess, 
-  submitButtonText = 'Submit' 
+  submitButtonText = 'Add Transaction',
+  defaultWalletId
 }: TransactionFormProps) {
   const {
     formData,
@@ -43,7 +45,7 @@ export function TransactionForm({
     walletsError,
     categoriesError,
     refetchCategories,
-  } = useTransactionForm({ type, transaction, onSuccess });
+  } = useTransactionForm({ type, transaction, onSuccess, defaultWalletId });
 
   // Generate random color for new categories
   const generateRandomColor = () => {

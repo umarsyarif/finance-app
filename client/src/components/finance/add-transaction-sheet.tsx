@@ -7,9 +7,10 @@ type TransactionType = 'INCOME' | 'EXPENSE';
 interface AddTransactionSheetProps {
   type: TransactionType;
   onTransactionChange?: () => void;
+  defaultWalletId?: string;
 }
 
-export function AddTransactionSheet({ type, onTransactionChange }: AddTransactionSheetProps) {
+export function AddTransactionSheet({ type, onTransactionChange, defaultWalletId }: AddTransactionSheetProps) {
   const isIncome = type === 'INCOME';
   const buttonText = isIncome ? 'Add Income' : 'Add Expense';
   const sheetTitle = isIncome ? 'Add New Income' : 'Add New Expense';
@@ -38,6 +39,7 @@ export function AddTransactionSheet({ type, onTransactionChange }: AddTransactio
             type={type}
             onSuccess={onTransactionChange}
             submitButtonText={buttonText}
+            defaultWalletId={defaultWalletId}
           />
         </div>
       </SheetContent>

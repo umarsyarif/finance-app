@@ -1,63 +1,43 @@
-import { BalanceCard } from '@/components/finance/balance-card';
+import { WalletCarousel } from '@/components/finance/wallet-carousel';
 import { TransactionsList } from '@/components/finance/transactions-list';
-import { useBalance } from '@/hooks/use-balance';
-import { useEffect, useRef } from 'react';
+import { useState } from 'react';
 
 export default function Dashboard() {
-    const { balance, loading, error, refetch } = useBalance();
-    const transactionsListRef = useRef<{ refetch: () => void } | null>(null);
+    const [currentWalletId, setCurrentWalletId] = useState<string | undefined>();
 
-    // Refresh balance when transactions change
-    const handleTransactionChange = () => {
-        refetch();
+    // Handle wallet change from carousel
+    const handleWalletChange = (walletId: string) => {
+        setCurrentWalletId(walletId);
     };
 
-    if (loading) {
-        return (
-            <div className="bg-pastel-green min-h-screen flex flex-col items-center font-sans pb-20 mt-4">
-                <main className="flex-1 w-full max-w-2xl px-6">
-                    <div className="flex items-center justify-center py-20">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pastel-blue"></div>
-                    </div>
-                </main>
-            </div>
-        );
-    }
+    // Handle transaction changes
+    const handleTransactionChange = () => {
+        // This will trigger refetch in both components
+    };
 
-    if (error) {
-        return (
-            <div className="bg-pastel-green min-h-screen flex flex-col items-center font-sans pb-20 mt-4">
-                <main className="flex-1 w-full max-w-2xl px-6">
-                    <div className="text-center py-20">
-                        <p className="text-red-500 mb-4">{error}</p>
-                        <button 
-                            onClick={refetch}
-                            className="px-4 py-2 bg-pastel-blue text-white rounded-lg hover:bg-pastel-blue/80 transition-colors"
-                        >
-                            Try Again
-                        </button>
-                    </div>
-                </main>
-            </div>
-        );
-    }
+
 
     return (
         <div className="bg-pastel-green min-h-screen flex flex-col items-center font-sans pb-20 mt-4">
         
         <main className="flex-1 w-full max-w-2xl px-6">
-            <BalanceCard 
-                balance={balance ? `${balance.currency} ${balance.totalBalance.toFixed(2)}` : '$0.00'}
-                income={balance ? `+${balance.currency} ${balance.totalIncome.toFixed(2)}` : '+$0.00'}
-                expense={balance ? `-${balance.currency} ${balance.totalExpense.toFixed(2)}` : '-$0.00'}
+            <WalletCarousel 
                 onTransactionChange={handleTransactionChange}
+                onWalletChange={handleWalletChange}
             />
             
-            <TransactionsList 
-                limit={5}
-                showSeeAllLink={true}
-                onTransactionChange={handleTransactionChange} 
-            />
+            {!currentWalletId ? (
+                <div className="text-center py-8">
+                    <p className="text-gray-500">Select a wallet to view transactions</p>
+                </div>
+            ) : (
+                <TransactionsList 
+                    limit={5}
+                    showSeeAllLink={true}
+                    onTransactionChange={handleTransactionChange}
+                    walletId={currentWalletId}
+                />
+            )}
         </main>
         
         </div>
