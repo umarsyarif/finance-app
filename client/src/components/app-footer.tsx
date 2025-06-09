@@ -16,7 +16,7 @@ interface NavItem {
 export function AppFooter({ items, className }: BottomNavProps) {
     return (
         <nav className={cn(
-            "w-full max-w-2xl px-6 py-4 mt-8 flex justify-between items-center bg-pastel-yellow/80 border-t border-pastel-green-dark/20 rounded-t-2xl shadow fixed bottom-0 left-1/2 -translate-x-1/2",
+            "w-full max-w-2xl px-6 py-4 mt-8 flex justify-between items-center bg-background border-t rounded-t-2xl shadow fixed bottom-0 left-1/2 -translate-x-1/2",
             className
         )}>
             {items.map((item, index) => (
