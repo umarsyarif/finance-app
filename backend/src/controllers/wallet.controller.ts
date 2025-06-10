@@ -14,6 +14,9 @@ import {
   deleteWallet,
   countWallets,
   findWalletsByUserId,
+  findMainWallet,
+  setMainWallet,
+  updateWalletOrder,
 } from '../services/wallet.service';
 import AppError from '../utils/appError';
 
@@ -200,6 +203,87 @@ export const getUserWalletsHandler = async (
       data: {
         wallets,
       },
+    });
+  } catch (err: any) {
+    next(err);
+  }
+};
+
+export const getMainWalletHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = res.locals.user.id;
+
+    const mainWallet = await findMainWallet(userId);
+
+    if (!mainWallet) {
+      return next(new AppError(404, 'Main wallet not found'));
+    }
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        wallet: mainWallet,
+      },
+    });
+  } catch (err: any) {
+    next(err);
+  }
+};
+
+export const setMainWalletHandler = async (
+  req: Request<{ walletId: string }>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = res.locals.user.id;
+    const { walletId } = req.params;
+
+    // Check if wallet belongs to the user
+    const wallet = await findWalletById(walletId);
+    if (!wallet || wallet.userId !== userId) {
+      return next(new AppError(404, 'Wallet not found or access denied'));
+    }
+
+    const mainWallet = await setMainWallet(userId, walletId);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        wallet: mainWallet,
+      },
+    });
+  } catch (err: any) {
+    next(err);
+  }
+};
+
+export const updateWalletOrderHandler = async (
+  req: Request<{}, {}, { walletOrders: { id: string; displayOrder: number }[] }>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = res.locals.user.id;
+    const { walletOrders } = req.body;
+
+    // Verify all wallets belong to the user
+    const walletIds = walletOrders.map(w => w.id);
+    const userWallets = await findWallets({ userId, id: { in: walletIds } });
+    
+    if (userWallets.length !== walletIds.length) {
+      return next(new AppError(403, 'Some wallets do not belong to the user'));
+    }
+
+    await updateWalletOrder(userId, walletOrders);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Wallet order updated successfully',
     });
   } catch (err: any) {
     next(err);

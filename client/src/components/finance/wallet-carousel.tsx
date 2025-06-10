@@ -14,6 +14,8 @@ interface Wallet {
   balance: number;
   currency: string;
   color: string;
+  isMain: boolean;
+  displayOrder: number;
 }
 
 interface WalletCarouselProps {
@@ -22,18 +24,25 @@ interface WalletCarouselProps {
 }
 
 export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCarouselProps) {
-  const { wallets: initialWallets, loading, error, refetch } = useWallets();
+  const { wallets: initialWallets, loading, error, refetch, updateWalletOrder, getMainWallet, setMainWallet } = useWallets();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [walletStats, setWalletStats] = useState<Record<string, { income: number; expense: number }>>({});
+  const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
 
-  // Update wallets when data is fetched
+  // Update wallets when data is fetched and set main wallet as default
   useEffect(() => {
-    if (initialWallets) {
+    if (initialWallets && !isUpdatingOrder) {
       setWallets(initialWallets);
+      
+      // Find and set main wallet as current index
+      const mainWalletIndex = initialWallets.findIndex(wallet => wallet.isMain);
+      if (mainWalletIndex !== -1) {
+        setCurrentIndex(mainWalletIndex);
+      }
     }
-  }, [initialWallets]);
+  }, [initialWallets, isUpdatingOrder]);
 
   // Fetch wallet-specific statistics for current month only
   useEffect(() => {
@@ -95,7 +104,7 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
     
     if (draggedIndex === null || draggedIndex === dropIndex) {
@@ -112,7 +121,13 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
     // Insert at new position
     newWallets.splice(dropIndex, 0, draggedWallet);
     
-    setWallets(newWallets);
+    // Update display order for all wallets
+    const updatedWallets = newWallets.map((wallet, index) => ({
+      ...wallet,
+      displayOrder: index + 1
+    }));
+    
+    setWallets(updatedWallets);
     
     // Update current index if needed
     if (currentIndex === draggedIndex) {
@@ -124,6 +139,21 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
     }
     
     setDraggedIndex(null);
+    
+    // Persist the new order to the backend
+    setIsUpdatingOrder(true);
+    try {
+      await updateWalletOrder(updatedWallets.map(wallet => ({
+        id: wallet.id,
+        displayOrder: wallet.displayOrder
+      })));
+    } catch (error) {
+      console.error('Failed to update wallet order:', error);
+      // Revert to original order on error
+      setWallets(wallets);
+    } finally {
+      setIsUpdatingOrder(false);
+    }
   };
 
   const nextWallet = () => {
@@ -136,6 +166,19 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
 
   const goToWallet = (index: number) => {
     setCurrentIndex(index);
+  };
+
+  const handleSetMainWallet = async (walletId: string) => {
+    setIsUpdatingOrder(true);
+    try {
+      await setMainWallet(walletId);
+      // Refetch wallets to get updated isMain status
+      await refetch();
+    } catch (error) {
+      console.error('Failed to set main wallet:', error);
+    } finally {
+      setIsUpdatingOrder(false);
+    }
   };
 
   if (loading) {
@@ -201,7 +244,14 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
         {/* Wallet Info */}
         <div className="text-center mb-4">
           <span className="text-gray-600 text-sm">Current Balance</span>
-          <h3 className="text-lg font-semibold text-gray-800 mt-1">{currentWallet.name}</h3>
+          <div className="flex items-center justify-center gap-2 mt-1">
+            <h3 className="text-lg font-semibold text-gray-800">{currentWallet.name}</h3>
+            {currentWallet.isMain && (
+              <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
+                Main
+              </span>
+            )}
+          </div>
           <span className="text-3xl font-semibold text-pastel-blue mt-2 block">
             {formatAmount(currentWallet.balance, null, currentWallet.currency)}
           </span>
@@ -245,16 +295,20 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, index)}
               onClick={() => goToWallet(index)}
+              onDoubleClick={() => handleSetMainWallet(wallet.id)}
               className={cn(
-                "w-12 h-8 rounded-lg border-2 cursor-pointer transition-all duration-200 flex items-center justify-center text-xs font-medium",
+                "w-12 h-8 rounded-lg border-2 cursor-pointer transition-all duration-200 flex items-center justify-center text-xs font-medium relative",
                 index === currentIndex
                   ? "border-gray-200 bg-gray-200 text-gray-600"
-                  : "border-gray-300 bg-white text-gray-600 hover:border-pastel-blue",
+                  : "border-gray-300 bg-white text-gray-600",
                 draggedIndex === index && "opacity-50"
               )}
-              title={`${wallet.name} - Drag to reorder`}
+              title={`${wallet.name} - Click to select, double-click to set as main, drag to reorder`}
             >
               {wallet.name.charAt(0).toUpperCase()}
+              {wallet.isMain && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border border-white" />
+              )}
             </div>
           ))}
         </div>
@@ -263,7 +317,7 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
       {/* Wallet Count Info */}
       {wallets.length > 1 && (
         <p className="text-center text-xs text-gray-500">
-          Wallet {currentIndex + 1} of {wallets.length} • Drag indicators to reorder
+          Wallet {currentIndex + 1} of {wallets.length} • Drag to reorder • Double-click to set as main
         </p>
       )}
     </div>

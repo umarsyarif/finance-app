@@ -29,6 +29,8 @@ async function main() {
       balance: 1000.00,
       currency: 'USD',
       color: '#3B82F6',
+      isMain: true,
+      displayOrder: 1,
       userId: testUser.id,
     },
   });
@@ -42,6 +44,8 @@ async function main() {
       balance: 5000.00,
       currency: 'USD',
       color: '#10B981',
+      isMain: false,
+      displayOrder: 2,
       userId: testUser.id,
     },
   });

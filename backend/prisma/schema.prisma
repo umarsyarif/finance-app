@@ -39,13 +39,15 @@ enum RoleEnumType {
 }
 
 model Wallet {
-  id        String        @id @default(uuid())
-  userId    String
-  name      String
-  currency  String
-  balance   Float         @default(0.0)
-  color     String        @default("#3B82F6") // Default blue color
-  createdAt DateTime      @default(now())
+  id           String        @id @default(uuid())
+  userId       String
+  name         String
+  currency     String
+  balance      Float         @default(0.0)
+  color        String        @default("#3B82F6") // Default blue color
+  isMain       Boolean       @default(false)
+  displayOrder Int           @default(0)
+  createdAt    DateTime      @default(now())
 
   user        User        @relation(fields: [userId], references: [id])
   transactions Transaction[]

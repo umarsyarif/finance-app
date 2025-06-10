@@ -45,7 +45,7 @@ export const findWalletById = async (id: string) => {
 
 export const findWallets = async (
   where: Prisma.WalletWhereInput = {},
-  orderBy: Prisma.WalletOrderByWithRelationInput = { createdAt: 'desc' }
+  orderBy: Prisma.WalletOrderByWithRelationInput = { displayOrder: 'asc' }
 ) => {
   return await prisma.wallet.findMany({
     where,
@@ -65,6 +65,63 @@ export const findWallets = async (
       },
     },
   });
+};
+
+export const findMainWallet = async (userId: string) => {
+  return await prisma.wallet.findFirst({
+    where: {
+      userId,
+      isMain: true,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+};
+
+export const setMainWallet = async (userId: string, walletId: string) => {
+  // First, unset any existing main wallet
+  await prisma.wallet.updateMany({
+    where: {
+      userId,
+      isMain: true,
+    },
+    data: {
+      isMain: false,
+    },
+  });
+
+  // Then set the new main wallet
+  return await prisma.wallet.update({
+    where: { id: walletId },
+    data: { isMain: true },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+};
+
+export const updateWalletOrder = async (userId: string, walletOrders: { id: string; displayOrder: number }[]) => {
+  const updatePromises = walletOrders.map(({ id, displayOrder }) =>
+    prisma.wallet.update({
+      where: { id },
+      data: { displayOrder },
+    })
+  );
+
+  return await Promise.all(updatePromises);
 };
 
 export const updateWallet = async (
@@ -101,7 +158,7 @@ export const countWallets = async (
 export const findWalletsByUserId = async (userId: string) => {
   return await prisma.wallet.findMany({
     where: { userId },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { displayOrder: 'asc' },
     include: {
       _count: {
         select: {

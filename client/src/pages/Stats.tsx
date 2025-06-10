@@ -100,7 +100,7 @@ export default function Stats() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="start-date">Start Date</Label>
               <Input
@@ -119,6 +119,7 @@ export default function Stats() {
                 onChange={(e) => handleFilterChange('endDate', e.target.value)}
               />
             </div>
+
             <div className="space-y-2">
               <Label>Wallet</Label>
               <Select
@@ -138,6 +139,7 @@ export default function Stats() {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label>Category</Label>
               <Select
@@ -168,7 +170,11 @@ export default function Stats() {
 
       {/* Monthly Summary */}
       {monthlySummary && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <>
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold">Monthly Summary</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Income</CardTitle>
@@ -214,6 +220,7 @@ export default function Stats() {
             </CardContent>
           </Card>
         </div>
+        </>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
