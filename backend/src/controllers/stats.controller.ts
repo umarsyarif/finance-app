@@ -14,14 +14,14 @@ export const getMonthlySummaryHandler = async (
   next: NextFunction
 ) => {
   try {
-    const { startDate, endDate, walletId, categoryId, year, month } = req.query;
+    const { startDate, endDate, walletIds, categoryId, year, month } = req.query;
     const userId = res.locals.user.id;
 
     const filters: StatsFilters = {
       userId,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
-      walletId,
+      walletIds: walletIds ? walletIds.split(',').map(id => id.trim()) : undefined,
       categoryId,
       year: year ? parseInt(year) : undefined,
       month: month ? parseInt(month) : undefined,
@@ -57,14 +57,14 @@ export const getCategoryBreakdownHandler = async (
   next: NextFunction
 ) => {
   try {
-    const { startDate, endDate, walletId, year, month } = req.query;
+    const { startDate, endDate, walletIds, year, month } = req.query;
     const userId = res.locals.user.id;
 
     const filters: StatsFilters = {
       userId,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
-      walletId,
+      walletIds: walletIds ? walletIds.split(',').map(id => id.trim()) : undefined,
       year: year ? parseInt(year) : undefined,
       month: month ? parseInt(month) : undefined,
     };
@@ -86,12 +86,12 @@ export const getTrendDataHandler = async (
   next: NextFunction
 ) => {
   try {
-    const { walletId, categoryId, year } = req.query;
+    const { walletIds, categoryId, year } = req.query;
     const userId = res.locals.user.id;
 
     const filters: StatsFilters = {
       userId,
-      walletId,
+      walletIds: walletIds ? walletIds.split(',').map(id => id.trim()) : undefined,
       categoryId,
       year: year ? parseInt(year) : undefined,
     };

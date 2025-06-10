@@ -86,11 +86,12 @@ export const formatAmount = (amount: number, type: string|null = null, currency:
 /**
  * Formats an amount as currency without sign
  * @param amount - The amount to format
+ * @param currency - Currency code (default: 'USD')
  * @returns Formatted currency string
  */
-export const formatCurrency = (amount: number): string => {
+export const formatCurrency = (amount: number, currency: string = 'USD'): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: currency,
   }).format(amount);
 };

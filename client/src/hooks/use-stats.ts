@@ -28,7 +28,7 @@ interface TrendData {
 interface StatsFilters {
   startDate?: string;
   endDate?: string;
-  walletId?: string;
+  walletIds?: string[];
   categoryId?: string;
   year?: number;
   month?: number;
@@ -59,7 +59,10 @@ export function useStats(filters: StatsFilters = {}): UseStatsReturn {
       const params = new URLSearchParams();
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
-      if (filters.walletId) params.append('walletId', filters.walletId);
+      if (filters.walletIds && filters.walletIds.length > 0) {
+        // Send multiple wallet IDs as comma-separated values
+        params.append('walletIds', filters.walletIds.join(','));
+      }
       if (filters.categoryId) params.append('categoryId', filters.categoryId);
       if (filters.year) params.append('year', filters.year.toString());
       if (filters.month) params.append('month', filters.month.toString());
@@ -84,7 +87,7 @@ export function useStats(filters: StatsFilters = {}): UseStatsReturn {
 
   useEffect(() => {
     fetchStats();
-  }, [filters.startDate, filters.endDate, filters.walletId, filters.categoryId, filters.year, filters.month]);
+  }, [filters.startDate, filters.endDate, filters.walletIds, filters.categoryId, filters.year, filters.month]);
 
   return {
     monthlySummary,

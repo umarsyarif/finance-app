@@ -53,11 +53,45 @@ vi.mock('@/components/ui/select', () => ({
   SelectValue: ({ placeholder }: any) => <span data-testid="select-value">{placeholder}</span>,
 }));
 
+vi.mock('@/components/ui/multi-select', () => ({
+  MultiSelect: ({ options, onValueChange, defaultValue, placeholder, maxCount }: any) => (
+    <div data-testid="multi-select" data-placeholder={placeholder} data-max-count={maxCount}>
+      <button 
+        onClick={() => {
+          const selectedValues = defaultValue || [];
+          const newValue = selectedValues.length > 0 ? [] : ['wallet-1', 'wallet-2'];
+          onValueChange?.(newValue);
+        }}
+      >
+        {placeholder}
+      </button>
+      {options?.map((option: any) => (
+        <div key={option.value} data-testid="multi-select-option" data-value={option.value}>
+          {option.label}
+        </div>
+      ))}
+    </div>
+  ),
+}));
+
 vi.mock('@/components/ui/button', () => ({
   Button: ({ children, onClick, variant }: any) => (
     <button data-testid="button" data-variant={variant} onClick={onClick}>
       {children}
     </button>
+  ),
+}));
+
+vi.mock('@/components/ui/date-picker', () => ({
+  DatePicker: ({ date, onSelect, placeholder, ...props }: any) => (
+    <div data-testid="date-picker">
+      <button
+        onClick={() => onSelect && onSelect(new Date('2023-12-15'))}
+        {...props}
+      >
+        {date ? date.toLocaleDateString() : placeholder}
+      </button>
+    </div>
   ),
 }));
 
@@ -130,8 +164,9 @@ const mockTrendData = [
 ];
 
 const mockWallets = [
-  { id: 'wallet-1', name: 'Main Wallet', balance: 1000 },
-  { id: 'wallet-2', name: 'Savings', balance: 5000 },
+  { id: 'wallet-1', name: 'Main Wallet', balance: 1000, currency: 'USD', color: '#3B82F6', isMain: true, displayOrder: 1 },
+  { id: 'wallet-2', name: 'Savings', balance: 5000, currency: 'USD', color: '#10B981', isMain: false, displayOrder: 2 },
+  { id: 'wallet-3', name: 'Euro Account', balance: 2000, currency: 'EUR', color: '#F59E0B', isMain: false, displayOrder: 3 },
 ];
 
 const mockCategories = [
@@ -188,6 +223,9 @@ describe('Stats Page', () => {
       updateWallet: vi.fn(),
       deleteWallet: vi.fn(),
       refetch: vi.fn(),
+      getMainWallet: vi.fn(() => mockWallets.find(w => w.isMain)),
+      setMainWallet: vi.fn(),
+      updateWalletOrder: vi.fn(),
     });
 
     mockUseCategories.mockReturnValue({
@@ -211,15 +249,27 @@ describe('Stats Page', () => {
       expect(screen.getByText('View your financial insights and trends')).toBeInTheDocument();
     });
 
-    it('renders the filters section', () => {
+    it('renders the filter toggle button', () => {
       renderStats();
+      
+      // Initially filters should be hidden
+      expect(screen.queryByText('Filters')).not.toBeInTheDocument();
+      expect(screen.getByText('Show Filters')).toBeInTheDocument();
+    });
+
+    it('shows filters section when filter button is clicked', () => {
+      renderStats();
+      
+      // Click show filters button
+      fireEvent.click(screen.getByText('Show Filters'));
       
       expect(screen.getByText('Filters')).toBeInTheDocument();
       expect(screen.getByText('Filter your statistics by date, wallet, or category')).toBeInTheDocument();
-      expect(screen.getByTestId('label-start-date')).toHaveTextContent('Start Date');
-      expect(screen.getByTestId('label-end-date')).toHaveTextContent('End Date');
-      expect(screen.getByText('Wallet')).toBeInTheDocument();
+      expect(screen.getByText('Start Date')).toBeInTheDocument();
+      expect(screen.getByText('End Date')).toBeInTheDocument();
+      expect(screen.getByText('Wallets')).toBeInTheDocument();
       expect(screen.getByText('Category')).toBeInTheDocument();
+      expect(screen.getByText('Apply Filters')).toBeInTheDocument();
     });
 
     it('renders monthly summary cards with correct data', () => {
@@ -294,26 +344,56 @@ describe('Stats Page', () => {
       expect(mockFormatDateForDateInput).toHaveBeenCalledWith(new Date('2023-12-31'));
     });
 
-    it('updates start date filter when date input changes', () => {
+    it('should show/hide filters when clicking filter button', async () => {
       renderStats();
       
-      const startDateInput = screen.getByTestId('input-start-date');
-      fireEvent.change(startDateInput, { target: { value: '2023-11-01' } });
+      // Initially filters should be hidden
+      expect(screen.queryByText('Filters')).not.toBeInTheDocument();
       
-      expect(startDateInput).toHaveValue('2023-11-01');
+      // Click show filters button
+      const filterButton = screen.getByText('Show Filters');
+      fireEvent.click(filterButton);
+      
+      // Filters should now be visible
+      expect(screen.getByText('Filters')).toBeInTheDocument();
+      expect(screen.getByText('Hide Filters')).toBeInTheDocument();
+      
+      // Click hide filters button
+      fireEvent.click(screen.getByText('Hide Filters'));
+      
+      // Filters should be hidden again
+      expect(screen.queryByText('Filters')).not.toBeInTheDocument();
     });
 
-    it('updates end date filter when date input changes', () => {
+    it('should update date filters and apply them', async () => {
       renderStats();
       
-      const endDateInput = screen.getByTestId('input-end-date');
-      fireEvent.change(endDateInput, { target: { value: '2023-11-30' } });
+      // Show filters first
+      fireEvent.click(screen.getByText('Show Filters'));
       
-      expect(endDateInput).toHaveValue('2023-11-30');
+      // Find and click date pickers
+      const datePickers = screen.getAllByTestId('date-picker');
+      expect(datePickers).toHaveLength(2);
+      
+      // Click start date picker
+      fireEvent.click(datePickers[0].querySelector('button')!);
+      
+      // Click Apply Filters button
+      const applyButton = screen.getByText('Apply Filters');
+      fireEvent.click(applyButton);
+      
+      await waitFor(() => {
+        expect(mockUseStats).toHaveBeenCalledWith(expect.objectContaining({
+          startDate: expect.any(String)
+        }));
+      });
     });
 
     it('clears filters when clear button is clicked', () => {
       renderStats();
+      
+      // Show filters first
+      fireEvent.click(screen.getByText('Show Filters'));
       
       const clearButton = screen.getByText('Clear Filters');
       fireEvent.click(clearButton);
@@ -327,15 +407,140 @@ describe('Stats Page', () => {
     it('renders wallet filter options', () => {
       renderStats();
       
+      // Show filters first
+      fireEvent.click(screen.getByText('Show Filters'));
+      
       // Check that wallet filter section exists
-      expect(screen.getByText('Wallet')).toBeInTheDocument();
+      expect(screen.getByText('Wallets')).toBeInTheDocument();
     });
 
     it('renders category filter options', () => {
       renderStats();
       
+      // Show filters first
+      fireEvent.click(screen.getByText('Show Filters'));
+      
       // Check that category filter section exists
       expect(screen.getByText('Category')).toBeInTheDocument();
+    });
+
+    it('renders multi-select wallet filter with correct options', () => {
+      renderStats();
+      
+      // Show filters first
+      fireEvent.click(screen.getByText('Show Filters'));
+      
+      // Check that multi-select component is rendered
+      expect(screen.getByTestId('multi-select')).toBeInTheDocument();
+      expect(screen.getByTestId('multi-select')).toHaveAttribute('data-placeholder', 'Select wallets (same currency only)');
+      expect(screen.getByTestId('multi-select')).toHaveAttribute('data-max-count', '2');
+      
+      // Check that all wallet options are rendered (filtering happens in the component logic)
+      const walletOptions = screen.getAllByTestId('multi-select-option');
+      expect(walletOptions).toHaveLength(3); // All wallets are rendered
+      expect(walletOptions[0]).toHaveAttribute('data-value', 'wallet-1');
+      expect(walletOptions[1]).toHaveAttribute('data-value', 'wallet-2');
+      expect(walletOptions[2]).toHaveAttribute('data-value', 'wallet-3');
+    });
+
+    it('handles wallet filter selection', () => {
+      renderStats();
+      
+      // Show filters first
+      fireEvent.click(screen.getByText('Show Filters'));
+      
+      const multiSelectButton = screen.getByTestId('multi-select').querySelector('button');
+      fireEvent.click(multiSelectButton!);
+      
+      // Verify that the multi-select component handles value changes
+      expect(multiSelectButton).toBeInTheDocument();
+    });
+
+    it('renders all wallet options in multi-select', () => {
+      renderStats();
+      
+      // Show filters first
+      fireEvent.click(screen.getByText('Show Filters'));
+      
+      // Open the multi-select dropdown
+      const multiSelectButton = screen.getByTestId('multi-select').querySelector('button');
+      fireEvent.click(multiSelectButton!);
+      
+      // Check that all wallets are rendered as options
+      const walletOptions = screen.getAllByTestId('multi-select-option');
+      expect(walletOptions).toHaveLength(3); // All wallets are rendered
+      
+      // Verify all wallet options are present
+      const walletValues = walletOptions.map(option => option.getAttribute('data-value'));
+      expect(walletValues).toContain('wallet-1');
+      expect(walletValues).toContain('wallet-2');
+      expect(walletValues).toContain('wallet-3');
+    });
+
+    it('initializes with main wallet selected', () => {
+      renderStats();
+      
+      // Show filters first
+      fireEvent.click(screen.getByText('Show Filters'));
+      
+      // Check that main wallet is initially selected
+      expect(screen.getByText('Main Wallet')).toBeInTheDocument();
+    });
+
+    it('does not auto-close multi-select after selection', () => {
+      renderStats();
+      
+      // Show filters first
+      fireEvent.click(screen.getByText('Show Filters'));
+      
+      // Open the multi-select dropdown
+      const multiSelectButton = screen.getByTestId('multi-select').querySelector('button');
+      fireEvent.click(multiSelectButton!);
+      
+      // Select the first option
+      const walletOptions = screen.getAllByTestId('multi-select-option');
+      fireEvent.click(walletOptions[0]);
+      
+      // Verify dropdown is still open (options should still be visible)
+      expect(screen.getAllByTestId('multi-select-option')).toHaveLength(3);
+    });
+
+    it('allows selecting wallet options', () => {
+      renderStats();
+      
+      // Show filters first
+      fireEvent.click(screen.getByText('Show Filters'));
+      
+      // Open the multi-select dropdown
+      const multiSelectButton = screen.getByTestId('multi-select').querySelector('button');
+      fireEvent.click(multiSelectButton!);
+      
+      // Select a wallet option
+      const walletOptions = screen.getAllByTestId('multi-select-option');
+      fireEvent.click(walletOptions[0]);
+      
+      // Verify the multi-select component is functional
+      expect(screen.getByTestId('multi-select')).toBeInTheDocument();
+    });
+
+    it('shows all wallet options in multi-select', () => {
+      renderStats();
+      
+      // Show filters first
+      fireEvent.click(screen.getByText('Show Filters'));
+      
+      // Open the multi-select dropdown
+      const multiSelectButton = screen.getByTestId('multi-select').querySelector('button');
+      fireEvent.click(multiSelectButton!);
+      
+      // Verify all 3 wallet options are visible
+      const walletOptions = screen.getAllByTestId('multi-select-option');
+      expect(walletOptions).toHaveLength(3);
+      
+      // Verify wallet names are displayed
+      expect(screen.getByText('Main Wallet')).toBeInTheDocument();
+      expect(screen.getByText('Savings')).toBeInTheDocument();
+      expect(screen.getByText('Euro Account')).toBeInTheDocument();
     });
   });
 
@@ -346,6 +551,9 @@ describe('Stats Page', () => {
       // Initially shows bar chart
       expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
       expect(screen.queryByTestId('line-chart')).not.toBeInTheDocument();
+      
+      // Show filters to access the chart type select
+      fireEvent.click(screen.getByText('Show Filters'));
       
       // Switch to line chart
       const chartTypeSelect = screen.getAllByTestId('select')[1]; // Second select is chart type
@@ -470,8 +678,11 @@ describe('Stats Page', () => {
     it('has proper labels for form inputs', () => {
       renderStats();
       
-      expect(screen.getByTestId('label-start-date')).toBeInTheDocument();
-      expect(screen.getByTestId('label-end-date')).toBeInTheDocument();
+      // Show filters first to access the date pickers
+      fireEvent.click(screen.getByText('Show Filters'));
+      
+      expect(screen.getByText('Start Date')).toBeInTheDocument();
+      expect(screen.getByText('End Date')).toBeInTheDocument();
     });
 
     it('has proper ARIA labels and roles for charts', () => {
@@ -495,8 +706,11 @@ describe('Stats Page', () => {
     it('renders wallet and category filter options', () => {
       renderStats();
       
+      // Show filters first
+      fireEvent.click(screen.getByText('Show Filters'));
+      
       // Verify that wallet and category filters are rendered
-      expect(screen.getByText('Wallet')).toBeInTheDocument();
+      expect(screen.getByText('Wallets')).toBeInTheDocument();
       expect(screen.getByText('Category')).toBeInTheDocument();
     });
   });

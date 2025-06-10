@@ -28,14 +28,14 @@ export interface StatsFilters {
   userId: string;
   startDate?: Date;
   endDate?: Date;
-  walletId?: string;
+  walletIds?: string[];
   categoryId?: string;
   year?: number;
   month?: number;
 }
 
 export const getMonthlySummary = async (filters: StatsFilters): Promise<MonthlySummary | null> => {
-  const { userId, year, month, walletId, categoryId, startDate, endDate } = filters;
+  const { userId, year, month, walletIds, categoryId, startDate, endDate } = filters;
 
   // Build where clause
   const whereClause: Prisma.TransactionWhereInput = {
@@ -60,8 +60,10 @@ export const getMonthlySummary = async (filters: StatsFilters): Promise<MonthlyS
   }
 
   // Add wallet filter
-  if (walletId) {
-    whereClause.walletId = walletId;
+  if (walletIds && walletIds.length > 0) {
+    whereClause.walletId = {
+      in: walletIds,
+    };
   }
 
   // Add category filter
@@ -107,7 +109,7 @@ export const getMonthlySummary = async (filters: StatsFilters): Promise<MonthlyS
 };
 
 export const getCategoryBreakdown = async (filters: StatsFilters): Promise<CategoryBreakdown[]> => {
-  const { userId, startDate, endDate, walletId, year, month } = filters;
+  const { userId, startDate, endDate, walletIds, year, month } = filters;
 
   // Build where clause
   const whereClause: Prisma.TransactionWhereInput = {
@@ -135,8 +137,10 @@ export const getCategoryBreakdown = async (filters: StatsFilters): Promise<Categ
   }
 
   // Add wallet filter
-  if (walletId) {
-    whereClause.walletId = walletId;
+  if (walletIds && walletIds.length > 0) {
+    whereClause.walletId = {
+      in: walletIds,
+    };
   }
 
   // Get aggregated data by category
@@ -182,7 +186,7 @@ export const getCategoryBreakdown = async (filters: StatsFilters): Promise<Categ
 };
 
 export const getTrendData = async (filters: StatsFilters): Promise<TrendData[]> => {
-  const { userId, walletId, categoryId, year } = filters;
+  const { userId, walletIds, categoryId, year } = filters;
   const currentYear = year || new Date().getFullYear();
 
   const result: TrendData[] = [];
@@ -203,8 +207,10 @@ export const getTrendData = async (filters: StatsFilters): Promise<TrendData[]> 
     };
 
     // Add wallet filter
-    if (walletId) {
-      whereClause.walletId = walletId;
+    if (walletIds && walletIds.length > 0) {
+      whereClause.walletId = {
+        in: walletIds,
+      };
     }
 
     // Add category filter

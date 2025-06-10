@@ -16,7 +16,14 @@ export const getStatsSchema = object({
       }
       return true;
     }, 'Invalid end date format'),
-    walletId: string().optional(),
+    walletIds: string().optional().refine((val) => {
+      if (val) {
+        // Validate that it's a comma-separated list of valid UUIDs or IDs
+        const ids = val.split(',').map(id => id.trim());
+        return ids.every(id => id.length > 0);
+      }
+      return true;
+    }, 'Invalid wallet IDs format'),
     categoryId: string().optional(),
     year: string().optional().refine((val) => {
       if (val) {
