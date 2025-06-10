@@ -85,6 +85,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
         wallet: {
           id: apiTransaction.wallet.id,
           name: apiTransaction.wallet.name,
+          currency: apiTransaction.wallet.currency,
         },
         category: {
           id: apiTransaction.category.id,

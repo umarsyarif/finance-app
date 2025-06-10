@@ -91,7 +91,7 @@ export function TransactionDetailsModal({
             {/* Amount */}
             <div className="text-center">
               <div className="text-3xl font-bold text-gray-900 mb-2">
-                {formatAmount(transaction.amount, transaction.type)}
+                {formatAmount(transaction.amount, transaction.type, transaction.wallet?.currency)}
               </div>
               <div className="flex items-center justify-center gap-2">
                 <span className="text-sm">{transaction.description}</span>

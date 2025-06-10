@@ -192,7 +192,7 @@ export function Wallets() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    {formatAmount(wallet.balance)}
+                    {formatAmount(wallet.balance, null, wallet.currency)}
                   </div>
                 </CardContent>
               </Card>

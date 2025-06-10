@@ -21,6 +21,7 @@ export interface Transaction {
   wallet?: {
     id: string;
     name: string;
+    currency: string;
   };
   category?: {
     id: string;
@@ -77,7 +78,7 @@ const TransactionListItem: React.FC<{
           "font-semibold",
           isIncome ? "text-blue-600" : "text-gray-900"
         )}>
-          {formatAmount(transaction.amount, transaction.type)}
+          {formatAmount(transaction.amount, transaction.type, transaction.wallet?.currency)}
         </div>
       </div>
     </div>
@@ -199,7 +200,7 @@ export function TransactionsList({
           {transactions.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500">
-                {showMonthNavigation ? "이번 달 거래 내역이 없습니다" : "No transactions found"}
+                {showMonthNavigation ? "No transactions for this month" : "No transactions found"}
               </p>
             </div>
           ) : (

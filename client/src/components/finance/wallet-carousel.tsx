@@ -4,10 +4,9 @@ import { Button } from '../ui/button';
 import { cn } from '@/lib/utils';
 import { AddTransactionSheet } from './add-transaction-sheet';
 import { useWallets } from '@/hooks/use-wallets';
-import { useTransactions } from '@/hooks/use-transactions';
 import axios from '@/lib/axios';
 import { formatAmount } from '@/lib/format-utils';
-import { getStartOfCurrentMonth, getEndOfCurrentMonth, isDateInRange, parseDate } from '@/lib/date-utils';
+
 
 interface Wallet {
   id: string;
@@ -43,28 +42,26 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
       
       const stats: Record<string, { income: number; expense: number }> = {};
       
-      // Get current month's start and end dates
-      const startOfMonth = getStartOfCurrentMonth();
-      const endOfMonth = getEndOfCurrentMonth();
+      // Get current month and year for API filtering
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, API expects 1-12
+      const currentYear = currentDate.getFullYear();
       
       for (const wallet of wallets) {
         try {
-          const response = await axios.get(`/api/transactions?walletId=${wallet.id}&limit=1000`);
+          // Use API-level filtering instead of frontend filtering
+          const response = await axios.get(`/api/transactions?walletId=${wallet.id}&month=${currentMonth}&year=${currentYear}&limit=1000`);
           const transactions = response.data.data.transactions || [];
           
           let income = 0;
           let expense = 0;
           
+          // No need for date filtering since API already filters by month/year
           transactions.forEach((transaction: any) => {
-            const transactionDate = parseDate(transaction.date);
-            
-            // Only include transactions from current month
-            if (isDateInRange(transactionDate, startOfMonth, endOfMonth)) {
-              if (transaction.category.type === 'INCOME') {
-                income += transaction.amount;
-              } else if (transaction.category.type === 'EXPENSE') {
-                expense += Math.abs(transaction.amount);
-              }
+            if (transaction.category.type === 'INCOME') {
+              income += transaction.amount;
+            } else if (transaction.category.type === 'EXPENSE') {
+              expense += Math.abs(transaction.amount);
             }
           });
           
@@ -206,7 +203,7 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
           <span className="text-gray-600 text-sm">Current Balance</span>
           <h3 className="text-lg font-semibold text-gray-800 mt-1">{currentWallet.name}</h3>
           <span className="text-3xl font-semibold text-pastel-blue mt-2 block">
-            {currentWallet.currency} {formatAmount(currentWallet.balance)}
+            {formatAmount(currentWallet.balance, null, currentWallet.currency)}
           </span>
         </div>
 
@@ -215,7 +212,7 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
           <div className="flex flex-col items-center">
             <span className="text-xs text-gray-600">Income</span>
             <span className="text-pastel-green-dark text-lg font-medium">
-              +{currentWallet.currency} {currentStats.income.toFixed(2)}
+              {formatAmount(currentStats.income, "INCOME", currentWallet.currency)}
             </span>
             <AddTransactionSheet 
               type="INCOME" 
@@ -226,7 +223,7 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
           <div className="flex flex-col items-center">
             <span className="text-xs text-gray-600">Expense</span>
             <span className="text-pastel-red text-lg font-medium">
-              -{currentWallet.currency} {currentStats.expense.toFixed(2)}
+              {formatAmount(currentStats.expense, "EXPENSE", currentWallet.currency)}
             </span>
             <AddTransactionSheet 
               type="EXPENSE" 

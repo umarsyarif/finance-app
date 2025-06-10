@@ -175,6 +175,6 @@ describe('MonthlyTransactionsView', () => {
     
     renderComponent()
     
-    expect(screen.getByText('이번 달 거래 내역이 없습니다')).toBeInTheDocument()
+    expect(screen.getByText('No transactions for this month')).toBeInTheDocument()
   })
 })

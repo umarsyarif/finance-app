@@ -71,12 +71,13 @@ export const formatDateDetailed = (dateString: string): string => {
  * Formats an amount with currency and sign based on transaction type
  * @param amount - The transaction amount
  * @param type - Transaction type ('INCOME' or 'EXPENSE')
+ * @param currency - Currency code (default: 'USD')
  * @returns Formatted amount string with appropriate sign
  */
-export const formatAmount = (amount: number, type: string|null = null): string => {
+export const formatAmount = (amount: number, type: string|null = null, currency: string = 'USD'): string => {
   const formattedAmount = new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: currency,
   }).format(Math.abs(amount));
   
   return type === null ? `${formattedAmount}` : (type === 'INCOME' ? `+${formattedAmount}` : `-${formattedAmount}`);
