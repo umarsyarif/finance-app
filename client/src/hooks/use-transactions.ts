@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from '@/lib/axios';
 import { Transaction } from '@/components/finance/transactions-list';
+import { useOffline, getCacheFirstData } from '@/hooks/use-offline';
 
 interface ApiTransaction {
   id: string;
@@ -53,11 +54,24 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
   const [totalCount, setTotalCount] = useState(0);
 
   const { page = 1, limit = 10, walletId, categoryId, month, year } = options;
+  const { isOnline, saveOfflineData, getOfflineData } = useOffline();
 
   const fetchTransactions = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Try to get cached data first if offline
+      if (!isOnline) {
+        const cachedTransactions = getOfflineData('transactions');
+        if (cachedTransactions && cachedTransactions.length > 0) {
+          setTransactions(cachedTransactions);
+          setTotalCount(cachedTransactions.length);
+          setHasMore(false);
+          setLoading(false);
+          return;
+        }
+      }
 
       const params = new URLSearchParams({
         page: page.toString(),
@@ -96,9 +110,24 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
       setTransactions(transformedTransactions);
       setTotalCount(data.pagination?.total || 0);
       setHasMore((page * limit) < (data.pagination?.total || 0));
+
+      // Save to offline cache when online
+      if (isOnline) {
+        saveOfflineData('transactions', transformedTransactions);
+      }
     } catch (err: any) {
       console.error('Failed to fetch transactions:', err);
-      setError(err.response?.data?.message || 'Failed to fetch transactions');
+      
+      // Try to use cached data on error
+      const cachedTransactions = getOfflineData('transactions');
+      if (cachedTransactions && cachedTransactions.length > 0) {
+        setTransactions(cachedTransactions);
+        setTotalCount(cachedTransactions.length);
+        setHasMore(false);
+        setError('Using cached data - some information may be outdated');
+      } else {
+        setError(err.response?.data?.message || 'Failed to fetch transactions');
+      }
     } finally {
       setLoading(false);
     }

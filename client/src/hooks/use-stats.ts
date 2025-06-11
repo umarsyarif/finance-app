@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from '@/lib/axios';
+import { useOffline } from '@/hooks/use-offline';
 
 interface MonthlySummary {
   income: number;
@@ -49,11 +50,27 @@ export function useStats(filters: StatsFilters = {}): UseStatsReturn {
   const [trendData, setTrendData] = useState<TrendData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isOnline, saveOfflineData, getOfflineData } = useOffline();
 
   const fetchStats = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Try to get cached data first if offline
+      if (!isOnline) {
+        const cachedSummary = getOfflineData('stats-summary');
+        const cachedBreakdown = getOfflineData('stats-breakdown');
+        const cachedTrend = getOfflineData('stats-trend');
+        
+        if (cachedSummary || cachedBreakdown || cachedTrend) {
+          setMonthlySummary(cachedSummary || null);
+          setCategoryBreakdown(cachedBreakdown || []);
+          setTrendData(cachedTrend || []);
+          setLoading(false);
+          return;
+        }
+      }
 
       // Build query parameters
       const params = new URLSearchParams();
@@ -74,12 +91,36 @@ export function useStats(filters: StatsFilters = {}): UseStatsReturn {
         axios.get(`/api/stats/trend?${params.toString()}`)
       ]);
 
-      setMonthlySummary(summaryResponse.data.data || null);
-      setCategoryBreakdown(breakdownResponse.data.data || []);
-      setTrendData(trendResponse.data.data || []);
+      const summary = summaryResponse.data.data || null;
+      const breakdown = breakdownResponse.data.data || [];
+      const trend = trendResponse.data.data || [];
+
+      setMonthlySummary(summary);
+      setCategoryBreakdown(breakdown);
+      setTrendData(trend);
+
+      // Save to offline cache when online
+      if (isOnline) {
+        saveOfflineData('stats-summary', summary);
+        saveOfflineData('stats-breakdown', breakdown);
+        saveOfflineData('stats-trend', trend);
+      }
     } catch (err: any) {
       console.error('Failed to fetch stats:', err);
-      setError(err.response?.data?.message || 'Failed to fetch statistics');
+      
+      // Try to use cached data on error
+      const cachedSummary = getOfflineData('stats-summary');
+      const cachedBreakdown = getOfflineData('stats-breakdown');
+      const cachedTrend = getOfflineData('stats-trend');
+      
+      if (cachedSummary || cachedBreakdown || cachedTrend) {
+        setMonthlySummary(cachedSummary || null);
+        setCategoryBreakdown(cachedBreakdown || []);
+        setTrendData(cachedTrend || []);
+        setError('Using cached data - some information may be outdated');
+      } else {
+        setError(err.response?.data?.message || 'Failed to fetch statistics');
+      }
     } finally {
       setLoading(false);
     }
