@@ -198,10 +198,10 @@ describe('Stats Page', () => {
       return '2023-12-01';
     });
     mockGetDateRangeLabel.mockReturnValue('Dec 1 - Dec 31, 2023');
-    mockFormatCurrency.mockImplementation((amount) => 
+    mockFormatCurrency.mockImplementation((amount, currency = 'USD') => 
       new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'USD',
+        currency: currency,
       }).format(amount)
     );
 
@@ -585,7 +585,7 @@ describe('Stats Page', () => {
     });
 
     it('shows negative balance in red color when balance is negative', () => {
-      mockFormatCurrency.mockImplementation((amount) => {
+      mockFormatCurrency.mockImplementation((amount, currency = 'USD') => {
         if (amount < 0) return `-$${Math.abs(amount).toLocaleString()}`;
         return `$${amount.toLocaleString()}`;
       });
@@ -602,7 +602,7 @@ describe('Stats Page', () => {
       renderStats();
       
       // Check that negative balance is formatted correctly
-      expect(mockFormatCurrency).toHaveBeenCalledWith(-500);
+      expect(mockFormatCurrency).toHaveBeenCalledWith(-500, 'USD');
       expect(screen.getByText('-$500')).toBeInTheDocument();
     });
 

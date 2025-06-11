@@ -1,8 +1,7 @@
-import React from 'react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Combobox } from '../ui/combobox';
-import { DatePicker } from '../ui/date-picker';
+import { DateTimePicker } from '../ui/datetime-picker';
 import {
   Select,
   SelectContent,
@@ -14,7 +13,6 @@ import { Label } from '../ui/label';
 import { useTransactionForm } from '../../hooks/use-transaction-form';
 import { Transaction } from './transactions-list';
 import axios from '@/lib/axios';
-import { format } from 'date-fns';
 
 type TransactionType = 'INCOME' | 'EXPENSE';
 
@@ -143,11 +141,12 @@ export function TransactionForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="date">Date</Label>
-          <DatePicker
+          <Label htmlFor="date">Date & Time</Label>
+          <DateTimePicker
             date={formData.date ? new Date(formData.date) : undefined}
-            onSelect={(date) => updateField('date', date ? format(date, "yyyy-MM-dd'T'HH:mm") : '')}
-            placeholder="Select transaction date"
+            onSelect={(date) => updateField('date', date ? date.toISOString() : '')}
+            placeholder="Select transaction date and time"
+            showTime={true}
           />
         </div>
 

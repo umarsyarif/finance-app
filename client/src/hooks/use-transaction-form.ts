@@ -26,7 +26,7 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
   const [formData, setFormData] = useState<TransactionFormData>({
     description: '',
     amount: '',
-    date: '',
+    date: new Date().toISOString(), // Set current date/time as default
     walletId: '',
     categoryId: '',
   });
@@ -46,12 +46,21 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
   // Populate form with transaction data for editing
   useEffect(() => {
     if (transaction) {
+      // Handle missing or invalid dates by falling back to current date
+      let dateValue = new Date().toISOString();
+      if (transaction.date) {
+        const parsedDate = new Date(transaction.date);
+        if (!isNaN(parsedDate.getTime())) {
+          dateValue = transaction.date; // Use the original ISO string if valid
+        }
+      }
+      
       setFormData({
         description: transaction.title || transaction.description || '',
         amount: transaction.amount.toString() || '',
         walletId: transaction.walletId || '',
         categoryId: transaction.categoryId || '',
-        date: formatDateForInput(transaction.date),
+        date: dateValue,
       });
     }
   }, [transaction]);
@@ -73,7 +82,7 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
     setFormData({
       description: '',
       amount: '',
-      date: '',
+      date: new Date().toISOString(), // Set current date/time as default
       walletId: '',
       categoryId: '',
     });
@@ -105,8 +114,8 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
     return true;
   };
 
-  const submitForm = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitForm = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     
     if (!validateForm()) {
       return;
@@ -120,7 +129,7 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
       const transactionData = {
         description: formData.description,
         amount: parseFloat(formData.amount),
-        date: convertFormDateToISO(formData.date),
+        date: formData.date, // Already in ISO format from datetime picker
         walletId: formData.walletId,
         categoryId: formData.categoryId,
       };
