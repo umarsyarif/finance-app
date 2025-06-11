@@ -39,15 +39,28 @@ export default function Stats() {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const { monthlySummary, categoryBreakdown, trendData, loading, error } = useStats(filters);
+  // Memoize filters to prevent unnecessary re-renders
+  const memoizedFilters = useMemo(() => filters, [
+    filters.startDate,
+    filters.endDate,
+    JSON.stringify(filters.walletIds),
+    filters.categoryId,
+    filters.year,
+    filters.month
+  ]);
+
+  const { monthlySummary, categoryBreakdown, trendData, loading, error } = useStats(memoizedFilters);
   const { wallets, getMainWallet } = useWallets();
   const { categories } = useCategories();
 
-  // Set main wallet as initial value when wallets are loaded
+  // Memoize main wallet to prevent unnecessary re-renders
+  const mainWallet = useMemo(() => getMainWallet(), [wallets]);
+
+  // Set main wallet as initial value when wallets are loaded (only once)
   useEffect(() => {
-    const mainWallet = getMainWallet();
-    if (mainWallet && !tempFilters.walletIds) {
+    if (mainWallet && !isInitialized) {
       const initialWalletIds = [mainWallet.id];
       setTempFilters(prev => ({
         ...prev,
@@ -57,8 +70,9 @@ export default function Stats() {
         ...prev,
         walletIds: initialWalletIds
       }));
+      setIsInitialized(true);
     }
-  }, [wallets, getMainWallet, tempFilters.walletIds]);
+  }, [mainWallet, isInitialized]);
 
   const handleTempFilterChange = (key: keyof StatsFilters, value: string | number | string[]) => {
     setTempFilters(prev => ({

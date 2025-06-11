@@ -87,7 +87,7 @@ export function useStats(filters: StatsFilters = {}): UseStatsReturn {
 
   useEffect(() => {
     fetchStats();
-  }, [filters.startDate, filters.endDate, filters.walletIds, filters.categoryId, filters.year, filters.month]);
+  }, [filters.startDate, filters.endDate, JSON.stringify(filters.walletIds), filters.categoryId, filters.year, filters.month]);
 
   return {
     monthlySummary,
