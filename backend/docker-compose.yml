@@ -17,6 +17,22 @@ services:
       - '6379:6379'
     volumes:
       - redisDB:/data
+
+  app:
+    build:
+      context: .
+    container_name: backend-app
+    ports:
+      - '4000:4000'
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./.env
+    volumes:
+      - .:/app
+    command: npm run dev # or use ts-node or nodemon depending on your project
+
 volumes:
   progresDB:
   redisDB:
