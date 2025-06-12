@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
+
 import axios from '@/lib/axios';
 import { toast } from 'sonner';
 

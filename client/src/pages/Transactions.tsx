@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { getCurrentDate, getCurrentMonth, getCurrentYear } from '@/lib/date-utils';
 import { TransactionsList } from '@/components/finance/transactions-list';
-import { cn } from '@/lib/utils';
 
 interface MonthlyTransactionsViewProps {
   className?: string;

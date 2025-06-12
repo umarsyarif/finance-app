@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from '@/lib/axios';
 import { Transaction } from '@/components/finance/transactions-list';
-import { useOffline, getCacheFirstData } from '@/hooks/use-offline';
+import { useOffline } from '@/hooks/use-offline';
 
 interface ApiTransaction {
   id: string;

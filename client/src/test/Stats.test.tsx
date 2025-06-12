@@ -170,9 +170,9 @@ const mockWallets = [
 ];
 
 const mockCategories = [
-  { id: 'cat-1', name: 'Food', type: 'EXPENSE' },
-  { id: 'cat-2', name: 'Transportation', type: 'EXPENSE' },
-  { id: 'cat-3', name: 'Salary', type: 'INCOME' },
+  { id: 'cat-1', name: 'Food', type: 'EXPENSE' as const, color: '#ff0000' },
+  { id: 'cat-2', name: 'Transportation', type: 'EXPENSE' as const, color: '#00ff00' },
+  { id: 'cat-3', name: 'Salary', type: 'INCOME' as const, color: '#0000ff' },
 ];
 
 const renderStats = () => {
@@ -219,22 +219,16 @@ describe('Stats Page', () => {
       wallets: mockWallets,
       loading: false,
       error: null,
-      createWallet: vi.fn(),
-      updateWallet: vi.fn(),
-      deleteWallet: vi.fn(),
       refetch: vi.fn(),
-      getMainWallet: vi.fn(() => mockWallets.find(w => w.isMain)),
       setMainWallet: vi.fn(),
       updateWalletOrder: vi.fn(),
+      getMainWallet: vi.fn(),
     });
 
     mockUseCategories.mockReturnValue({
       categories: mockCategories,
       loading: false,
       error: null,
-      createCategory: vi.fn(),
-      updateCategory: vi.fn(),
-      deleteCategory: vi.fn(),
       refetch: vi.fn(),
     });
   });
@@ -585,7 +579,7 @@ describe('Stats Page', () => {
     });
 
     it('shows negative balance in red color when balance is negative', () => {
-      mockFormatCurrency.mockImplementation((amount, currency = 'USD') => {
+      mockFormatCurrency.mockImplementation((amount, _currency = 'USD') => {
         if (amount < 0) return `-$${Math.abs(amount).toLocaleString()}`;
         return `$${amount.toLocaleString()}`;
       });

@@ -1,6 +1,4 @@
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import { mainMenu } from '@/config/menu';
-import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -9,17 +7,15 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown } from 'lucide-react';
 import { AppLogo } from './app-logo';
 import { AppSidebar } from './app-sidebar';
 import { ModeToggle } from './mode-toggle';
-import { Button, buttonVariants } from './ui/button';
+import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { appConfig, baseUrl } from '@/config/app';
+import { baseUrl } from '@/config/app';
 import { useAuth } from '@/contexts/auth.context';
 
 export function AppHeader() {
-    const location = useLocation();
     const { user, logout } = useAuth();
 
     return (

@@ -1,12 +1,10 @@
 import { WalletCarousel } from '@/components/finance/wallet-carousel';
 import { TransactionsList } from '@/components/finance/transactions-list';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 
 export default function Dashboard() {
     const [currentWalletId, setCurrentWalletId] = useState<string | undefined>();
     const [refreshKey, setRefreshKey] = useState(0);
-    const walletCarouselRef = useRef<{ refetchWallets: () => void } | null>(null);
-    const transactionsListRef = useRef<{ refetch: () => void } | null>(null);
 
     // Handle wallet change from carousel
     const handleWalletChange = (walletId: string) => {

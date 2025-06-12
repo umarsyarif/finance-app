@@ -24,7 +24,7 @@ vi.mock('../components/finance/wallet-carousel', () => ({
   )
 }));
 vi.mock('../components/finance/transactions-list', () => ({
-  TransactionsList: ({ limit, showSeeAllLink, onTransactionChange, walletId }: any) => {
+  TransactionsList: ({ walletId }: any) => {
     if (!walletId) return null;
     return (
       <div data-testid="transactions-list">

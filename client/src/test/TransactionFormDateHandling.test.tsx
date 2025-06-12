@@ -26,8 +26,8 @@ vi.mock('@/hooks/use-wallets', () => ({
 vi.mock('@/hooks/use-categories', () => ({
   useCategories: () => ({
     categories: [
-      { id: 'cat-1', name: 'Food', type: 'EXPENSE' },
-      { id: 'cat-2', name: 'Salary', type: 'INCOME' },
+      { id: 'cat-1', name: 'Food', type: 'EXPENSE' as const, color: '#ff0000' },
+      { id: 'cat-2', name: 'Salary', type: 'INCOME' as const, color: '#00ff00' },
     ],
     loading: false,
     error: null,
@@ -36,6 +36,7 @@ vi.mock('@/hooks/use-categories', () => ({
 
 const mockTransaction = {
   id: 'trans-1',
+  title: 'Grocery Shopping',
   walletId: 'wallet-1',
   categoryId: 'cat-1',
   amount: 150.50,
@@ -168,7 +169,7 @@ describe('Transaction Form Date Handling', () => {
       act(() => {
         result.current.updateField('walletId', 'wallet-1');
         result.current.updateField('categoryId', 'cat-1');
-        result.current.updateField('amount', 100);
+        result.current.updateField('amount', '100');
         result.current.updateField('description', 'Test transaction');
         result.current.updateField('date', '2024-01-15T14:30:00.000Z');
       });
@@ -180,6 +181,7 @@ describe('Transaction Form Date Handling', () => {
       
       // Verify the date is submitted in ISO format
       expect(mockPost).toHaveBeenCalledWith('/api/transactions', {
+        title: '',
         walletId: 'wallet-1',
         categoryId: 'cat-1',
         amount: 100,
@@ -207,6 +209,7 @@ describe('Transaction Form Date Handling', () => {
       
       // Verify the updated date is submitted in ISO format
       expect(mockPatch).toHaveBeenCalledWith(`/api/transactions/${mockTransaction.id}`, {
+        title: mockTransaction.title,
         walletId: mockTransaction.walletId,
         categoryId: mockTransaction.categoryId,
         amount: mockTransaction.amount,

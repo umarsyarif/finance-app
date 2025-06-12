@@ -24,7 +24,7 @@ interface WalletCarouselProps {
 }
 
 export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCarouselProps) {
-  const { wallets: initialWallets, loading, error, refetch, updateWalletOrder, getMainWallet, setMainWallet } = useWallets();
+  const { wallets: initialWallets, loading, error, refetch, updateWalletOrder, getMainWallet: _getMainWallet, setMainWallet } = useWallets();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);

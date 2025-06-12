@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Edit, Trash2, Calendar, Wallet, Tag } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
 import { EditTransactionSheet } from './edit-transaction-sheet';
 import { ConfirmationModal } from '../ui/confirmation-modal';
 import { Transaction } from './transactions-list';

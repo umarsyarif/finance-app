@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { formatDateForInput, convertFormDateToISO } from '@/lib/date-utils';
+
 import { useWallets } from './use-wallets';
 import { useCategories } from './use-categories';
 import { Transaction } from '../components/finance/transactions-list';
@@ -15,6 +15,7 @@ interface UseTransactionFormProps {
 }
 
 interface TransactionFormData {
+  title: string;
   description: string;
   amount: string;
   date: string;
@@ -24,6 +25,7 @@ interface TransactionFormData {
 
 export function useTransactionForm({ type, transaction, onSuccess, defaultWalletId }: UseTransactionFormProps) {
   const [formData, setFormData] = useState<TransactionFormData>({
+    title: '',
     description: '',
     amount: '',
     date: new Date().toISOString(), // Set current date/time as default
@@ -56,7 +58,8 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
       }
       
       setFormData({
-        description: transaction.title || transaction.description || '',
+        title: transaction.title || '',
+        description: transaction.description || '',
         amount: transaction.amount.toString() || '',
         walletId: transaction.walletId || '',
         categoryId: transaction.categoryId || '',
@@ -80,6 +83,7 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
 
   const resetForm = () => {
     setFormData({
+      title: '',
       description: '',
       amount: '',
       date: new Date().toISOString(), // Set current date/time as default
@@ -127,6 +131,7 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
 
     try {
       const transactionData = {
+        title: formData.title,
         description: formData.description,
         amount: parseFloat(formData.amount),
         date: formData.date, // Already in ISO format from datetime picker

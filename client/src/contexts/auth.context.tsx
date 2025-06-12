@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const register = async (name: string, email: string, password: string, passwordConfirm: string) => {
     try {
-      const response = await axios.post('/api/auth/register', {
+      await axios.post('/api/auth/register', {
         name,
         email,
         password,

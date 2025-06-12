@@ -1,6 +1,5 @@
 import { Card } from '../ui/card';
 import { cn } from '@/lib/utils';
-import { Button } from '../ui/button';
 import { AddTransactionSheet } from './add-transaction-sheet';
 
 interface BalanceCardProps {

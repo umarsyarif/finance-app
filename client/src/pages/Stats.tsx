@@ -262,7 +262,7 @@ export default function Stats() {
                 {formatCurrency(monthlySummary.income, selectedCurrency)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {getDateRangeLabel(filters.startDate, filters.endDate)}
+                {getDateRangeLabel(filters.startDate || '', filters.endDate || '')}
               </p>
             </CardContent>
           </Card>
@@ -276,7 +276,7 @@ export default function Stats() {
                 {formatCurrency(monthlySummary.expense, selectedCurrency)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {getDateRangeLabel(filters.startDate, filters.endDate)}
+                {getDateRangeLabel(filters.startDate || '', filters.endDate || '')}
               </p>
             </CardContent>
           </Card>
@@ -292,7 +292,7 @@ export default function Stats() {
                 {formatCurrency(monthlySummary.balance, selectedCurrency)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {getDateRangeLabel(filters.startDate, filters.endDate)}
+                {getDateRangeLabel(filters.startDate || '', filters.endDate || '')}
               </p>
             </CardContent>
           </Card>
@@ -323,12 +323,12 @@ export default function Stats() {
                       fill="#8884d8"
                       dataKey="amount"
                     >
-                      {categoryBreakdown.map((entry, index) => (
+                      {categoryBreakdown.map((_entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip 
-                      formatter={(value, name, props) => [
+                      formatter={(value, _name, props) => [
                         formatCurrency(Number(value), selectedCurrency), 
                         props.payload.categoryName
                       ]}

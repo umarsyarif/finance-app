@@ -5,6 +5,9 @@ interface OfflineData {
   transactions: any[];
   wallets: any[];
   categories: any[];
+  'stats-summary': any;
+  'stats-breakdown': any[];
+  'stats-trend': any[];
   lastSync: string;
 }
 
@@ -60,6 +63,9 @@ export function useOffline(): UseOfflineReturn {
       transactions: [],
       wallets: [],
       categories: [],
+      'stats-summary': null,
+      'stats-breakdown': [],
+      'stats-trend': [],
       lastSync: new Date().toISOString()
     };
 
@@ -83,15 +89,7 @@ export function useOffline(): UseOfflineReturn {
     localStorage.removeItem(PENDING_CHANGES_KEY);
   };
 
-  const savePendingChange = (change: any) => {
-    const pendingChanges = JSON.parse(localStorage.getItem(PENDING_CHANGES_KEY) || '[]');
-    pendingChanges.push({
-      ...change,
-      timestamp: new Date().toISOString(),
-      id: Date.now().toString()
-    });
-    localStorage.setItem(PENDING_CHANGES_KEY, JSON.stringify(pendingChanges));
-  };
+
 
   const syncPendingChanges = async () => {
     if (!isOnline) return;

@@ -39,7 +39,7 @@ vi.mock('@/components/app-logo', () => ({
 
 const mockUseAuth = vi.mocked(useAuth);
 const mockLogin = vi.fn();
-const mockNavigate = vi.fn();
+
 
 const renderLogin = () => {
   return render(
@@ -57,7 +57,7 @@ describe('Login', () => {
       register: vi.fn(),
       logout: vi.fn(),
       user: null,
-      isLoading: false,
+      isAuthenticated: false,
     });
   });
 

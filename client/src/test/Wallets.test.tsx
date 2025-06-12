@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { Wallets } from '../pages/Wallets';
 import { useWallets } from '../hooks/use-wallets';
@@ -14,7 +14,7 @@ vi.mock('sonner');
 
 // Mock the format utils
 vi.mock('../lib/format-utils', () => ({
-  formatAmount: (amount: number, type?: string | null, currency: string = 'USD') => {
+  formatAmount: (amount: number, _type?: string | null, currency: string = 'USD') => {
     const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency;
     return `${symbol}${amount.toFixed(2)}`;
   },

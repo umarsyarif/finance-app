@@ -1,5 +1,4 @@
-import { cn } from '@/lib/utils';
-import { appConfig } from '@/config/app'
+import { cn } from '@/lib/utils'
 
 interface NavItem {
     icon: React.ReactNode;

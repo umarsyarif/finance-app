@@ -41,10 +41,10 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <div className="flex justify-center mb-4">
-            <AppLogo />
+            <AppLogo data-testid="app-logo" />
           </div>
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
-          <CardDescription>Enter your email to sign in to your account</CardDescription>
+          <CardTitle data-testid="card-title" className="text-2xl">Welcome back</CardTitle>
+          <CardDescription data-testid="card-description">Enter your email to sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -55,6 +55,7 @@ export default function Login() {
             )}
             <div className="space-y-2">
               <Input
+                data-testid="input-email"
                 type="email"
                 name="email"
                 placeholder="name@example.com"
@@ -65,6 +66,7 @@ export default function Login() {
             </div>
             <div className="space-y-2">
               <Input
+                data-testid="input-password"
                 type="password"
                 name="password"
                 placeholder="Enter your password"
@@ -74,6 +76,7 @@ export default function Login() {
               />
             </div>
             <Button
+              data-testid="submit-button"
               type="submit"
               className="w-full"
               disabled={isLoading}

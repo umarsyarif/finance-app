@@ -1,7 +1,7 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { AppHeader } from './app-header'
 import { AppFooter } from './app-footer'
-import { HomeIcon, ProfileIcon, StatsIcon, WalletIcon } from './icons/menu-icons'
+import { HomeIcon, StatsIcon, WalletIcon } from './icons/menu-icons'
 
 export function AppLayout() {
     const navigate = useNavigate();

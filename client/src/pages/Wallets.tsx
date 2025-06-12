@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { PageHeader, PageHeaderHeading } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash2, Wallet as WalletIcon, Tag } from 'lucide-react';
+import { Plus, Edit, Trash2, Wallet as WalletIcon } from 'lucide-react';
 import { useWallets } from '@/hooks/use-wallets';
 import { useCategories } from '@/hooks/use-categories';
 import { WalletForm } from '@/components/finance/wallet-form';

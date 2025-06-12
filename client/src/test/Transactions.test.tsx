@@ -10,7 +10,7 @@ vi.mock('@/hooks/use-transactions')
 
 // Mock the transaction details modal
 vi.mock('@/components/finance/transaction-details-modal', () => ({
-  TransactionDetailsModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => 
+  TransactionDetailsModal: ({ isOpen }: { isOpen: boolean; onClose: () => void }) => 
     isOpen ? <div data-testid="transaction-modal">Transaction Modal</div> : null
 }))
 
@@ -19,24 +19,26 @@ const mockUseTransactions = vi.mocked(useTransactions)
 const mockTransactions = [
   {
     id: '1',
+    title: 'Test Transaction 1',
     description: 'Test Transaction 1',
     amount: 1000,
     date: '2024-05-15T10:00:00Z',
     type: 'EXPENSE' as const,
     walletId: 'wallet1',
     categoryId: 'cat1',
-    wallet: { id: 'wallet1', name: 'Test Wallet' },
+    wallet: { id: 'wallet1', name: 'Test Wallet', currency: 'USD' },
     category: { id: 'cat1', name: 'Test Category' }
   },
   {
     id: '2',
+    title: 'Test Transaction 2',
     description: 'Test Transaction 2',
     amount: 2000,
     date: '2024-05-20T14:00:00Z',
     type: 'INCOME' as const,
     walletId: 'wallet1',
     categoryId: 'cat2',
-    wallet: { id: 'wallet1', name: 'Test Wallet' },
+    wallet: { id: 'wallet1', name: 'Test Wallet', currency: 'USD' },
     category: { id: 'cat2', name: 'Test Category 2' }
   }
 ]
@@ -58,8 +60,7 @@ describe('MonthlyTransactionsView', () => {
       error: null,
       refetch: vi.fn(),
       totalCount: 2,
-      hasMore: false,
-      loadMore: vi.fn()
+      hasMore: false
     })
   })
 
@@ -135,8 +136,7 @@ describe('MonthlyTransactionsView', () => {
       error: null,
       refetch: vi.fn(),
       totalCount: 0,
-      hasMore: false,
-      loadMore: vi.fn()
+      hasMore: false
     })
     
     renderComponent()
@@ -152,8 +152,7 @@ describe('MonthlyTransactionsView', () => {
       error: 'Failed to fetch transactions',
       refetch: vi.fn(),
       totalCount: 0,
-      hasMore: false,
-      loadMore: vi.fn()
+      hasMore: false
     })
     
     renderComponent()
@@ -169,8 +168,7 @@ describe('MonthlyTransactionsView', () => {
       error: null,
       refetch: vi.fn(),
       totalCount: 0,
-      hasMore: false,
-      loadMore: vi.fn()
+      hasMore: false
     })
     
     renderComponent()

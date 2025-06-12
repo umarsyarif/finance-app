@@ -49,7 +49,7 @@ const TransactionListItem: React.FC<{
   transaction: Transaction;
   onClick: () => void;
   variant?: 'card' | 'full';
-}> = ({ transaction, onClick, variant = 'card' }) => {
+}> = ({ transaction, onClick, variant: _variant = 'card' }) => {
   const isIncome = transaction.type === 'INCOME';
   
   return (

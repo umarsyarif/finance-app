@@ -24,6 +24,7 @@ export function PWAPrompt() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [showOnlineIndicator, setShowOnlineIndicator] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
@@ -34,12 +35,16 @@ export function PWAPrompt() {
 
     const handleOnline = () => {
       setIsOnline(true);
-      toast.success('Back online! Data will sync automatically.');
+      // Show online indicator briefly when coming back online
+      setShowOnlineIndicator(true);
+      setTimeout(() => {
+        setShowOnlineIndicator(false);
+      }, 3000); // Hide after 3 seconds
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      toast.info('You\'re offline. Some features may be limited.');
+      // Note: Offline notification is handled by useOffline hook to avoid duplicates
     };
 
     // Check for service worker updates
@@ -141,8 +146,8 @@ export function PWAPrompt() {
       )}
 
       {/* Online Indicator (brief) */}
-      {isOnline && (
-        <div className="fixed top-4 right-4 z-50 opacity-0 animate-pulse">
+      {showOnlineIndicator && (
+        <div className="fixed top-4 right-4 z-50 animate-fade-in">
           <Card className="bg-green-50 border-green-200">
             <CardContent className="flex items-center gap-2 p-3">
               <Wifi className="h-4 w-4 text-green-600" />
