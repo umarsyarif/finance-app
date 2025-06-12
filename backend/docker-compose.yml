@@ -34,7 +34,7 @@ services:
       - redis
     env_file:
       - ./.env
-    command: node dist/app.js
+    command: node build/src/app.js
     labels:
         - "traefik.enable=true"
         - "traefik.http.routers.backend.rule=Host(`finance-api.umarsyariif.site`)"
