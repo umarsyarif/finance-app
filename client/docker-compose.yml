@@ -3,13 +3,14 @@ services:
     build:
       context: .
       target: production
+      args:
+        - NODE_ENV=production
+        - VITE_APP_NAME=Finance App
+        - VITE_API_URL=https://finance-api.umarsyariif.site
+        - VITE_BASE_URL=/
     container_name: finance-client-prod
     ports:
       - '3000:80'
-    environment:
-      - NODE_ENV=production
-      - VITE_API_URL=https://finance-api.umarsyariif.site
-      - VITE_BASE_URL=/
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`finance.umarsyariif.site`)"
@@ -22,13 +23,14 @@ services:
     build:
       context: .
       target: development
+      args:
+        - NODE_ENV=development
+        - VITE_APP_NAME=Finance App
+        - VITE_API_URL=http://localhost:8000
+        - VITE_BASE_URL=/
     container_name: finance-client-dev
     ports:
       - '3001:80'
-    environment:
-      - NODE_ENV=development
-      - VITE_API_URL=http://localhost:8000
-      - VITE_BASE_URL=/
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend-dev.rule=Host(`finance-dev.umarsyariif.site`)"
