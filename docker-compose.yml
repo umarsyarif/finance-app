@@ -1,32 +1,19 @@
-api:
-  dashboard: true
-  insecure: false
+services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml
+      - ./traefik/acme.json:/acme.json
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
+    networks:
+      - finance-app-network
 
-entryPoints:
-  web:
-    address: ":80"
-    http:
-      redirections:
-        entrypoint:
-          to: websecure
-          scheme: https
-  websecure:
-    address: ":443"
-
-providers:
-  docker:
-    exposedByDefault: false
-    network: finance-app-network
-
-certificatesResolvers:
-  letsencrypt:
-    acme:
-      email: umarsyarif1607@gmail.com
-      storage: acme.json
-      httpChallenge:
-        entryPoint: web
-
-log:
-  level: INFO
-
-accessLog: {}
+networks:
+  finance-app-network:
+    external: true
