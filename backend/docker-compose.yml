@@ -41,6 +41,12 @@ services:
         - "traefik.http.routers.backend.entrypoints=websecure"
         - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
         - "traefik.http.services.backend.loadbalancer.server.port=4000"
+    networks:
+        - finance-app-network
+
+networks:
+  finance-app-network:
+    external: true
 
 volumes:
   postgresDB:
