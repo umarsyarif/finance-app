@@ -12,7 +12,7 @@
     "skipLibCheck": true,
     "noImplicitReturns": false,
     "noImplicitThis": false,
-    "outDir": "./build",
+    "outDir": "./dist",
     "rootDir": ".",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
