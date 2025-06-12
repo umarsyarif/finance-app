@@ -9,7 +9,7 @@
     "db:migrate": "npx prisma migrate dev --name user-entity --create-only && yarn prisma generate",
     "db:push": "npx prisma db push",
     "db:seed": "ts-node prisma/seed.ts",
-    "build": "tsc . -p",
+    "build": "tsc",
     "test": "cross-env NODE_ENV=development jest",
     "test:watch": "cross-env NODE_ENV=development jest --watch"
   },

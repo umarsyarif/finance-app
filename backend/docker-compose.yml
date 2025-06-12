@@ -1,7 +1,7 @@
-version: '3'
+version: '3.8'
 services:
   postgres:
-    image: postgres:latest
+    image: postgres:15-alpine
     container_name: postgres
     restart: always
     environment:
@@ -11,12 +11,12 @@ services:
     ports:
       - '6500:5432'
     volumes:
-      - progresDB:/data/postgres
+      - postgresDB:/var/lib/postgresql/data
     env_file:
       - ./.env
 
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
     container_name: redis
     ports:
       - '6379:6379'
@@ -34,10 +34,13 @@ services:
       - redis
     env_file:
       - ./.env
-    volumes:
-      - .:/app
-    command: yarn start
+    command: node dist/app.js
+    labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.backend.rule=Host(`finance-api.umarsyariif.site`)"
+        - "traefik.http.routers.backend.entrypoints=websecure"
+        - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
 
 volumes:
-  progresDB:
+  postgresDB:
   redisDB:

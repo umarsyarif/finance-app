@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  client-app:
+    build:
+      context: .
+      target: production
+    container_name: finance-client-prod
+    ports:
+      - '3000:80'
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`finance.umarsyariif.site`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+    profiles:
+      - prod
+
+networks:
+  default:
+    name: finance-app-network
+    external: true
