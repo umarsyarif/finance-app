@@ -74,7 +74,7 @@ export const formatDateDetailed = (dateString: string): string => {
  * @param currency - Currency code (default: 'USD')
  * @returns Formatted amount string with appropriate sign
  */
-export const formatAmount = (amount: number, type: string|null = null, currency: string = 'USD'): string => {
+export const formatAmount = (amount: number, type: string|null = null, currency: string = 'KRW'): string => {
   const formattedAmount = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,
@@ -89,7 +89,7 @@ export const formatAmount = (amount: number, type: string|null = null, currency:
  * @param currency - Currency code (default: 'USD')
  * @returns Formatted currency string
  */
-export const formatCurrency = (amount: number, currency: string = 'USD'): string => {
+export const formatCurrency = (amount: number, currency: string = 'KRW'): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,

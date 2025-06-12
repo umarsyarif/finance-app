@@ -14,8 +14,8 @@ vi.mock('sonner');
 
 // Mock the format utils
 vi.mock('../lib/format-utils', () => ({
-  formatAmount: (amount: number, _type?: string | null, currency: string = 'USD') => {
-    const symbol = currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency;
+  formatAmount: (amount: number, _type?: string | null, currency: string = 'KRW') => {
+    const symbol = currency === 'KRW' ? '₩' : currency === 'IDR' ? 'Rp' : currency;
     return `${symbol}${amount.toFixed(2)}`;
   },
 }));

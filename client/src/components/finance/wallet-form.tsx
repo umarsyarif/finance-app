@@ -27,13 +27,8 @@ interface WalletFormProps {
 }
 
 const CURRENCY_OPTIONS = [
-  { value: 'USD', label: 'USD - US Dollar' },
-  { value: 'EUR', label: 'EUR - Euro' },
-  { value: 'GBP', label: 'GBP - British Pound' },
-  { value: 'JPY', label: 'JPY - Japanese Yen' },
+  { value: 'KRW', label: 'KRW - South Korean Won' },
   { value: 'IDR', label: 'IDR - Indonesian Rupiah' },
-  { value: 'SGD', label: 'SGD - Singapore Dollar' },
-  { value: 'MYR', label: 'MYR - Malaysian Ringgit' },
 ];
 
 const COLOR_PRESETS = [
@@ -52,7 +47,7 @@ const COLOR_PRESETS = [
 export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
   const [formData, setFormData] = useState({
     name: '',
-    currency: 'USD',
+    currency: 'KRW',
     balance: 0,
     color: '#3B82F6',
   });
