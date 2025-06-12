@@ -14,6 +14,8 @@ services:
       - postgresDB:/var/lib/postgresql/data
     env_file:
       - ./.env
+    networks:
+      - default
 
   redis:
     image: redis:7-alpine
@@ -22,6 +24,8 @@ services:
       - '6379:6379'
     volumes:
       - redisDB:/data
+    networks:
+      - default
 
   app:
     build:
@@ -42,9 +46,11 @@ services:
         - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
         - "traefik.http.services.backend.loadbalancer.server.port=4000"
     networks:
+        - default
         - finance-app-network
 
 networks:
+  default:
   finance-app-network:
     external: true
 
