@@ -1,4 +1,7 @@
+version: '3.8'
+
 services:
+  # Traefik reverse proxy
   traefik:
     image: traefik:v2.10
     command:
@@ -14,6 +17,109 @@ services:
     networks:
       - finance-app-network
 
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: finance-app
+    ports:
+      - '6500:5432'
+    volumes:
+      - postgresDB:/var/lib/postgresql/data
+    env_file:
+      - ./backend/.env
+    networks:
+      - default
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redisDB:/data
+    networks:
+      - default
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+    container_name: backend-app
+    ports:
+      - '4000:4000'
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./backend/.env
+    command: node build/src/app.js
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`finance-api.umarsyariif.site`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend.loadbalancer.server.port=4000"
+    networks:
+      - default
+      - finance-app-network
+
+  # Frontend Client - Production
+  client-prod:
+    build:
+      context: ./client
+      target: production
+      args:
+        - NODE_ENV=production
+        - VITE_APP_NAME=Finance App
+        - VITE_API_URL=https://finance-api.umarsyariif.site
+        - VITE_BASE_URL=/
+    container_name: finance-client-prod
+    ports:
+      - '3000:80'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`finance.umarsyariif.site`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+    networks:
+      - finance-app-network
+    profiles:
+      - prod
+
+  # Frontend Client - Development
+  client-dev:
+    build:
+      context: ./client
+      target: development
+      args:
+        - NODE_ENV=development
+        - VITE_APP_NAME=Finance App
+        - VITE_API_URL=http://localhost:8000
+        - VITE_BASE_URL=/
+    container_name: finance-client-dev
+    ports:
+      - '3001:80'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend-dev.rule=Host(`finance-dev.umarsyariif.site`)"
+      - "traefik.http.routers.frontend-dev.entrypoints=websecure"
+      - "traefik.http.routers.frontend-dev.tls.certresolver=letsencrypt"
+    networks:
+      - finance-app-network
+    profiles:
+      - dev
+
 networks:
+  default:
   finance-app-network:
     external: true
+
+volumes:
+  postgresDB:
+  redisDB:
