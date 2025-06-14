@@ -108,6 +108,13 @@ describe('MonthlyTransactionsView', () => {
     const buttons = screen.getAllByRole('button')
     expect(buttons).toHaveLength(2)
     
+    // Get initial call parameters
+    expect(mockUseTransactions.mock.calls.length).toBeGreaterThan(0)
+    const initialCall = mockUseTransactions.mock.calls[0]?.[0]
+    expect(initialCall).toBeDefined()
+    const initialMonth = initialCall!.month
+    const initialYear = initialCall!.year
+    
     // Click the next month button (second button)
     const nextButton = buttons[1]
     fireEvent.click(nextButton)
@@ -115,6 +122,62 @@ describe('MonthlyTransactionsView', () => {
     await waitFor(() => {
       // Should be called twice - once for initial render, once for next month
       expect(mockUseTransactions).toHaveBeenCalledTimes(2)
+      
+      // Check that the second call has different month/year parameters
+      expect(mockUseTransactions.mock.calls.length).toBeGreaterThanOrEqual(2)
+      const secondCall = mockUseTransactions.mock.calls[1]?.[0]
+      expect(secondCall).toBeDefined()
+      const newMonth = secondCall!.month
+      const newYear = secondCall!.year
+      
+      // Verify that month/year changed (either next month or next year if December)
+      if (initialMonth === 12) {
+        expect(newMonth).toBe(1)
+        expect(newYear).toBe(initialYear! + 1)
+      } else {
+        expect(newMonth).toBe(initialMonth! + 1)
+        expect(newYear).toBe(initialYear)
+      }
+    })
+  })
+  
+  it('updates month when previous navigation button is clicked', async () => {
+    renderComponent()
+    
+    // Find navigation buttons - there should be 2 buttons for prev/next
+    const buttons = screen.getAllByRole('button')
+    expect(buttons).toHaveLength(2)
+    
+    // Get initial call parameters
+    expect(mockUseTransactions.mock.calls.length).toBeGreaterThan(0)
+    const initialCall = mockUseTransactions.mock.calls[0]?.[0]
+    expect(initialCall).toBeDefined()
+    const initialMonth = initialCall!.month
+    const initialYear = initialCall!.year
+    
+    // Click the previous month button (first button)
+    const prevButton = buttons[0]
+    fireEvent.click(prevButton)
+    
+    await waitFor(() => {
+      // Should be called twice - once for initial render, once for previous month
+      expect(mockUseTransactions).toHaveBeenCalledTimes(2)
+      
+      // Check that the second call has different month/year parameters
+      expect(mockUseTransactions.mock.calls.length).toBeGreaterThanOrEqual(2)
+      const secondCall = mockUseTransactions.mock.calls[1]?.[0]
+      expect(secondCall).toBeDefined()
+      const newMonth = secondCall!.month
+      const newYear = secondCall!.year
+      
+      // Verify that month/year changed (either previous month or previous year if January)
+      if (initialMonth === 1) {
+        expect(newMonth).toBe(12)
+        expect(newYear).toBe(initialYear! - 1)
+      } else {
+        expect(newMonth).toBe(initialMonth! - 1)
+        expect(newYear).toBe(initialYear)
+      }
     })
   })
 

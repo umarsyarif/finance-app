@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getCurrentDate, getCurrentMonth, getCurrentYear } from '@/lib/date-utils';
+import { getCurrentDate } from '@/lib/date-utils';
 import { TransactionsList } from '@/components/finance/transactions-list';
 
 interface MonthlyTransactionsViewProps {
@@ -9,8 +9,9 @@ interface MonthlyTransactionsViewProps {
 export function MonthlyTransactionsView({ className }: MonthlyTransactionsViewProps) {
   const [currentDate, setCurrentDate] = useState(getCurrentDate());
 
-  const currentMonth = getCurrentMonth();
-  const currentYear = getCurrentYear();
+  // Extract month and year from the current date state
+  const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
+  const currentYear = currentDate.getFullYear();
 
   const handleMonthChange = (newDate: Date) => {
     setCurrentDate(newDate);
