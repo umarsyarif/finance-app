@@ -26,8 +26,8 @@ async function main() {
     create: {
       id: 'test-wallet-1',
       name: 'Main Wallet',
-      balance: 1000.00,
-      currency: 'USD',
+      balance: 10000,
+      currency: 'KRW',
       color: '#3B82F6',
       isMain: true,
       displayOrder: 1,
@@ -41,8 +41,8 @@ async function main() {
     create: {
       id: 'test-wallet-2',
       name: 'Savings Account',
-      balance: 5000.00,
-      currency: 'USD',
+      balance: 5000000,
+      currency: 'IDR',
       color: '#10B981',
       isMain: false,
       displayOrder: 2,
@@ -94,7 +94,6 @@ async function main() {
       date: new Date('2024-01-01'),
       walletId: wallet1.id,
       categoryId: 'income-salary',
-      userId: testUser.id,
     },
     {
       id: 'trans-2',
@@ -103,7 +102,6 @@ async function main() {
       date: new Date('2024-01-02'),
       walletId: wallet1.id,
       categoryId: 'expense-food',
-      userId: testUser.id,
     },
     {
       id: 'trans-3',
@@ -112,7 +110,6 @@ async function main() {
       date: new Date('2024-01-03'),
       walletId: wallet1.id,
       categoryId: 'expense-transport',
-      userId: testUser.id,
     },
     {
       id: 'trans-4',
@@ -121,7 +118,6 @@ async function main() {
       date: new Date('2024-01-04'),
       walletId: wallet2.id,
       categoryId: 'income-freelance',
-      userId: testUser.id,
     },
     {
       id: 'trans-5',
@@ -130,7 +126,6 @@ async function main() {
       date: new Date('2024-01-05'),
       walletId: wallet1.id,
       categoryId: 'expense-entertainment',
-      userId: testUser.id,
     },
   ];
 
