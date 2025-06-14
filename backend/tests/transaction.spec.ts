@@ -61,9 +61,20 @@ describe('Transaction Controller Tests', () => {
       };
 
       req.body = transactionData;
+      res.locals = { user: { id: 'user123' } };
       (transactionService.createTransaction as jest.Mock).mockResolvedValue(mockTransaction);
 
       await createTransactionHandler(req as Request, res as Response, next);
+
+      // Verify that createTransaction was called with correct data
+      expect(transactionService.createTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wallet: { connect: { id: 'wallet123' } },
+          category: { connect: { id: 'category123' } },
+          amount: 50.00,
+          description: 'Lunch at restaurant'
+        })
+      );
 
       expect(statusMock).toHaveBeenCalledWith(201);
       expect(jsonMock).toHaveBeenCalledWith({
@@ -106,9 +117,18 @@ describe('Transaction Controller Tests', () => {
       };
 
       req.params = { transactionId: 'transaction123' };
+      res.locals = { user: { id: 'user123' } };
       (transactionService.findUniqueTransaction as jest.Mock).mockResolvedValue(mockTransaction);
 
       await getTransactionHandler(req as Request<{transactionId: string}>, res as Response, next);
+
+      // Verify that findUniqueTransaction was called with wallet userId filter
+      expect(transactionService.findUniqueTransaction).toHaveBeenCalledWith({
+        id: 'transaction123',
+        wallet: {
+          userId: 'user123'
+        }
+      });
 
       expect(statusMock).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith({
@@ -163,6 +183,64 @@ describe('Transaction Controller Tests', () => {
         }
       });
     });
+
+    it('should filter transactions by current user ID', async () => {
+      const mockTransactions = [
+        {
+          id: 'transaction1',
+          walletId: 'wallet123',
+          categoryId: 'category123',
+          amount: 50.00,
+          description: 'User specific transaction',
+          date: new Date('2024-01-15T12:00:00.000Z'),
+          createdAt: new Date(),
+          userId: 'user123'
+        }
+      ];
+
+      req.query = { page: '1', limit: '10' };
+      res.locals = { user: { id: 'user123' } };
+      
+      (transactionService.findTransactions as jest.Mock).mockResolvedValue(mockTransactions);
+      (transactionService.countTransactions as jest.Mock).mockResolvedValue(mockTransactions.length);
+
+      await getTransactionsHandler(req as Request, res as Response, next);
+
+      // Verify that findTransactions was called with userId filter
+      expect(transactionService.findTransactions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wallet: {
+            userId: 'user123'
+          }
+        }),
+        { date: 'desc' },
+        0,
+        10
+      );
+
+      // Verify that countTransactions was called with userId filter
+      expect(transactionService.countTransactions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          wallet: {
+            userId: 'user123'
+          }
+        })
+      );
+
+      expect(statusMock).toHaveBeenCalledWith(200);
+      expect(jsonMock).toHaveBeenCalledWith({
+        status: 'success',
+        data: {
+          transactions: mockTransactions,
+          pagination: {
+            page: 1,
+            limit: 10,
+            total: mockTransactions.length,
+            pages: 1
+          }
+        }
+      });
+    });
   });
 
   describe('updateTransactionHandler', () => {
@@ -179,15 +257,27 @@ describe('Transaction Controller Tests', () => {
         amount: 75.00,
         description: 'Updated description',
         date: new Date('2024-01-15T12:00:00.000Z'),
-        createdAt: new Date()
+        createdAt: new Date(),
+        wallet: {
+          userId: 'user123'
+        }
       };
 
       req.params = { transactionId: 'transaction123' };
       req.body = updateData;
+      res.locals = { user: { id: 'user123' } };
       (transactionService.findUniqueTransaction as jest.Mock).mockResolvedValue(mockTransaction);
       (transactionService.updateTransaction as jest.Mock).mockResolvedValue(mockTransaction);
 
       await updateTransactionHandler(req as Request<{transactionId: string}>, res as Response, next);
+
+      // Verify that findUniqueTransaction was called with wallet userId filter
+      expect(transactionService.findUniqueTransaction).toHaveBeenCalledWith({
+        id: 'transaction123',
+        wallet: {
+          userId: 'user123'
+        }
+      });
 
       expect(statusMock).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith({
@@ -217,6 +307,7 @@ describe('Transaction Controller Tests', () => {
   describe('deleteTransactionHandler', () => {
     it('should delete a transaction successfully', async () => {
       req.params = { transactionId: 'transaction123' };
+      res.locals = { user: { id: 'user123' } };
       const mockDeletedTransaction = {
         id: 'transaction123',
         amount: 100,
@@ -245,6 +336,14 @@ describe('Transaction Controller Tests', () => {
       (transactionService.deleteTransaction as jest.Mock).mockResolvedValue(mockDeletedTransaction);
 
       await deleteTransactionHandler(req as Request<{transactionId: string}>, res as Response, next);
+
+      // Verify that findUniqueTransaction was called with wallet userId filter
+      expect(transactionService.findUniqueTransaction).toHaveBeenCalledWith({
+        id: 'transaction123',
+        wallet: {
+          userId: 'user123'
+        }
+      });
 
       expect(statusMock).toHaveBeenCalledWith(204);
       expect(jsonMock).toHaveBeenCalledWith({

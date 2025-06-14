@@ -57,8 +57,14 @@ export const getTransactionHandler = async (
 ) => {
   try {
     const { transactionId } = req.params;
+    const userId = res.locals.user.id;
 
-    const transaction = await findUniqueTransaction({ id: transactionId });
+    const transaction = await findUniqueTransaction({ 
+      id: transactionId,
+      wallet: {
+        userId: userId
+      }
+    });
 
     if (!transaction) {
       return next(new AppError(404, 'Transaction not found'));
@@ -82,12 +88,17 @@ export const getTransactionsHandler = async (
 ) => {
   try {
     const { walletId, categoryId, month, year, page = 1, limit = 10 } = req.query;
+    const userId = res.locals.user.id;
     
     const pageNum = Number(page);
     const limitNum = Number(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    const where: any = {};
+    const where: any = {
+      wallet: {
+        userId: userId // Filter by current user's wallets
+      }
+    };
     if (walletId) where.walletId = walletId;
     if (categoryId) where.categoryId = categoryId;
     
@@ -135,8 +146,14 @@ export const updateTransactionHandler = async (
   try {
     const { transactionId } = req.params;
     const { walletId, categoryId, amount, description, date } = req.body;
+    const userId = res.locals.user.id;
 
-    const existingTransaction = await findUniqueTransaction({ id: transactionId });
+    const existingTransaction = await findUniqueTransaction({ 
+      id: transactionId,
+      wallet: {
+        userId: userId
+      }
+    });
     if (!existingTransaction) {
       return next(new AppError(404, 'Transaction not found'));
     }
@@ -171,8 +188,14 @@ export const deleteTransactionHandler = async (
 ) => {
   try {
     const { transactionId } = req.params;
+    const userId = res.locals.user.id;
 
-    const existingTransaction = await findUniqueTransaction({ id: transactionId });
+    const existingTransaction = await findUniqueTransaction({ 
+      id: transactionId,
+      wallet: {
+        userId: userId
+      }
+    });
     if (!existingTransaction) {
       return next(new AppError(404, 'Transaction not found'));
     }
