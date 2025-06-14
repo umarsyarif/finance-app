@@ -57,14 +57,16 @@ async function main() {
     { id: 'income-salary', name: 'Salary', type: 'INCOME' as const, color: '#22C55E' },
     { id: 'income-freelance', name: 'Freelance', type: 'INCOME' as const, color: '#3B82F6' },
     { id: 'income-investment', name: 'Investment', type: 'INCOME' as const, color: '#8B5CF6' },
+    { id: 'income-others', name: 'Others', type: 'INCOME' as const, color: '#8B5CF6' },
   ];
 
   const expenseCategories = [
     { id: 'expense-food', name: 'Food & Dining', type: 'EXPENSE' as const, color: '#EF4444' },
     { id: 'expense-transport', name: 'Transportation', type: 'EXPENSE' as const, color: '#F59E0B' },
     { id: 'expense-entertainment', name: 'Entertainment', type: 'EXPENSE' as const, color: '#EC4899' },
-    { id: 'expense-utilities', name: 'Utilities', type: 'EXPENSE' as const, color: '#6B7280' },
+    { id: 'expense-utilities', name: 'Bills & Utilities', type: 'EXPENSE' as const, color: '#6B7280' },
     { id: 'expense-shopping', name: 'Shopping', type: 'EXPENSE' as const, color: '#F97316' },
+    { id: 'expense-others', name: 'Others', type: 'EXPENSE' as const, color: '#98FB98' },
   ];
 
   const allCategories = [...incomeCategories, ...expenseCategories];
