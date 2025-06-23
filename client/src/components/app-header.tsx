@@ -103,7 +103,13 @@ export function AppHeader() {
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 {user ? (
-                                    <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
+                                    <>
+                                        <DropdownMenuItem asChild>
+                                            <Link to="/settings" className="cursor-pointer">Settings</Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
+                                    </>
                                 ) : (
                                     <>
                                         <DropdownMenuItem asChild>

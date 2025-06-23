@@ -23,6 +23,25 @@ vi.mock('@/components/ui/card', () => ({
   CardTitle: ({ children }: any) => <h1 data-testid="card-title">{children}</h1>,
 }));
 
+vi.mock('@/components/ui/checkbox', () => ({
+  Checkbox: (props: any) => <input type="checkbox" data-testid="checkbox" {...props} />,
+}));
+
+vi.mock('@/components/ui/separator', () => ({
+  Separator: () => <hr data-testid="separator" />,
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+  },
+}));
+
+vi.mock('lucide-react', () => ({
+  Fingerprint: () => <div data-testid="fingerprint-icon">Fingerprint</div>,
+}));
+
 vi.mock('@/components/ui/input', () => ({
   Input: (props: any) => <input data-testid={`input-${props.name}`} {...props} />,
 }));
@@ -39,6 +58,7 @@ vi.mock('@/components/app-logo', () => ({
 
 const mockUseAuth = vi.mocked(useAuth);
 const mockLogin = vi.fn();
+const mockBiometricLogin = vi.fn();
 
 
 const renderLogin = () => {
@@ -56,6 +76,12 @@ describe('Login', () => {
       login: mockLogin,
       register: vi.fn(),
       logout: vi.fn(),
+      biometricLogin: mockBiometricLogin,
+      biometricEnabled: false,
+      biometricSupported: false,
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
+      refreshUser: vi.fn(),
       user: null,
       isAuthenticated: false,
     });
@@ -99,7 +125,7 @@ describe('Login', () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'password123');
+      expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'password123', false);
     });
   });
 

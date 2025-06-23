@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import { secureStorage } from '@/services/secure-storage.service';
 
 const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -13,7 +14,7 @@ const axiosInstance = axios.create({
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('access_token');
+    const token = secureStorage.getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -30,7 +31,9 @@ axiosInstance.interceptors.response.use(
     // Store the token if it's in the response
     const token = response.data?.access_token;
     if (token) {
-      localStorage.setItem('access_token', token);
+      // Preserve remember me setting when storing new token
+      const hasRememberMe = secureStorage.hasRememberMe();
+      secureStorage.setToken(token, hasRememberMe);
     }
     return response;
   },
@@ -46,13 +49,15 @@ axiosInstance.interceptors.response.use(
         const response = await axiosInstance.get('/api/auth/refresh');
         const newToken = response.data.access_token;
         if (newToken) {
-          localStorage.setItem('access_token', newToken);
+          // Preserve remember me setting when storing refreshed token
+          const hasRememberMe = secureStorage.hasRememberMe();
+          secureStorage.setToken(newToken, hasRememberMe);
         }
         // Retry the original request
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         // If refresh fails, clear token and redirect to login
-        localStorage.removeItem('access_token');
+        secureStorage.removeToken();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
