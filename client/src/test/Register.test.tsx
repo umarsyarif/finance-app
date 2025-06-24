@@ -58,6 +58,12 @@ describe('Register', () => {
       logout: vi.fn(),
       user: null,
       isAuthenticated: false,
+      biometricEnabled: false,
+      biometricSupported: false,
+      enableBiometric: vi.fn(),
+      disableBiometric: vi.fn(),
+      biometricLogin: vi.fn(),
+      refreshUser: vi.fn(),
     });
   });
 

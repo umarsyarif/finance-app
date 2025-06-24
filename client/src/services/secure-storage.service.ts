@@ -5,7 +5,6 @@ export interface StorageOptions {
 
 export class SecureStorageService {
   private readonly prefix = 'finance_app_';
-  private readonly encryptionKey = 'finance_tracker_key'; // In production, use a proper key derivation
 
   /**
    * Store a value with optional persistence and encryption
