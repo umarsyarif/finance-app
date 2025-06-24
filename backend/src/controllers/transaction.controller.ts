@@ -24,6 +24,9 @@ export const createTransactionHandler = async (
   try {
     const { walletId, categoryId, amount, description, date } = req.body;
     
+    // Smart date processing that preserves time
+    const processedDate = processTransactionDate(date);
+
     const transaction = await createTransaction({
       wallet: {
         connect: { id: walletId },
@@ -33,7 +36,7 @@ export const createTransactionHandler = async (
       },
       amount,
       description,
-      date: new Date(date),
+      date: processedDate,
     });
 
     res.status(201).json({
@@ -49,6 +52,27 @@ export const createTransactionHandler = async (
     next(err);
   }
 };
+
+// Helper function for date processing
+function processTransactionDate(dateInput: string): Date {
+  const inputDate = new Date(dateInput);
+  
+  // Check if the input is a valid date
+  if (isNaN(inputDate.getTime())) {
+    throw new Error('Invalid date format');
+  }
+  
+  // If the date string doesn't include timezone info (no 'Z' or offset)
+  // treat it as local time and convert to UTC properly
+  if (!dateInput.includes('Z') && !dateInput.match(/[+-]\d{2}:\d{2}$/)) {
+    // Parse as local time and preserve the exact time
+    const localDate = new Date(dateInput + 'Z'); // Force UTC interpretation
+    return localDate;
+  }
+  
+  // If it already has timezone info, use it as-is
+  return inputDate;
+}
 
 export const getTransactionHandler = async (
   req: Request<GetTransactionInput>,
