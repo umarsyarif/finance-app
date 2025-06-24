@@ -58,7 +58,7 @@ vi.mock('@/components/app-logo', () => ({
 
 const mockUseAuth = vi.mocked(useAuth);
 const mockLogin = vi.fn();
-const mockBiometricLogin = vi.fn();
+const mockBiometricLogin = vi.fn().mockResolvedValue({ success: false });
 
 
 const renderLogin = () => {

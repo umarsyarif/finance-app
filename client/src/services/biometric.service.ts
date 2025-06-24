@@ -81,17 +81,17 @@ export class BiometricAuthService {
   /**
    * Authenticate using biometric credentials
    */
-  async authenticate(): Promise<{ success: boolean; userId?: string }> {
+  async authenticate(): Promise<{ success: boolean; userId?: string; error?: string }> {
     try {
       if (!(await this.isSupported())) {
-        return { success: false };
+        return { success: false, error: 'Biometric authentication not supported on this device' };
       }
 
       const credentialData = this.getStoredCredential();
       const userId = localStorage.getItem(this.userIdKey);
       
       if (!credentialData || !userId) {
-        return { success: false };
+        return { success: false, error: 'No biometric credentials found. Please set up biometric authentication first.' };
       }
 
       // Generate a random challenge
@@ -112,13 +112,31 @@ export class BiometricAuthService {
       }) as PublicKeyCredential;
 
       if (!assertion) {
-        return { success: false };
+        return { success: false, error: 'Biometric authentication was cancelled or failed' };
       }
 
       return { success: true, userId };
     } catch (error) {
       console.error('Biometric authentication failed:', error);
-      return { success: false };
+      
+      let errorMessage = 'Biometric authentication failed';
+      if (error instanceof Error) {
+        if (error.name === 'NotAllowedError') {
+          errorMessage = 'Biometric authentication was cancelled or not allowed';
+        } else if (error.name === 'SecurityError') {
+          errorMessage = 'Security error: Please ensure you are using HTTPS';
+        } else if (error.name === 'NotSupportedError') {
+          errorMessage = 'Biometric authentication not supported';
+        } else if (error.name === 'InvalidStateError') {
+          errorMessage = 'Invalid biometric credentials. Please re-enable biometric authentication.';
+        } else if (error.name === 'TimeoutError') {
+          errorMessage = 'Biometric authentication timed out';
+        } else {
+          errorMessage = error.message || errorMessage;
+        }
+      }
+      
+      return { success: false, error: errorMessage };
     }
   }
 

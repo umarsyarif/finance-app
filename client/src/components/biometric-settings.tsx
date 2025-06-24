@@ -45,14 +45,15 @@ export function BiometricSettings() {
     
     setTestingBiometric(true);
     try {
-      const success = await biometricLogin();
-      if (success) {
+      const result = await biometricLogin();
+      if (result.success) {
         toast.success('Biometric authentication test successful!');
       } else {
-        toast.error('Biometric authentication test failed.');
+        toast.error(result.error || 'Biometric authentication test failed.');
       }
     } catch (error) {
-      toast.error('An error occurred during biometric test.');
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during biometric test.';
+      toast.error(errorMessage);
     } finally {
       setTestingBiometric(false);
     }

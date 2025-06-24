@@ -62,7 +62,7 @@ describe('Register', () => {
       biometricSupported: false,
       enableBiometric: vi.fn(),
       disableBiometric: vi.fn(),
-      biometricLogin: vi.fn(),
+      biometricLogin: vi.fn().mockResolvedValue({ success: false }),
       refreshUser: vi.fn(),
     });
   });

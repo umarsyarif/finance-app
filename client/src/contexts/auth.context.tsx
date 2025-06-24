@@ -21,7 +21,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   enableBiometric: () => Promise<boolean>;
   disableBiometric: () => void;
-  biometricLogin: () => Promise<boolean>;
+  biometricLogin: () => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
 }
 
@@ -171,9 +171,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setBiometricEnabled(false);
   };
 
-  const biometricLogin = async (): Promise<boolean> => {
+  const biometricLogin = async (): Promise<{ success: boolean; error?: string }> => {
     if (!biometricEnabled) {
-      return false;
+      return { success: false, error: 'Biometric authentication is not enabled' };
     }
 
     try {
@@ -181,12 +181,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (result.success && result.userId) {
         // Refresh the user session
         await refreshUser();
-        return true;
+        return { success: true };
       }
-      return false;
+      return { success: false, error: result.error || 'Biometric authentication failed' };
     } catch (error) {
       console.error('Biometric login failed:', error);
-      return false;
+      const errorMessage = error instanceof Error ? error.message : 'Biometric authentication failed';
+      return { success: false, error: errorMessage };
     }
   };
 

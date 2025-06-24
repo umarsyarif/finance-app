@@ -42,15 +42,16 @@ export default function Login() {
     setError('');
 
     try {
-      const success = await biometricLogin();
-      if (success) {
+      const result = await biometricLogin();
+      if (result.success) {
         toast.success('Biometric login successful!');
         navigate('/');
       } else {
-        setError('Biometric authentication failed. Please try again.');
+        setError(result.error || 'Biometric authentication failed. Please try again.');
       }
     } catch (err) {
-      setError('Biometric authentication failed. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Biometric authentication failed. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsBiometricLoading(false);
     }
