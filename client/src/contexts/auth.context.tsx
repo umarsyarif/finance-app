@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   const [biometricSupported, setBiometricSupported] = useState(false);
 
+  // Initialize auth only once on mount
   useEffect(() => {
     const initializeAuth = async () => {
       // Check biometric support
@@ -57,7 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     initializeAuth();
+  }, []); // Empty dependency array - run only once on mount
 
+  // Set up activity tracking and session monitoring
+  useEffect(() => {
     // Set up activity tracking
     const handleActivity = () => {
       if (user) {
@@ -85,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       clearInterval(sessionCheckInterval);
     };
-  }, [user]);
+  }, [user]); // This effect can depend on user for activity tracking
 
   if (loading) {
     return <div>Loading...</div>;

@@ -40,8 +40,13 @@ axiosInstance.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
+    // Don't retry refresh endpoint to prevent infinite loops
+    if (originalRequest.url?.includes('/api/auth/refresh')) {
+      return Promise.reject(error);
+    }
+
     // If the error is due to an expired token and we haven't tried to refresh yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if ((error.response?.status === 401 || error.response?.status === 403) && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
@@ -52,6 +57,10 @@ axiosInstance.interceptors.response.use(
           // Preserve remember me setting when storing refreshed token
           const hasRememberMe = secureStorage.hasRememberMe();
           secureStorage.setToken(newToken, hasRememberMe);
+          // Update the authorization header for the retry
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          }
         }
         // Retry the original request
         return axiosInstance(originalRequest);
