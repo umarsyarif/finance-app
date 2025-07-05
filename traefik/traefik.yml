@@ -16,7 +16,7 @@ entryPoints:
 providers:
   docker:
     exposedByDefault: false
-    network: finance-app-network
+    network: traefik-public
 
 certificatesResolvers:
   letsencrypt:

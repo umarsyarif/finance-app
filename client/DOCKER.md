@@ -58,10 +58,10 @@ For production deployment, you may want to customize:
 
 ### Network Configuration
 
-The docker-compose file expects an external network named `finance-app-network`. Create it with:
+The docker-compose file expects an external network named `traefik-public`. Create it with:
 
 ```bash
-docker network create finance-app-network
+docker network create traefik-public
 ```
 
 ### Integration with Backend
@@ -82,6 +82,6 @@ The production configuration includes:
 ## Troubleshooting
 
 1. **Port conflicts**: Make sure ports 5173 (dev) and 3000 (prod) are available
-2. **Network issues**: Ensure the `finance-app-network` exists
+2. **Network issues**: Ensure the `traefik-public` exists
 3. **Build failures**: Check that all dependencies in package.json are compatible
 4. **API connection**: Verify the VITE_API_URL environment variable points to the correct backend URL

@@ -41,5 +41,5 @@ services:
 
 networks:
   default:
-    name: finance-app-network
+    name: traefik-public
     external: true

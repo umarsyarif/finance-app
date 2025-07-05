@@ -20,7 +20,7 @@ All Docker services have been consolidated into a single `docker-compose.yml` fi
 1. Docker and Docker Compose installed
 2. Create the external network:
    ```bash
-   docker network create finance-app-network
+   docker network create traefik-public
    ```
 
 ## Usage
@@ -130,13 +130,13 @@ The previous separate docker-compose files in `/backend` and `/client` directori
 If you encounter network issues, ensure the external network exists:
 
 ```bash
-docker network ls | grep finance-app-network
+docker network ls | grep traefik-public
 ```
 
 If it doesn't exist, create it:
 
 ```bash
-docker network create finance-app-network
+docker network create traefik-public
 ```
 
 ### Service Dependencies

@@ -47,11 +47,11 @@ services:
         - "traefik.http.services.backend.loadbalancer.server.port=4000"
     networks:
         - default
-        - finance-app-network
+        - traefik-public
 
 networks:
   default:
-  finance-app-network:
+  traefik-public:
     external: true
 
 volumes:

@@ -29,7 +29,7 @@ setup: network
 
 network:
 	@echo "🔧 Creating Docker network..."
-	@docker network create finance-app-network 2>/dev/null || echo "Network already exists"
+	@docker network create traefik-public 2>/dev/null || echo "Network already exists"
 
 # Production environment
 prod: network
