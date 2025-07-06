@@ -51,8 +51,8 @@ services:
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.backend.loadbalancer.server.port=4000"
     networks:
-      - default
       - traefik-public
+      - default
 
   # Frontend Client - Production
   client-prod:
