@@ -46,6 +46,7 @@ services:
     command: node build/src/app.js
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
       - "traefik.http.routers.backend.rule=Host(`finance-api.umarsyariif.site`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
