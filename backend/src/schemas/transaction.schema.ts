@@ -10,7 +10,7 @@ export const createTransactionSchema = object({
     }),
     amount: number({
       required_error: 'Amount is required',
-    }),
+    }).positive('Amount must be greater than 0'),
     description: string().optional(),
     date: string({
       required_error: 'Date is required',
@@ -27,7 +27,7 @@ export const updateTransactionSchema = object({
   body: object({
     walletId: string().optional(),
     categoryId: string().optional(),
-    amount: number().optional(),
+    amount: number().positive('Amount must be greater than 0').optional(),
     description: string().optional(),
     date: string().optional().refine((val) => !val || !isNaN(Date.parse(val)), {
       message: 'Invalid date format',
