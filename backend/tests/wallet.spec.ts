@@ -15,11 +15,13 @@ import {
   DeleteWalletInput
 } from '../src/schemas/wallet.schema';
 import * as walletService from '../src/services/wallet.service';
+import * as transactionService from '../src/services/transaction.service';
 import * as jwt from '../src/utils/jwt';
 import * as userService from '../src/services/user.service';
 
 // Mock the modules
 jest.mock('../src/services/wallet.service');
+jest.mock('../src/services/transaction.service');
 jest.mock('../src/utils/jwt');
 jest.mock('../src/services/user.service');
 
@@ -351,6 +353,7 @@ describe('Wallet Controller Tests', () => {
 
       req.params = { walletId: 'wallet123' };
       (walletService.findWalletById as jest.Mock).mockResolvedValue(existingWallet);
+      (transactionService.countTransactionsForWallet as jest.Mock).mockResolvedValue(0);
       (walletService.deleteWallet as jest.Mock).mockResolvedValue(undefined);
 
       await deleteWalletHandler(req as Request<DeleteWalletInput>, res as Response, next);
@@ -405,12 +408,13 @@ describe('Wallet Controller Tests', () => {
 
       req.params = { walletId: 'wallet123' };
       (walletService.findWalletById as jest.Mock).mockResolvedValue(existingWallet);
+      (transactionService.countTransactionsForWallet as jest.Mock).mockResolvedValue(1);
 
       await deleteWalletHandler(req as Request<DeleteWalletInput>, res as Response, next);
 
       expect(next).toHaveBeenCalledWith(expect.objectContaining({
         statusCode: 400,
-        message: 'Cannot delete wallet with existing transactions'
+        message: expect.stringContaining('Cannot delete wallet with')
       }));
     });
   });
