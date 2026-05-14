@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as transactionService from '../src/services/transaction.service';
+import * as walletService from '../src/services/wallet.service';
 import {
   createTransactionHandler,
   getTransactionHandler,
@@ -10,6 +11,7 @@ import {
 
 // Mock the modules
 jest.mock('../src/services/transaction.service');
+jest.mock('../src/services/wallet.service');
 
 describe('Transaction Controller Tests', () => {
   let req: Partial<Request>;
@@ -62,6 +64,7 @@ describe('Transaction Controller Tests', () => {
 
       req.body = transactionData;
       res.locals = { user: { id: 'user123' } };
+      (walletService.findWalletById as jest.Mock).mockResolvedValue({ id: 'wallet123', userId: 'user123' });
       (transactionService.createTransaction as jest.Mock).mockResolvedValue(mockTransaction);
 
       await createTransactionHandler(req as Request, res as Response, next);
@@ -96,6 +99,7 @@ describe('Transaction Controller Tests', () => {
 
       const error = new Error('Database error');
       req.body = transactionData;
+      (walletService.findWalletById as jest.Mock).mockResolvedValue({ id: 'wallet123', userId: 'user123' });
       (transactionService.createTransaction as jest.Mock).mockRejectedValue(error);
 
       await createTransactionHandler(req as Request, res as Response, next);
