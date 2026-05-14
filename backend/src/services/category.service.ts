@@ -1,6 +1,5 @@
-import { PrismaClient, Prisma } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Prisma } from '@prisma/client';
+import prisma from '../middleware/prismaMiddleware';
 
 export const createCategory = async (input: Prisma.CategoryCreateInput) => {
   return (await prisma.category.create({

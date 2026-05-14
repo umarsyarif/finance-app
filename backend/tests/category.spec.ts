@@ -14,6 +14,14 @@ import * as userService from '../src/services/user.service';
 jest.mock('../src/services/category.service');
 jest.mock('../src/utils/jwt');
 jest.mock('../src/services/user.service');
+jest.mock('../src/middleware/prismaMiddleware', () => ({
+  __esModule: true,
+  default: {
+    transaction: {
+      count: jest.fn().mockResolvedValue(0),
+    },
+  },
+}));
 
 describe('Category Controller Tests', () => {
   let req: Partial<Request>;
@@ -59,6 +67,7 @@ describe('Category Controller Tests', () => {
       };
 
       req.body = categoryData;
+      (categoryService.findCategory as jest.Mock).mockResolvedValue(null);
       (categoryService.createCategory as jest.Mock).mockResolvedValue(mockCategory);
 
       await createCategoryHandler(req as Request, res as Response, next);
@@ -88,7 +97,7 @@ describe('Category Controller Tests', () => {
       };
 
       req.body = categoryData;
-      (categoryService.findUniqueCategory as jest.Mock).mockResolvedValue(existingCategory);
+      (categoryService.findCategory as jest.Mock).mockResolvedValue(existingCategory);
 
       await createCategoryHandler(req as Request, res as Response, next);
 
@@ -102,6 +111,8 @@ describe('Category Controller Tests', () => {
       };
 
       req.body = invalidData;
+      (categoryService.findCategory as jest.Mock).mockResolvedValue(null);
+      (categoryService.createCategory as jest.Mock).mockRejectedValue(new Error('Validation error'));
 
       await createCategoryHandler(req as Request, res as Response, next);
 

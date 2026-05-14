@@ -44,11 +44,12 @@ model Wallet {
   userId       String
   name         String
   currency     String
-  balance      Float         @default(0.0)
+  balance      Decimal       @default(0.0) @db.Decimal(19,4)
   color        String        @default("#3B82F6") // Default blue color
   isMain       Boolean       @default(false)
   displayOrder Int           @default(0)
   createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   user        User        @relation(fields: [userId], references: [id])
   transactions Transaction[]
@@ -74,10 +75,11 @@ model Transaction {
   id          String      @id @default(uuid())
   walletId    String
   categoryId  String
-  amount      Float
+  amount      Decimal     @db.Decimal(19,4)
   description String?
   date        DateTime
   createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   wallet   Wallet     @relation(fields: [walletId], references: [id])
   category Category   @relation(fields: [categoryId], references: [id])

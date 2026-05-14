@@ -14,6 +14,7 @@ import {
   deleteTransaction,
   countTransactions,
 } from '../services/transaction.service';
+import { findWalletById } from '../services/wallet.service';
 import AppError from '../utils/appError';
 
 export const createTransactionHandler = async (
@@ -23,17 +24,23 @@ export const createTransactionHandler = async (
 ) => {
   try {
     const { walletId, categoryId, amount, description, date } = req.body;
-    
+    const userId = res.locals.user.id;
+
+    // Verify the wallet belongs to the authenticated user
+    const wallet = await findWalletById(walletId);
+    if (!wallet) {
+      return next(new AppError(404, 'Wallet not found'));
+    }
+    if (wallet.userId !== userId) {
+      return next(new AppError(403, 'Access denied'));
+    }
+
     // Smart date processing that preserves time
     const processedDate = processTransactionDate(date);
 
     const transaction = await createTransaction({
-      wallet: {
-        connect: { id: walletId },
-      },
-      category: {
-        connect: { id: categoryId },
-      },
+      wallet: { connect: { id: walletId } },
+      category: { connect: { id: categoryId } },
       amount,
       description,
       date: processedDate,
@@ -41,9 +48,7 @@ export const createTransactionHandler = async (
 
     res.status(201).json({
       status: 'success',
-      data: {
-        transaction,
-      },
+      data: { transaction },
     });
   } catch (err: any) {
     if (err.code === 'P2025') {

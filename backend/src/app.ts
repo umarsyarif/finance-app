@@ -70,12 +70,20 @@ async function bootstrap() {
 
   // GLOBAL ERROR HANDLER
   app.use((err: AppError, req: Request, res: Response, next: NextFunction) => {
-    err.status = err.status || 'error';
-    err.statusCode = err.statusCode || 500;
+    const statusCode = err.statusCode || 500;
+    const status = err.status || 'error';
 
-    res.status(err.statusCode).json({
-      status: err.status,
-      message: err.message,
+    if (err.isOperational) {
+      return res.status(statusCode).json({
+        status,
+        message: err.message,
+      });
+    }
+
+    console.error('UNEXPECTED ERROR:', err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Something went wrong. Please try again later.',
     });
   });
 

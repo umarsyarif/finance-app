@@ -1,8 +1,9 @@
-import { PrismaClient, Prisma, User } from "@prisma/client";
+import { Prisma, User } from "@prisma/client";
 import config from "config";
 import { omit } from "lodash";
 import redisClient from "../utils/connectRedis";
 import { signJwt } from "../utils/jwt";
+import prisma from '../middleware/prismaMiddleware';
 
 export const excludedFields = [
   "password",
@@ -11,8 +12,6 @@ export const excludedFields = [
   "passwordResetAt",
   "passwordResetToken",
 ];
-
-const prisma = new PrismaClient();
 
 export const createUser = async (input: Prisma.UserCreateInput) => {
   return (await prisma.user.create({

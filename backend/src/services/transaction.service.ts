@@ -1,110 +1,85 @@
-import { Prisma, Transaction } from '@prisma/client';
-import prisma from '../middleware/prismaMiddleware';
+import prisma, { applyBalanceOnCreate, applyBalanceOnDelete, applyBalanceOnUpdate } from '../middleware/prismaMiddleware';
+import { Prisma } from '@prisma/client';
 
 export const createTransaction = async (input: Prisma.TransactionCreateInput) => {
-  return (await prisma.transaction.create({
-    data: input,
-    include: {
-      wallet: true,
-      category: true,
-    },
-  })) as Transaction;
+  return await prisma.$transaction(async (tx) => {
+    const transaction = await tx.transaction.create({
+      data: input,
+      include: { category: true, wallet: true },
+    });
+    await applyBalanceOnCreate(tx, {
+      walletId: transaction.walletId,
+      categoryId: transaction.categoryId,
+      amount: transaction.amount,
+    });
+    return transaction;
+  });
 };
 
-export const findTransaction = async (
-  where: Prisma.TransactionWhereInput,
-  select?: Prisma.TransactionSelect
-) => {
-  if (select) {
-    return (await prisma.transaction.findFirst({
-      where,
-      select,
-    })) as Transaction;
-  }
-  return (await prisma.transaction.findFirst({
-    where,
-    include: {
-      wallet: true,
-      category: true,
-    },
-  })) as Transaction;
-};
-
-export const findUniqueTransaction = async (
+export const updateTransaction = async (
   where: Prisma.TransactionWhereUniqueInput,
-  select?: Prisma.TransactionSelect
+  data: Prisma.TransactionUpdateInput
 ) => {
-  if (select) {
-    return (await prisma.transaction.findUnique({
+  return await prisma.$transaction(async (tx) => {
+    const original = await tx.transaction.findUnique({
       where,
-      select,
-    })) as Transaction;
-  }
-  return (await prisma.transaction.findUnique({
+      include: { category: true, wallet: true },
+    });
+    if (!original) throw new Error('Transaction not found');
+
+    const updated = await tx.transaction.update({
+      where,
+      data,
+      include: { category: true, wallet: true },
+    });
+    await applyBalanceOnUpdate(tx, original, {
+      walletId: updated.walletId,
+      categoryId: updated.categoryId,
+      amount: updated.amount,
+    });
+    return updated;
+  });
+};
+
+export const deleteTransaction = async (where: Prisma.TransactionWhereUniqueInput) => {
+  return await prisma.$transaction(async (tx) => {
+    const original = await tx.transaction.findUnique({
+      where,
+      include: { category: true, wallet: true },
+    });
+    if (!original) throw new Error('Transaction not found');
+
+    await applyBalanceOnDelete(tx, original);
+    return await tx.transaction.delete({ where });
+  });
+};
+
+export const findUniqueTransaction = async (where: Prisma.TransactionWhereInput) => {
+  return await prisma.transaction.findFirst({
     where,
-    include: {
-      wallet: true,
-      category: true,
-    },
-  })) as Transaction;
+    include: { category: true, wallet: true },
+  });
 };
 
 export const findTransactions = async (
-  where: Prisma.TransactionWhereInput = {},
-  orderBy: Prisma.TransactionOrderByWithRelationInput = { createdAt: 'desc' },
-  skip?: number,
-  take?: number
+  where: Prisma.TransactionWhereInput,
+  orderBy: Prisma.TransactionOrderByWithRelationInput,
+  skip: number,
+  take: number
 ) => {
   return await prisma.transaction.findMany({
     where,
     orderBy,
     skip,
     take,
-    include: {
-      wallet: true,
-      category: true,
-    },
+    include: { category: true, wallet: true },
   });
 };
 
-export const updateTransaction = async (
-  where: Prisma.TransactionWhereUniqueInput,
-  data: Prisma.TransactionUpdateInput,
-  select?: Prisma.TransactionSelect
-) => {
-  if (select) {
-    return (await prisma.transaction.update({
-      where,
-      data,
-      select,
-    })) as Transaction;
-  }
-  return (await prisma.transaction.update({
-    where,
-    data,
-    include: {
-      wallet: true,
-      category: true,
-    },
-  })) as Transaction;
+export const countTransactions = async (where: Prisma.TransactionWhereInput) => {
+  return await prisma.transaction.count({ where });
 };
 
-export const deleteTransaction = async (
-  where: Prisma.TransactionWhereUniqueInput
-) => {
-  return await prisma.transaction.delete({
-    where,
-    include: {
-      wallet: true,
-      category: true,
-    },
-  });
-};
-
-export const countTransactions = async (
-  where: Prisma.TransactionWhereInput = {}
-) => {
-  return await prisma.transaction.count({
-    where,
-  });
+export const countTransactionsForWallet = async (walletId: string) => {
+  return await prisma.transaction.count({ where: { walletId } });
 };

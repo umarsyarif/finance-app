@@ -1,50 +1,48 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import {
-  forgotPasswordHandler,
   loginUserHandler,
   logoutUserHandler,
   refreshAccessTokenHandler,
   registerUserHandler,
-  resetPasswordHandler,
   verifyEmailHandler,
+  forgotPasswordHandler,
+  resetPasswordHandler,
 } from '../controllers/auth.controller';
+import { validate } from '../middleware/validate';
 import { deserializeUser } from '../middleware/deserializeUser';
 import { requireUser } from '../middleware/requireUser';
-import { validate } from '../middleware/validate';
 import {
-  forgotPasswordSchema,
   loginUserSchema,
   registerUserSchema,
+  forgotPasswordSchema,
   resetPasswordSchema,
-  verifyEmailSchema,
 } from '../schemas/user.schema';
 
-const router = express.Router();
+const authRouter = express.Router();
 
-router.post('/register', validate(registerUserSchema), registerUserHandler);
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { status: 'fail', message: 'Too many requests, please try again later.' },
+});
 
-router.post('/login', validate(loginUserSchema), loginUserHandler);
+const strictLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { status: 'fail', message: 'Too many requests, please try again in an hour.' },
+});
 
-router.get('/refresh', refreshAccessTokenHandler);
+authRouter.post('/register', authLimiter, validate(registerUserSchema), registerUserHandler);
+authRouter.post('/login', authLimiter, validate(loginUserSchema), loginUserHandler);
+authRouter.get('/refresh', refreshAccessTokenHandler);
+authRouter.get('/logout', deserializeUser, requireUser, logoutUserHandler);
+authRouter.get('/verifyemail/:verificationCode', authLimiter, verifyEmailHandler);
+authRouter.post('/forgotpassword', strictLimiter, validate(forgotPasswordSchema), forgotPasswordHandler);
+authRouter.patch('/resetpassword/:resetToken', strictLimiter, validate(resetPasswordSchema), resetPasswordHandler);
 
-router.get(
-  '/verifyemail/:verificationCode',
-  validate(verifyEmailSchema),
-  verifyEmailHandler
-);
-
-router.get('/logout', deserializeUser, requireUser, logoutUserHandler);
-
-router.post(
-  '/forgotpassword',
-  validate(forgotPasswordSchema),
-  forgotPasswordHandler
-);
-
-router.patch(
-  '/resetpassword/:resetToken',
-  validate(resetPasswordSchema),
-  resetPasswordHandler
-);
-
-export default router;
+export default authRouter;

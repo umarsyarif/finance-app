@@ -8,6 +8,7 @@ import {
 } from '../schemas/category.schema';
 import {
   createCategory,
+  findCategory,
   findCategories,
   findUniqueCategory,
   updateCategory,
@@ -15,6 +16,7 @@ import {
   countCategories,
 } from '../services/category.service';
 import AppError from '../utils/appError';
+import prisma from '../middleware/prismaMiddleware';
 
 export const createCategoryHandler = async (
   req: Request<{}, {}, CreateCategoryInput>,
@@ -26,8 +28,10 @@ export const createCategoryHandler = async (
     const { name, type, color } = req.body;
 
     // Check if category with same name and type already exists for this user
-    const existingCategory = await findUniqueCategory({
-      id: `${userId}_${name}_${type}`, // This won't work, we need to use findFirst instead
+    const existingCategory = await findCategory({
+      userId,
+      name: { equals: name, mode: 'insensitive' },
+      type,
     });
 
     if (existingCategory) {
@@ -163,8 +167,10 @@ export const updateCategoryHandler = async (
       const checkName = name || category.name;
       const checkType = type || category.type;
       
-      const existingCategory = await findUniqueCategory({
-        id: `${userId}_${checkName}_${checkType}`, // This won't work, we need to use findFirst instead
+      const existingCategory = await findCategory({
+        userId,
+        name: { equals: checkName, mode: 'insensitive' },
+        type: checkType,
       });
 
       if (existingCategory && existingCategory.id !== categoryId) {
@@ -213,6 +219,14 @@ export const deleteCategoryHandler = async (
     // Check if category belongs to the user
     if (category.userId !== userId) {
       return next(new AppError(403, 'You can only delete your own categories'));
+    }
+
+    // Check for linked transactions before deleting
+    const transactionCount = await prisma.transaction.count({
+      where: { categoryId },
+    });
+    if (transactionCount > 0) {
+      return next(new AppError(400, `Cannot delete category with ${transactionCount} existing transaction(s). Reassign them first.`));
     }
 
     await deleteCategory({ id: categoryId });

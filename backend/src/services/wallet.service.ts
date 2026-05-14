@@ -1,6 +1,5 @@
-import { Prisma, PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Prisma } from '@prisma/client';
+import prisma from '../middleware/prismaMiddleware';
 
 export const createWallet = async (
   input: Prisma.WalletCreateInput
@@ -86,42 +85,30 @@ export const findMainWallet = async (userId: string) => {
 };
 
 export const setMainWallet = async (userId: string, walletId: string) => {
-  // First, unset any existing main wallet
-  await prisma.wallet.updateMany({
-    where: {
-      userId,
-      isMain: true,
-    },
-    data: {
-      isMain: false,
-    },
-  });
-
-  // Then set the new main wallet
-  return await prisma.wallet.update({
-    where: { id: walletId },
-    data: { isMain: true },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
+  return await prisma.$transaction(async (tx) => {
+    await tx.wallet.updateMany({
+      where: { userId, isMain: true },
+      data: { isMain: false },
+    });
+    return await tx.wallet.update({
+      where: { id: walletId },
+      data: { isMain: true },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
       },
-    },
+    });
   });
 };
 
 export const updateWalletOrder = async (userId: string, walletOrders: { id: string; displayOrder: number }[]) => {
-  const updatePromises = walletOrders.map(({ id, displayOrder }) =>
-    prisma.wallet.update({
-      where: { id },
-      data: { displayOrder },
-    })
+  return await prisma.$transaction(
+    walletOrders.map(({ id, displayOrder }) =>
+      prisma.wallet.update({
+        where: { id },
+        data: { displayOrder },
+      })
+    )
   );
-
-  return await Promise.all(updatePromises);
 };
 
 export const updateWallet = async (

@@ -24,10 +24,9 @@ import Email from '../utils/email';
 
 const cookiesOptions: CookieOptions = {
   httpOnly: true,
-  sameSite: 'lax',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  secure: process.env.NODE_ENV === 'production',
 };
-
-if (process.env.NODE_ENV === 'production') cookiesOptions.secure = true;
 
 const accessTokenCookieOptions: CookieOptions = {
   ...cookiesOptions,
@@ -140,7 +139,6 @@ export const loginUserHandler = async (
 
     res.status(200).json({
       status: 'success',
-      access_token,
     });
   } catch (err: any) {
     next(err);
@@ -200,7 +198,6 @@ export const refreshAccessTokenHandler = async (
     // 5. Send response
     res.status(200).json({
       status: 'success',
-      access_token,
     });
   } catch (err: any) {
     next(err);
@@ -208,9 +205,14 @@ export const refreshAccessTokenHandler = async (
 };
 
 function logout(res: Response) {
-  res.cookie('access_token', '', { maxAge: 1 });
-  res.cookie('refresh_token', '', { maxAge: 1 });
-  res.cookie('logged_in', '', { maxAge: 1 });
+  const clearOptions: CookieOptions = {
+    maxAge: 1,
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  };
+  res.cookie('access_token', '', { ...clearOptions, httpOnly: true });
+  res.cookie('refresh_token', '', { ...clearOptions, httpOnly: true });
+  res.cookie('logged_in', '', { ...clearOptions, httpOnly: false });
 }
 
 export const logoutUserHandler = async (
@@ -385,6 +387,7 @@ export const resetPasswordHandler = async (
       { email: true }
     );
 
+    await redisClient.del(user.id);
     logout(res);
     res.status(200).json({
       status: 'success',

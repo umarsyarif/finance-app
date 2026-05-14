@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 interface OfflineData {
@@ -27,8 +27,13 @@ export function useOffline(): UseOfflineReturn {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [offlineData, setOfflineData] = useState<OfflineData | null>(null);
 
+  const syncRef = useRef<() => Promise<void>>();
+
   useEffect(() => {
-    // Load offline data from localStorage
+    syncRef.current = syncPendingChanges;
+  });
+
+  useEffect(() => {
     const savedData = localStorage.getItem(OFFLINE_STORAGE_KEY);
     if (savedData) {
       try {
@@ -41,12 +46,12 @@ export function useOffline(): UseOfflineReturn {
     const handleOnline = () => {
       setIsOnline(true);
       toast.success('Back online! Syncing data...');
-      syncPendingChanges();
+      syncRef.current?.();
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      toast.info('You\'re offline. Changes will be saved locally.');
+      toast.info("You're offline. Changes will be saved locally.");
     };
 
     window.addEventListener('online', handleOnline);
@@ -92,26 +97,36 @@ export function useOffline(): UseOfflineReturn {
 
 
   const syncPendingChanges = async () => {
-    if (!isOnline) return;
+    const pendingChanges: Array<{ type: string; payload: any }> = JSON.parse(
+      localStorage.getItem(PENDING_CHANGES_KEY) || '[]'
+    );
 
-    const pendingChanges = JSON.parse(localStorage.getItem(PENDING_CHANGES_KEY) || '[]');
-    
     if (pendingChanges.length === 0) return;
 
-    try {
-      // Process pending changes
-      for (const change of pendingChanges) {
-        // Here you would implement the actual sync logic
-        // For now, we'll just log the changes
-        console.log('Syncing change:', change);
-      }
+    const failed: typeof pendingChanges = [];
 
-      // Clear pending changes after successful sync
+    for (const change of pendingChanges) {
+      try {
+        if (change.type === 'CREATE_TRANSACTION') {
+          const response = await fetch('/api/transactions', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(change.payload),
+          });
+          if (!response.ok) throw new Error('sync failed');
+        }
+      } catch {
+        failed.push(change);
+      }
+    }
+
+    if (failed.length === 0) {
       localStorage.removeItem(PENDING_CHANGES_KEY);
       toast.success('All changes synced successfully!');
-    } catch (error) {
-      console.error('Failed to sync pending changes:', error);
-      toast.error('Failed to sync some changes. Will retry later.');
+    } else {
+      localStorage.setItem(PENDING_CHANGES_KEY, JSON.stringify(failed));
+      toast.error(`Failed to sync ${failed.length} change(s). Will retry later.`);
     }
   };
 

@@ -160,17 +160,18 @@ export const getCategoryBreakdown = async (filters: StatsFilters): Promise<Categ
   const totalExpense = categoryTotals.reduce((sum, item) => sum + (item._sum.amount || 0), 0);
 
   // Get category details and build result
+  const categoryIds = categoryTotals.map((c) => c.categoryId);
+  const categories = await prisma.category.findMany({
+    where: { id: { in: categoryIds } },
+  });
+  const categoryMap = new Map(categories.map((c) => [c.id, c]));
+
   const result: CategoryBreakdown[] = [];
-
   for (const categoryTotal of categoryTotals) {
-    const category = await prisma.category.findUnique({
-      where: { id: categoryTotal.categoryId },
-    });
-
+    const category = categoryMap.get(categoryTotal.categoryId);
     if (category && categoryTotal._sum.amount) {
       const amount = categoryTotal._sum.amount;
       const percentage = (amount / totalExpense) * 100;
-
       result.push({
         categoryId: category.id,
         categoryName: category.name,
@@ -180,8 +181,6 @@ export const getCategoryBreakdown = async (filters: StatsFilters): Promise<Categ
       });
     }
   }
-
-  // Sort by amount descending
   return result.sort((a, b) => b.amount - a.amount);
 };
 
@@ -189,65 +188,39 @@ export const getTrendData = async (filters: StatsFilters): Promise<TrendData[]> 
   const { userId, walletIds, categoryId, year } = filters;
   const currentYear = year || new Date().getFullYear();
 
-  const result: TrendData[] = [];
+  const startOfYear = new Date(currentYear, 0, 1);
+  const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999);
 
-  // Get data for each month of the year
-  for (let month = 1; month <= 12; month++) {
-    const startOfMonth = new Date(currentYear, month - 1, 1);
-    const endOfMonth = new Date(currentYear, month, 0, 23, 59, 59, 999);
+  const whereClause: Prisma.TransactionWhereInput = {
+    wallet: { userId },
+    date: { gte: startOfYear, lte: endOfYear },
+  };
+  if (walletIds && walletIds.length > 0) whereClause.walletId = { in: walletIds };
+  if (categoryId) whereClause.categoryId = categoryId;
 
-    const whereClause: Prisma.TransactionWhereInput = {
-      wallet: {
-        userId,
-      },
-      date: {
-        gte: startOfMonth,
-        lte: endOfMonth,
-      },
-    };
+  const transactions = await prisma.transaction.findMany({
+    where: whereClause,
+    select: { amount: true, date: true, category: { select: { type: true } } },
+  });
 
-    // Add wallet filter
-    if (walletIds && walletIds.length > 0) {
-      whereClause.walletId = {
-        in: walletIds,
-      };
-    }
-
-    // Add category filter
-    if (categoryId) {
-      whereClause.categoryId = categoryId;
-    }
-
-    // Get transactions for this month
-    const transactions = await prisma.transaction.findMany({
-      where: whereClause,
-      include: {
-        category: true,
-      },
-    });
-
-    // Calculate totals for this month
-    let income = 0;
-    let expense = 0;
-
-    transactions.forEach((transaction) => {
-      if (transaction.category.type === 'INCOME') {
-        income += transaction.amount;
-      } else {
-        expense += transaction.amount;
-      }
-    });
-
-    const balance = income - expense;
-    const monthName = new Date(currentYear, month - 1).toLocaleString('default', { month: 'short' });
-
-    result.push({
-      month: monthName,
-      income,
-      expense,
-      balance,
-    });
+  const monthlyData: Record<number, { income: number; expense: number }> = {};
+  for (let m = 1; m <= 12; m++) {
+    monthlyData[m] = { income: 0, expense: 0 };
   }
 
-  return result;
+  for (const t of transactions) {
+    const m = new Date(t.date).getMonth() + 1;
+    if (t.category.type === 'INCOME') {
+      monthlyData[m].income += t.amount;
+    } else {
+      monthlyData[m].expense += t.amount;
+    }
+  }
+
+  return Array.from({ length: 12 }, (_, i) => {
+    const m = i + 1;
+    const { income, expense } = monthlyData[m];
+    const monthName = new Date(currentYear, i).toLocaleString('default', { month: 'short' });
+    return { month: monthName, income, expense, balance: income - expense };
+  });
 };
