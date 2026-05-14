@@ -19,6 +19,7 @@ import {
   updateWalletOrder,
 } from '../services/wallet.service';
 import AppError from '../utils/appError';
+import { countTransactionsForWallet } from '../services/transaction.service';
 
 export const createWalletHandler = async (
   req: Request<{}, {}, CreateWalletInput>,
@@ -172,8 +173,9 @@ export const deleteWalletHandler = async (
     }
 
     // Check if wallet has transactions
-    if (existingWallet.transactions && existingWallet.transactions.length > 0) {
-      return next(new AppError(400, 'Cannot delete wallet with existing transactions'));
+    const txCount = await countTransactionsForWallet(walletId);
+    if (txCount > 0) {
+      return next(new AppError(400, `Cannot delete wallet with ${txCount} existing transaction(s)`));
     }
 
     await deleteWallet(walletId);

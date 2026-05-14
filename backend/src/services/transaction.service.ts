@@ -79,3 +79,7 @@ export const findTransactions = async (
 export const countTransactions = async (where: Prisma.TransactionWhereInput) => {
   return await prisma.transaction.count({ where });
 };
+
+export const countTransactionsForWallet = async (walletId: string) => {
+  return await prisma.transaction.count({ where: { walletId } });
+};
