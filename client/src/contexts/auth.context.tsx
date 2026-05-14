@@ -16,7 +16,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   biometricEnabled: boolean;
   biometricSupported: boolean;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, passwordConfirm: string) => Promise<void>;
   logout: () => Promise<void>;
   enableBiometric: () => Promise<boolean>;
@@ -41,18 +41,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setBiometricSupported(supported);
       setBiometricEnabled(biometricService.isEnabled());
 
-      // Check for existing token
-      const token = secureStorage.getToken();
-      if (token) {
-        try {
-          const response = await axios.get('/api/users/me');
-          setUser(response.data.data.user);
-          secureStorage.setLastActivity();
-        } catch (error) {
-          console.error('Failed to fetch user:', error);
-          secureStorage.removeToken();
-          setUser(null);
-        }
+      // Check for existing cookie session
+      try {
+        const response = await axios.get('/api/users/me');
+        setUser(response.data.data.user);
+        secureStorage.setLastActivity();
+      } catch {
+        setUser(null);
       }
       setLoading(false);
     };
@@ -95,21 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return <div>Loading...</div>;
   }
 
-  const login = async (email: string, password: string, rememberMe = false) => {
+  const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
-      
-      if (response.data.access_token) {
-        // Store token with remember me option
-        secureStorage.setToken(response.data.access_token, rememberMe);
-        
-        // Fetch user profile
-        const userResponse = await axios.get('/api/users/me');
-        setUser(userResponse.data.data.user);
-        secureStorage.setLastActivity();
-        
-        console.log('Login successful');
-      }
+      await axios.post('/api/auth/login', { email, password });
+      const userResponse = await axios.get('/api/users/me');
+      setUser(userResponse.data.data.user);
+      secureStorage.setLastActivity();
     } catch (error: unknown) {
       if (error instanceof AxiosError) {
         throw new Error(error.response?.data?.message || 'Login failed');
@@ -120,17 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const register = async (name: string, email: string, password: string, passwordConfirm: string) => {
     try {
-      await axios.post('/api/auth/register', {
-        name,
-        email,
-        password,
-        passwordConfirm,
-      });
-      // Token storage is handled by axios interceptor
-      
-      // Fetch user profile
-      const userResponse = await axios.get('/api/users/me');
-      setUser(userResponse.data.data.user);
+      await axios.post('/api/auth/register', { name, email, password, passwordConfirm });
+      // Registration sends a verification email. No session exists yet.
     } catch (error) {
       if (error instanceof AxiosError) {
         throw new Error(error.response?.data?.message || 'Registration failed');
@@ -145,8 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
-      // Always clear local state
-      secureStorage.removeToken();
+      secureStorage.clear();
       setUser(null);
     }
   };
