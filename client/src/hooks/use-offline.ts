@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 interface OfflineData {
@@ -27,8 +27,13 @@ export function useOffline(): UseOfflineReturn {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [offlineData, setOfflineData] = useState<OfflineData | null>(null);
 
+  const syncRef = useRef<() => Promise<void>>();
+
   useEffect(() => {
-    // Load offline data from localStorage
+    syncRef.current = syncPendingChanges;
+  });
+
+  useEffect(() => {
     const savedData = localStorage.getItem(OFFLINE_STORAGE_KEY);
     if (savedData) {
       try {
@@ -41,12 +46,12 @@ export function useOffline(): UseOfflineReturn {
     const handleOnline = () => {
       setIsOnline(true);
       toast.success('Back online! Syncing data...');
-      syncPendingChanges();
+      syncRef.current?.();
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      toast.info('You\'re offline. Changes will be saved locally.');
+      toast.info("You're offline. Changes will be saved locally.");
     };
 
     window.addEventListener('online', handleOnline);
