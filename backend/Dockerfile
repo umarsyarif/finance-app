@@ -6,8 +6,8 @@ RUN apk add --no-cache openssl
 WORKDIR /app
 
 # Copy package files
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # Copy source code
 COPY . .
@@ -16,7 +16,7 @@ COPY . .
 RUN npx prisma generate
 
 # Build the application
-RUN yarn build
+RUN npm run build
 
 # Expose port
 EXPOSE 4000
