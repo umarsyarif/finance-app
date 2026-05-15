@@ -386,7 +386,7 @@ export default function Stats() {
                   <BarChart data={trendData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(value) => `$${value}`} />
+                    <YAxis tickFormatter={(value) => formatCurrency(Number(value), selectedCurrency)} />
                     <Tooltip formatter={(value) => formatCurrency(Number(value), selectedCurrency)} />
                     <Legend />
                     <Bar dataKey="income" fill="#10b981" name="Income" />
@@ -396,7 +396,7 @@ export default function Stats() {
                   <LineChart data={trendData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(value) => `$${value}`} />
+                    <YAxis tickFormatter={(value) => formatCurrency(Number(value), selectedCurrency)} />
                     <Tooltip formatter={(value) => formatCurrency(Number(value), selectedCurrency)} />
                     <Legend />
                     <Line type="monotone" dataKey="income" stroke="#10b981" name="Income" strokeWidth={2} />

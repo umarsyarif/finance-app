@@ -9,10 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/auth.context';
 import { toast } from 'sonner';
-import { User, Shield, Bell, Palette } from 'lucide-react';
+import { User, Shield, Bell, Palette, Sun, Moon, Monitor } from 'lucide-react';
+import { useTheme } from '@/contexts/theme.context';
 
 export default function Settings() {
   const { user, refreshUser } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
@@ -49,20 +51,20 @@ export default function Settings() {
       </PageHeader>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="profile" className="flex items-center gap-2">
+        <TabsList className="flex w-full overflow-x-auto scrollbar-none gap-1 h-auto p-1">
+          <TabsTrigger value="profile" className="flex items-center gap-2 shrink-0">
             <User className="h-4 w-4" />
             Profile
           </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
+          <TabsTrigger value="security" className="flex items-center gap-2 shrink-0">
             <Shield className="h-4 w-4" />
             Security
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2">
+          <TabsTrigger value="notifications" className="flex items-center gap-2 shrink-0">
             <Bell className="h-4 w-4" />
             Notifications
           </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center gap-2">
+          <TabsTrigger value="appearance" className="flex items-center gap-2 shrink-0">
             <Palette className="h-4 w-4" />
             Appearance
           </TabsTrigger>
@@ -198,7 +200,35 @@ export default function Settings() {
                   <p className="text-sm text-muted-foreground">
                     Choose your preferred color theme.
                   </p>
-                  {/* TODO: Add theme selector */}
+                  <div className="flex gap-2 pt-1 flex-wrap">
+                    <Button
+                      variant={theme === 'light' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTheme('light')}
+                      className="flex items-center gap-2"
+                    >
+                      <Sun className="h-4 w-4" />
+                      Light
+                    </Button>
+                    <Button
+                      variant={theme === 'dark' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTheme('dark')}
+                      className="flex items-center gap-2"
+                    >
+                      <Moon className="h-4 w-4" />
+                      Dark
+                    </Button>
+                    <Button
+                      variant={theme === 'system' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTheme('system')}
+                      className="flex items-center gap-2"
+                    >
+                      <Monitor className="h-4 w-4" />
+                      System
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>

@@ -62,7 +62,7 @@ services:
       target: production
       args:
         - NODE_ENV=production
-        - VITE_APP_NAME=Finance App
+        - VITE_APP_NAME=Finance Tracker
         - VITE_API_URL=https://finance-api.umeh.me
         - VITE_BASE_URL=/
     container_name: finance-client-prod
@@ -85,7 +85,7 @@ services:
       target: development
       args:
         - NODE_ENV=development
-        - VITE_APP_NAME=Finance App
+        - VITE_APP_NAME=Finance Tracker
         - VITE_API_URL=http://localhost:8000
         - VITE_BASE_URL=/
     container_name: finance-client-dev

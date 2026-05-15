@@ -1,6 +1,4 @@
 import {
-    CircleAlert,
-    Files,
     Gauge,
     Wallet,
     LucideIcon
@@ -25,25 +23,5 @@ export const mainMenu: MenuType = [
         title: 'Wallets & Categories',
         url: '/wallets',
         icon: Wallet
-    },
-    {
-        title: 'Pages',
-        url: '/pages',
-        icon: Files,
-        items: [
-            {
-                title: 'Sample Page',
-                url: '/pages/sample',
-            },
-            {
-                title: 'Coming Soon',
-                url: '/pages/feature',
-            },
-        ]
-    },
-    {
-        title: 'Error',
-        url: '/404',
-        icon: CircleAlert,
     },
 ]

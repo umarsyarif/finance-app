@@ -11,9 +11,17 @@ import { AppLogo } from './app-logo';
 import { AppSidebar } from './app-sidebar';
 import { ModeToggle } from './mode-toggle';
 import { Button } from './ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { baseUrl } from '@/config/app';
+import { Avatar, AvatarFallback } from './ui/avatar';
 import { useAuth } from '@/contexts/auth.context';
+
+const getUserInitials = (name: string) => {
+    return name
+        .split(' ')
+        .map((part) => part[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+};
 
 export function AppHeader() {
     const { user, logout } = useAuth();
@@ -87,8 +95,9 @@ export function AppHeader() {
                                     variant='ghost'
                                     className='relative h-8 w-8 rounded-full cursor-pointer ml-2'>
                                     <Avatar className='h-8 w-8'>
-                                        <AvatarImage src={baseUrl + '/avatars/shadcn.jpg'} alt='shadcn' />
-                                        <AvatarFallback className="rounded-lg">SC</AvatarFallback>
+                                        <AvatarFallback className="rounded-lg">
+                                            {user ? getUserInitials(user.name) : 'U'}
+                                        </AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>

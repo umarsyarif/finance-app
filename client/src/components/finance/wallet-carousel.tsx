@@ -303,7 +303,7 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
                   : "border-gray-300 bg-white text-gray-600",
                 draggedIndex === index && "opacity-50"
               )}
-              title={`${wallet.name} - Click to select, double-click to set as main, drag to reorder`}
+              title={`${wallet.name} - Tap to select, double-tap to set as main`}
             >
               {wallet.name.charAt(0).toUpperCase()}
               {wallet.isMain && (
@@ -317,7 +317,7 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
       {/* Wallet Count Info */}
       {wallets.length > 1 && (
         <p className="text-center text-xs text-gray-500">
-          Wallet {currentIndex + 1} of {wallets.length} • Drag to reorder • Double-click to set as main
+          Wallet {currentIndex + 1} of {wallets.length} • Long press to reorder • Double-tap to set as main
         </p>
       )}
     </div>

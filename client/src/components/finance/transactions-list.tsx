@@ -54,7 +54,7 @@ const TransactionListItem: React.FC<{
   
   return (
     <div 
-      className="flex items-center justify-between py-4 px-4 hover:bg-gray-50 cursor-pointer transition-colors"
+      className="flex items-center justify-between py-4 px-4 hover:bg-accent cursor-pointer transition-colors"
       onClick={onClick}
     >
       <div className="flex items-center space-x-3">
@@ -65,10 +65,10 @@ const TransactionListItem: React.FC<{
           {transaction.category?.name.charAt(0)}
         </div>
         <div className="flex-1">
-          <div className="font-medium text-gray-900">
+          <div className="font-medium text-foreground">
             {transaction.description || transaction.category?.name}
           </div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-muted-foreground">
             {formatDate(transaction.date)}
           </div>
         </div>
@@ -76,7 +76,7 @@ const TransactionListItem: React.FC<{
       <div className="text-right">
         <div className={cn(
           "font-semibold",
-          isIncome ? "text-blue-600" : "text-gray-900"
+          isIncome ? "text-blue-500" : "text-foreground"
         )}>
           {formatAmount(transaction.amount, transaction.type, transaction.wallet?.currency)}
         </div>
@@ -141,7 +141,7 @@ export function TransactionsList({
   if (variant === 'full') {
     if (loading) {
       return (
-        <div className={cn("bg-white min-h-screen", className)}>
+        <div className={cn("bg-background min-h-screen", className)}>
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
           </div>
@@ -151,7 +151,7 @@ export function TransactionsList({
 
     if (error) {
       return (
-        <div className={cn("bg-white min-h-screen p-4", className)}>
+        <div className={cn("bg-background min-h-screen p-4", className)}>
           <div className="text-center py-8">
             <p className="text-red-500 mb-4">{error}</p>
             <Button onClick={refetch} variant="outline">
@@ -163,10 +163,10 @@ export function TransactionsList({
     }
 
     return (
-      <div className={cn("bg-white min-h-screen", className)}>
+      <div className={cn("bg-background min-h-screen", className)}>
         {/* Month Navigation */}
         {showMonthNavigation && currentDate && (
-          <div className="bg-white border-b border-gray-200 px-4 py-3">
+          <div className="bg-background border-b border-border px-4 py-3">
             <div className="flex items-center justify-between">
               <Button
                 variant="ghost"
@@ -176,13 +176,13 @@ export function TransactionsList({
               >
                 <ChevronLeft className="w-5 h-5" />
               </Button>
-              
+
               <div className="flex items-center space-x-2">
                 <span className="text-lg font-semibold">
                   {formatMonthAndYear(dateToISOString(currentDate))}
                 </span>
               </div>
-              
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -196,15 +196,15 @@ export function TransactionsList({
         )}
 
         {/* Transactions List */}
-        <div className="bg-white">
+        <div className="bg-background">
           {transactions.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">
+              <p className="text-muted-foreground">
                 {showMonthNavigation ? "No transactions for this month" : "No transactions found"}
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border">
               {transactions.map((transaction) => (
                 <TransactionListItem
                   key={transaction.id}
