@@ -47,7 +47,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-public"
-      - "traefik.http.routers.backend.rule=Host(`finance-api.umarsyariif.site`)"
+      - "traefik.http.routers.backend.rule=Host(`finance-api.umeh.me`)"
       - "traefik.http.routers.backend.entrypoints=websecure"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.backend.loadbalancer.server.port=4000"
@@ -63,14 +63,14 @@ services:
       args:
         - NODE_ENV=production
         - VITE_APP_NAME=Finance App
-        - VITE_API_URL=https://finance-api.umarsyariif.site
+        - VITE_API_URL=https://finance-api.umeh.me
         - VITE_BASE_URL=/
     container_name: finance-client-prod
     ports:
       - '3000:80'
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`finance.umarsyariif.site`)"
+      - "traefik.http.routers.frontend.rule=Host(`finance.umeh.me`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
     networks:
