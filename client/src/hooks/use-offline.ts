@@ -27,7 +27,7 @@ export function useOffline(): UseOfflineReturn {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [offlineData, setOfflineData] = useState<OfflineData | null>(null);
 
-  const syncRef = useRef<() => Promise<void>>();
+  const syncRef = useRef<() => Promise<void>>(undefined);
 
   useEffect(() => {
     syncRef.current = syncPendingChanges;
