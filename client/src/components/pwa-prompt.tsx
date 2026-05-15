@@ -79,8 +79,20 @@ export function PWAPrompt() {
     setShowInstallPrompt(false);
   };
 
-  const handleUpdateClick = () => {
-    window.location.reload();
+  const handleUpdateClick = async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (registration?.waiting) {
+      // Tell the waiting SW to skip waiting and become active,
+      // then reload once it takes control.
+      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      navigator.serviceWorker.addEventListener(
+        'controllerchange',
+        () => window.location.reload(),
+        { once: true }
+      );
+    } else {
+      window.location.reload();
+    }
   };
 
   const dismissInstallPrompt = () => {
