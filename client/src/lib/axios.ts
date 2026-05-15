@@ -26,7 +26,9 @@ axiosInstance.interceptors.response.use(
         await axiosInstance.get('/api/auth/refresh');
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       }
     }
