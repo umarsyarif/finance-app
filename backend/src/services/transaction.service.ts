@@ -10,7 +10,7 @@ export const createTransaction = async (input: Prisma.TransactionCreateInput) =>
     await applyBalanceOnCreate(tx, {
       walletId: transaction.walletId,
       categoryId: transaction.categoryId,
-      amount: transaction.amount,
+      amount: transaction.amount.toNumber(),
     });
     return transaction;
   });
@@ -32,10 +32,10 @@ export const updateTransaction = async (
       data,
       include: { category: true, wallet: true },
     });
-    await applyBalanceOnUpdate(tx, original, {
+    await applyBalanceOnUpdate(tx, { ...original, amount: original.amount.toNumber() }, {
       walletId: updated.walletId,
       categoryId: updated.categoryId,
-      amount: updated.amount,
+      amount: updated.amount.toNumber(),
     });
     return updated;
   });
@@ -49,7 +49,7 @@ export const deleteTransaction = async (where: Prisma.TransactionWhereUniqueInpu
     });
     if (!original) throw new Error('Transaction not found');
 
-    await applyBalanceOnDelete(tx, original);
+    await applyBalanceOnDelete(tx, { ...original, amount: original.amount.toNumber() });
     return await tx.transaction.delete({ where });
   });
 };

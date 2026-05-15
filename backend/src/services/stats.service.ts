@@ -89,9 +89,9 @@ export const getMonthlySummary = async (filters: StatsFilters): Promise<MonthlyS
 
   transactions.forEach((transaction) => {
     if (transaction.category.type === 'INCOME') {
-      income += transaction.amount;
+      income += transaction.amount.toNumber();
     } else {
-      expense += transaction.amount;
+      expense += transaction.amount.toNumber();
     }
   });
 
@@ -157,7 +157,7 @@ export const getCategoryBreakdown = async (filters: StatsFilters): Promise<Categ
   }
 
   // Calculate total expense for percentage calculation
-  const totalExpense = categoryTotals.reduce((sum, item) => sum + (item._sum.amount || 0), 0);
+  const totalExpense = categoryTotals.reduce((sum, item) => sum + (item._sum.amount?.toNumber() || 0), 0);
 
   // Get category details and build result
   const categoryIds = categoryTotals.map((c) => c.categoryId);
@@ -170,7 +170,7 @@ export const getCategoryBreakdown = async (filters: StatsFilters): Promise<Categ
   for (const categoryTotal of categoryTotals) {
     const category = categoryMap.get(categoryTotal.categoryId);
     if (category && categoryTotal._sum.amount) {
-      const amount = categoryTotal._sum.amount;
+      const amount = categoryTotal._sum.amount.toNumber();
       const percentage = (amount / totalExpense) * 100;
       result.push({
         categoryId: category.id,
@@ -211,9 +211,9 @@ export const getTrendData = async (filters: StatsFilters): Promise<TrendData[]> 
   for (const t of transactions) {
     const m = new Date(t.date).getMonth() + 1;
     if (t.category.type === 'INCOME') {
-      monthlyData[m].income += t.amount;
+      monthlyData[m].income += t.amount.toNumber();
     } else {
-      monthlyData[m].expense += t.amount;
+      monthlyData[m].expense += t.amount.toNumber();
     }
   }
 
