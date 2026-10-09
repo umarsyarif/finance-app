@@ -15,6 +15,7 @@ export const capturePhotoSchema = object({
   body: object({
     image: string({ required_error: 'Image is required' })
       .min(1, 'Image is required')
+      .regex(/^[A-Za-z0-9+/]+={0,2}$/, 'Image must be base64 without a data: prefix')
       .refine((b64) => Buffer.byteLength(b64, 'base64') <= MAX_IMAGE_BYTES, 'Image is too large (max 5 MB)'),
     mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp'], {
       errorMap: () => ({ message: 'Use a JPEG, PNG or WebP image' }),

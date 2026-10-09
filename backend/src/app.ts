@@ -89,6 +89,15 @@ async function bootstrap() {
       });
     }
 
+    // Body-parser failures (no logging: client errors)
+    const parseType = (err as { type?: string }).type;
+    if (parseType === 'entity.too.large') {
+      return res.status(413).json({ status: 'fail', message: 'Request is too large (max 5 MB image)' });
+    }
+    if (parseType === 'entity.parse.failed') {
+      return res.status(400).json({ status: 'fail', message: 'Request body is not valid JSON' });
+    }
+
     console.error('UNEXPECTED ERROR:', err);
     res.status(500).json({
       status: 'error',

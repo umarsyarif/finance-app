@@ -4,6 +4,7 @@
  * Run: npm run test:int
  */
 process.env.TZ = 'Asia/Seoul';
+jest.setTimeout(30000);
 
 jest.mock('../src/services/ai.service', () => ({
   ...jest.requireActual('../src/services/ai.service'),
@@ -58,6 +59,8 @@ afterAll(async () => {
   await redisClient.quit();
 });
 
+afterEach(() => mockedExtract.mockReset());
+
 describe('personal API token', () => {
   it('starts with no token', async () => {
     const res = await owner.get('/api/users/me/api-token');
@@ -88,7 +91,8 @@ describe('personal API token', () => {
       request(app).post('/api/capture/text').set('Authorization', `Bearer ${token}`).send({ text: 'x' });
 
     expect((await send(first)).status).toBe(401);
-    expect((await send(second)).status).not.toBe(401);
+    mockedExtract.mockRejectedValueOnce(new AiUnavailableError('x'));
+    expect((await send(second)).status).toBe(503);
 
     expect((await owner.delete('/api/users/me/api-token')).status).toBe(204);
     expect((await send(second)).status).toBe(401);
@@ -114,8 +118,9 @@ describe('personal API token', () => {
 
   it('records lastUsedAt on successful use', async () => {
     const token = (await owner.post('/api/users/me/api-token')).body.data.token;
+    mockedExtract.mockRejectedValueOnce(new AiUnavailableError('x'));
     const res = await request(app).post('/api/capture/text').set('Authorization', `Bearer ${token}`).send({ text: 'x' });
-    expect(res.status).not.toBe(401);
+    expect(res.status).toBe(503);
     expect((await owner.get('/api/users/me/api-token')).body.data.lastUsedAt).not.toBeNull();
   });
 
@@ -145,9 +150,11 @@ describe('capture', () => {
 
   beforeAll(async () => {
     shortcut = await newUser('shortcut');
-    walletId = (await shortcut.post('/api/wallets').send({ name: 'KRW Main', currency: 'KRW', balance: 10000 })).body.data.wallet.id;
-    await shortcut.put(`/api/wallets/${walletId}/main`);
-    await shortcut.post('/api/categories').send({ name: 'Coffee', type: 'EXPENSE' });
+    const created = await shortcut.post('/api/wallets').send({ name: 'KRW Main', currency: 'KRW', balance: 10000 });
+    expect(created.status).toBe(201);
+    walletId = created.body.data.wallet.id;
+    expect((await shortcut.put(`/api/wallets/${walletId}/main`)).status).toBe(200);
+    expect((await shortcut.post('/api/categories').send({ name: 'Coffee', type: 'EXPENSE' })).status).toBe(201);
     token = (await shortcut.post('/api/users/me/api-token')).body.data.token;
   });
 
@@ -219,6 +226,25 @@ describe('capture', () => {
     expect((await shortcut.post('/api/capture/photo').send({ image: 'AAAA', mimeType: 'image/gif' })).status).toBe(400);
   });
 
+  it('photo: rejects non-base64 images (data: prefix)', async () => {
+    const res = await shortcut.post('/api/capture/photo').send({ image: 'data:image/jpeg;base64,AAAA', mimeType: 'image/jpeg' });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Image must be base64 without a data: prefix');
+  });
+
+  it('photo: a body over the 7 MB parser limit is a clean 413', async () => {
+    const image = Buffer.alloc(5.5 * 1024 * 1024).toString('base64') + 'A'.repeat(2 * 1024 * 1024);
+    const res = await shortcut.post('/api/capture/photo').send({ image, mimeType: 'image/jpeg' });
+    expect(res.status).toBe(413);
+    expect(res.body).toEqual({ status: 'fail', message: 'Request is too large (max 5 MB image)' });
+  });
+
+  it('photo: malformed JSON is a clean 400', async () => {
+    const res = await shortcut.post('/api/capture/photo').set('Content-Type', 'application/json').send('{bad');
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Request body is not valid JSON');
+  });
+
   // Keep this last in the block: it uses up the user's hourly budget
   it('limits captures to 30 per hour per user, shared across both endpoints', async () => {
     mockedExtract.mockResolvedValue(extraction({ amount: null })); // 422s: nothing is written
@@ -228,7 +254,23 @@ describe('capture', () => {
     expect(last.body.message).toBe('Too many captures, try again in an hour.');
     const photo = await shortcut.post('/api/capture/photo').send({ image: 'AAAA', mimeType: 'image/jpeg' });
     expect(photo.status).toBe(429);
-    mockedExtract.mockReset();
+  });
+});
+
+describe('capture fallback category', () => {
+  it('reuses an existing "Others" category instead of creating "Other"', async () => {
+    const u = await newUser('others');
+    const w = (await u.post('/api/wallets').send({ name: 'W', currency: 'KRW', balance: 1000 })).body.data.wallet.id;
+    expect((await u.put(`/api/wallets/${w}/main`)).status).toBe(200);
+    expect((await u.post('/api/categories').send({ name: 'Others', type: 'EXPENSE' })).status).toBe(201);
+    const t = (await u.post('/api/users/me/api-token')).body.data.token;
+
+    mockedExtract.mockResolvedValueOnce(extraction({ categoryName: 'Pharmacy' }));
+    const res = await request(app).post('/api/capture/text').set('Authorization', `Bearer ${t}`).send({ text: 'x' });
+    expect(res.status).toBe(201);
+    expect(res.body.message).toContain('· Others ·');
+    const cats = (await u.get('/api/categories')).body.data.categories.map((c: { name: string }) => c.name);
+    expect(cats).not.toContain('Other');
   });
 });
 

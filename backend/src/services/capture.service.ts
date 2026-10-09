@@ -103,8 +103,10 @@ export async function findOrCreateOtherCategory(userId: string, type: 'INCOME' |
   // Check-then-create can race into a duplicate "Other"; harmless for this single-user app
   const existing = await findCategory({
     type,
-    name: { equals: 'Other', mode: 'insensitive' },
-    OR: [{ userId }, { userId: null }],
+    AND: [
+      { OR: [{ name: { equals: 'Other', mode: 'insensitive' } }, { name: { equals: 'Others', mode: 'insensitive' } }] },
+      { OR: [{ userId }, { userId: null }] },
+    ],
   });
   const category = existing ?? (await createCategory({ name: 'Other', type: type as CategoryType, user: { connect: { id: userId } } }));
   return { id: category.id, name: category.name, type };

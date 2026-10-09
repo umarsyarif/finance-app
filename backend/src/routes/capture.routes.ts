@@ -30,7 +30,7 @@ const captureLimiter = rateLimit({
   message: { status: 'fail', message: 'Too many captures, try again in an hour.' },
 });
 
-router.post('/text', failedTokenLimiter, requireApiToken, captureLimiter, validate(captureTextSchema), captureTextHandler);
-router.post('/photo', deserializeUser, requireUser, captureLimiter, validate(capturePhotoSchema), capturePhotoHandler);
+router.post('/text', failedTokenLimiter, requireApiToken, validate(captureTextSchema), captureLimiter, captureTextHandler);
+router.post('/photo', deserializeUser, requireUser, validate(capturePhotoSchema), captureLimiter, capturePhotoHandler);
 
 export default router;
