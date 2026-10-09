@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Camera, Plus } from 'lucide-react';
-import { isAxiosError } from 'axios';
+import { isAxiosError, isCancel } from 'axios';
 import { Button } from '../ui/button';
 import { DateTimePicker } from '../ui/datetime-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
@@ -53,6 +53,9 @@ export function TransactionForm({
   const [scanning, setScanning] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const scanId = useRef(0);
+  const scanAbort = useRef<AbortController | null>(null);
+  useEffect(() => () => scanAbort.current?.abort(), []);
 
   const {
     formData,
@@ -89,30 +92,46 @@ export function TransactionForm({
   // Photo → AI draft → form. Nothing is saved until the user taps Save.
   const scanPhoto = async (file: File | undefined) => {
     if (!file) return;
+    scanAbort.current?.abort();
+    const controller = new AbortController();
+    scanAbort.current = controller;
+    const id = ++scanId.current;
+    const current = () => id === scanId.current;
     setScanning(true);
     setScanError(null);
     setScanned(false);
     try {
-      const payload = await downscaleImage(file);
-      const { data } = await axios.post('/api/capture/photo', payload);
+      let payload;
+      try {
+        payload = await downscaleImage(file);
+      } catch {
+        if (current()) setScanError("This image format isn't supported. Try a JPEG or PNG screenshot.");
+        return;
+      }
+      const { data } = await axios.post('/api/capture/photo', payload, { signal: controller.signal });
+      if (!current()) return;
       const draft: TransactionDraft = data.data.draft;
       setType(draft.type);
       await refetchCategories(); // the draft may use a just-created "Other" category
+      if (!current()) return;
       applyDraft(draft);
       setScanned(true);
     } catch (err) {
+      if (!current() || controller.signal.aborted || isCancel(err)) return;
       setScanError((isAxiosError(err) && err.response?.data?.message) || "Couldn't read the photo. Enter the details manually.");
     } finally {
-      setScanning(false);
-      if (fileInput.current) fileInput.current.value = '';
+      if (current()) {
+        setScanning(false);
+        if (fileInput.current) fileInput.current.value = '';
+      }
     }
   };
 
-  if (loadingWallets || loadingCategories) {
+  if ((loadingWallets && wallets.length === 0) || (loadingCategories && categories.length === 0)) {
     return <p className="py-8 text-center text-muted-foreground">Loading…</p>;
   }
 
-  if (walletsError || categoriesError) {
+  if ((walletsError && wallets.length === 0) || (categoriesError && categories.length === 0)) {
     return <p className="py-8 text-center text-expense">Couldn't load your data: {walletsError || categoriesError}</p>;
   }
 
@@ -131,6 +150,8 @@ export function TransactionForm({
               accept="image/*"
               aria-label="Scan photo"
               className="sr-only"
+              tabIndex={-1}
+              disabled={scanning}
               onChange={(e) => scanPhoto(e.target.files?.[0])}
             />
             <ChoiceChip className="ml-auto" disabled={scanning} onClick={() => fileInput.current?.click()}>
@@ -140,8 +161,10 @@ export function TransactionForm({
         )}
       </div>
 
-      {scanning && <p className="text-sm text-muted-foreground">Reading photo…</p>}
-      {scanned && <p className="rounded-[20px] bg-lime-soft px-4 py-3 text-sm font-semibold">Filled from photo. Check before saving.</p>}
+      <div role="status" aria-live="polite">
+        {scanning && <p className="text-sm text-muted-foreground">Reading photo…</p>}
+        {scanned && <p className="rounded-[20px] bg-lime-soft px-4 py-3 text-sm font-semibold">Filled from photo. Check before saving.</p>}
+      </div>
       {scanError && <p role="alert" className="text-sm text-expense">{scanError}</p>}
 
       <div>

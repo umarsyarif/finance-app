@@ -60,6 +60,7 @@ test('C2 a scanned photo fills the form and nothing saves until Save', async ({ 
   let uploaded: { image: string; mimeType: string } | undefined;
   await page.route('**/api/capture/photo', async (route) => {
     uploaded = route.request().postDataJSON();
+    await new Promise((r) => setTimeout(r, 500));
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -72,12 +73,18 @@ test('C2 a scanned photo fills the form and nothing saves until Save', async ({ 
   await page.goto('/');
 
   const sheet = await openAddSheet(page);
-  await sheet.getByLabel('Scan photo').setInputFiles({ name: 'receipt.png', mimeType: 'image/png', buffer: PNG });
+  const chooserPromise = page.waitForEvent('filechooser');
+  await sheet.getByRole('button', { name: 'Scan', exact: true }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({ name: 'receipt.png', mimeType: 'image/png', buffer: PNG });
 
+  await expect(sheet.getByText('Reading photo…')).toBeVisible();
+  await expect(saveButton(sheet)).toBeDisabled();
   await expect(sheet.getByText('Filled from photo. Check before saving.')).toBeVisible();
   await expect(sheet.getByLabel('Amount')).toHaveValue('48500');
   await expect(sheet.getByPlaceholder('What was it for?')).toHaveValue('Emart');
   await expect(sheet.getByRole('button', { name: 'Food' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(sheet.getByRole('combobox', { name: 'Wallet' })).toHaveText('KRW Main');
   expect(uploaded?.mimeType).toBe('image/jpeg'); // downscaled and re-encoded on the client
   expect(await txCount(page, wallet)).toBe(0);
 
@@ -111,4 +118,42 @@ test('C4 editing a transaction has no Scan photo option', async ({ page }) => {
   await row(page, 'edit-me').click();
   await page.getByRole('button', { name: 'Edit' }).click();
   await expect(page.getByRole('dialog', { name: 'Edit transaction' }).getByLabel('Scan photo')).toHaveCount(0);
+});
+
+test('C5 an income draft switches the type and selects its category', async ({ page }) => {
+  await signUp(page, 'c5');
+  const wallet = await seedWallet(page, 'KRW', 100000, 'KRW Main');
+  const salary = await seedCategory(page, 'INCOME', 'Salary');
+  await page.route('**/api/capture/photo', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'success', data: { draft: {
+        type: 'INCOME', amount: 3000000, description: 'Pay day', date: '2026-10-09T05:20:00.000Z',
+        walletId: wallet, walletName: 'KRW Main', currency: 'KRW', categoryId: salary, categoryName: 'Salary',
+      } } }),
+    })
+  );
+  await page.goto('/');
+
+  const sheet = await openAddSheet(page);
+  await sheet.getByLabel('Scan photo').setInputFiles({ name: 'slip.png', mimeType: 'image/png', buffer: PNG });
+
+  await expect(sheet.getByText('Filled from photo. Check before saving.')).toBeVisible();
+  await expect(sheet.getByRole('button', { name: 'Income', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect(sheet.getByRole('button', { name: 'Salary' })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('C6 a file that is not an image is rejected before any request', async ({ page }) => {
+  await signUp(page, 'c6');
+  await seedWallet(page);
+  let requested = false;
+  await page.route('**/api/capture/photo', (route) => { requested = true; route.abort(); });
+  await page.goto('/');
+
+  const sheet = await openAddSheet(page);
+  await sheet.getByLabel('Scan photo').setInputFiles({ name: 'notes.txt', mimeType: 'image/png', buffer: Buffer.from('not an image') });
+
+  await expect(sheet.getByText("This image format isn't supported. Try a JPEG or PNG screenshot.")).toBeVisible();
+  expect(requested).toBe(false);
 });
