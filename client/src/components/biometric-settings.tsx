@@ -92,7 +92,7 @@ export function BiometricSettings() {
           <Fingerprint className="h-5 w-5" />
           <CardTitle>Biometric Authentication</CardTitle>
           {biometricEnabled ? (
-            <Badge variant="default" className="bg-green-500">
+            <Badge variant="secondary" className="bg-lime-soft text-foreground">
               <ShieldCheck className="h-3 w-3 mr-1" />
               Enabled
             </Badge>

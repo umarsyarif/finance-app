@@ -26,13 +26,15 @@ export function ThemeProvider({
         root.classList.remove("light", "dark")
 
         if (theme === "system") {
-            const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-                .matches
-                ? "dark"
-                : "light"
-
-            root.classList.add(systemTheme)
-            return
+            // Follow the OS setting, including when it changes while the app is open
+            const media = window.matchMedia("(prefers-color-scheme: dark)")
+            const apply = () => {
+                root.classList.remove("light", "dark")
+                root.classList.add(media.matches ? "dark" : "light")
+            }
+            apply()
+            media.addEventListener("change", apply)
+            return () => media.removeEventListener("change", apply)
         }
 
         root.classList.add(theme)

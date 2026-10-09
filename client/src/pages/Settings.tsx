@@ -1,24 +1,23 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PageHeader, PageHeaderHeading, PageHeaderDescription } from '@/components/page-header';
 import { BiometricSettings } from '@/components/biometric-settings';
+import { PageTitle } from '@/components/page-header';
+import { FilterChips } from '@/components/finance/filter-chips';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/auth.context';
 import { toast } from 'sonner';
 import axios from '@/lib/axios';
 import { AxiosError } from 'axios';
 
-const apiMessage = (err: unknown) => (err instanceof AxiosError ? err.response?.data?.message : undefined);
-import { User, Shield, Bell, Palette, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from '@/contexts/theme.context';
+
+const apiMessage = (err: unknown) => (err instanceof AxiosError ? err.response?.data?.message : undefined);
 
 export default function Settings() {
   const { user, refreshUser } = useAuth();
   const { theme, setTheme } = useTheme();
+  const [section, setSection] = useState<'profile' | 'security' | 'appearance'>('profile');
   const [isLoading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
@@ -71,218 +70,87 @@ export default function Settings() {
     setProfileData(prev => ({ ...prev, [name]: value }));
   };
 
+  const field = 'h-[52px] rounded-[20px] bg-card px-[18px]';
+  const themeLabel = { light: 'Light', dark: 'Dark', system: 'System' } as const;
+
   return (
-    <div className="container mx-auto py-6">
-      <PageHeader>
-        <PageHeaderHeading>Settings</PageHeaderHeading>
-        <PageHeaderDescription>
-          Manage your account settings and preferences.
-        </PageHeaderDescription>
-      </PageHeader>
+    <>
+      <PageTitle title="Settings" />
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="flex w-full overflow-x-auto scrollbar-none gap-1 h-auto p-1">
-          <TabsTrigger value="profile" className="flex items-center gap-2 shrink-0">
-            <User className="h-4 w-4" />
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2 shrink-0">
-            <Shield className="h-4 w-4" />
-            Security
-          </TabsTrigger>
-          <TabsTrigger value="notifications" className="flex items-center gap-2 shrink-0">
-            <Bell className="h-4 w-4" />
-            Notifications
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="flex items-center gap-2 shrink-0">
-            <Palette className="h-4 w-4" />
-            Appearance
-          </TabsTrigger>
-        </TabsList>
+      <FilterChips
+        label="Settings section"
+        className="mb-6"
+        value={section}
+        onChange={setSection}
+        options={[
+          { value: 'profile', label: 'Profile' },
+          { value: 'security', label: 'Security' },
+          { value: 'appearance', label: 'Appearance' },
+        ]}
+      />
 
-        <TabsContent value="profile" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
-                Update your personal information and account details.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleProfileUpdate} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={profileData.name}
-                    onChange={handleChange}
-                    placeholder="Enter your full name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={profileData.email}
-                    onChange={handleChange}
-                    placeholder="Enter your email address"
-                  />
-                </div>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Updating...' : 'Update Profile'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {section === 'profile' && (
+        <section className="space-y-5 rounded-[24px] bg-card p-5 shadow-resting">
+          <h2 className="text-[19px] font-bold">Profile</h2>
+          <form onSubmit={handleProfileUpdate} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input id="name" name="name" value={profileData.name} onChange={handleChange} placeholder="Your name" className={field} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input id="email" name="email" type="email" value={profileData.email} onChange={handleChange} placeholder="you@example.com" className={field} />
+            </div>
+            <Button type="submit" disabled={isLoading} className="h-[52px] w-full rounded-full text-[15px]">
+              {isLoading ? 'Saving…' : 'Update Profile'}
+            </Button>
+          </form>
+        </section>
+      )}
 
-        <TabsContent value="security" className="space-y-6">
+      {section === 'security' && (
+        <div className="space-y-4">
+          <section className="space-y-5 rounded-[24px] bg-card p-5 shadow-resting">
+            <div>
+              <h2 className="text-[19px] font-bold">Password</h2>
+              <p className="text-sm text-muted-foreground">Changing it signs out your other devices.</p>
+            </div>
+            <form onSubmit={handlePasswordChange} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="current-password">Current Password</Label>
+                <Input id="current-password" name="currentPassword" type="password" autoComplete="current-password" value={passwordData.currentPassword} onChange={handlePasswordInput} required className={field} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input id="new-password" name="newPassword" type="password" autoComplete="new-password" value={passwordData.newPassword} onChange={handlePasswordInput} minLength={8} required className={field} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <Input id="confirm-password" name="newPasswordConfirm" type="password" autoComplete="new-password" value={passwordData.newPasswordConfirm} onChange={handlePasswordInput} required className={field} />
+              </div>
+              <Button type="submit" disabled={isChangingPassword} className="h-[52px] w-full rounded-full text-[15px]">
+                {isChangingPassword ? 'Changing…' : 'Change Password'}
+              </Button>
+            </form>
+          </section>
           <BiometricSettings />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Password</CardTitle>
-              <CardDescription>
-                Change your password to keep your account secure.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handlePasswordChange} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current-password">Current Password</Label>
-                  <Input
-                    id="current-password"
-                    name="currentPassword"
-                    type="password"
-                    autoComplete="current-password"
-                    value={passwordData.currentPassword}
-                    onChange={handlePasswordInput}
-                    placeholder="Enter your current password"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <Input
-                    id="new-password"
-                    name="newPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordInput}
-                    placeholder="Enter your new password"
-                    minLength={8}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm New Password</Label>
-                  <Input
-                    id="confirm-password"
-                    name="newPasswordConfirm"
-                    type="password"
-                    autoComplete="new-password"
-                    value={passwordData.newPasswordConfirm}
-                    onChange={handlePasswordInput}
-                    placeholder="Confirm your new password"
-                    required
-                  />
-                </div>
-                <Button type="submit" disabled={isChangingPassword}>
-                  {isChangingPassword ? 'Changing...' : 'Change Password'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="notifications" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>
-                Choose how you want to be notified about account activity.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Email Notifications</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Receive email notifications for important account updates.
-                    </p>
-                  </div>
-                  {/* TODO: Add Switch component */}
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Transaction Alerts</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Get notified when new transactions are added.
-                    </p>
-                  </div>
-                  {/* TODO: Add Switch component */}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="appearance" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Theme</CardTitle>
-              <CardDescription>
-                Customize the appearance of your application.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Color Theme</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Choose your preferred color theme.
-                  </p>
-                  <div className="flex gap-2 pt-1 flex-wrap">
-                    <Button
-                      variant={theme === 'light' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTheme('light')}
-                      className="flex items-center gap-2"
-                    >
-                      <Sun className="h-4 w-4" />
-                      Light
-                    </Button>
-                    <Button
-                      variant={theme === 'dark' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTheme('dark')}
-                      className="flex items-center gap-2"
-                    >
-                      <Moon className="h-4 w-4" />
-                      Dark
-                    </Button>
-                    <Button
-                      variant={theme === 'system' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setTheme('system')}
-                      className="flex items-center gap-2"
-                    >
-                      <Monitor className="h-4 w-4" />
-                      System
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+      {section === 'appearance' && (
+        <section className="space-y-4 rounded-[24px] bg-card p-5 shadow-resting">
+          <div>
+            <h2 className="text-[19px] font-bold">Theme</h2>
+            <p className="text-sm text-muted-foreground">System follows your phone's setting.</p>
+          </div>
+          <FilterChips
+            label="Theme"
+            value={theme}
+            onChange={setTheme}
+            options={(['light', 'dark', 'system'] as const).map((value) => ({ value, label: themeLabel[value] }))}
+          />
+        </section>
+      )}
+    </>
   );
 }

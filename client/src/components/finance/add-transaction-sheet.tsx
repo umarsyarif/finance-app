@@ -1,54 +1,28 @@
-import { useState } from 'react';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
-import { Button } from '../ui/button';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../ui/sheet';
 import { TransactionForm } from './transaction-form';
 
-type TransactionType = 'INCOME' | 'EXPENSE';
-
 interface AddTransactionSheetProps {
-  type: TransactionType;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onTransactionChange?: () => void;
   defaultWalletId?: string;
 }
 
-export function AddTransactionSheet({ type, onTransactionChange, defaultWalletId }: AddTransactionSheetProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const isIncome = type === 'INCOME';
-  const buttonText = isIncome ? 'Add Income' : 'Add Expense';
-  const sheetTitle = isIncome ? 'Add New Income' : 'Add New Expense';
-  const sheetDescription = isIncome ? 'Add your income transaction here.' : 'Add your expense transaction here.';
-
+// Opened from the bottom bar's Add button
+export function AddTransactionSheet({ open, onOpenChange, onTransactionChange, defaultWalletId }: AddTransactionSheetProps) {
   const handleSuccess = () => {
     onTransactionChange?.();
-    setIsOpen(false);
+    onOpenChange(false);
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button 
-          variant={"default"}
-          size={"sm"}
-          className="text-xs mt-2"
-        >
-          {buttonText}
-        </Button>
-      </SheetTrigger>
-      <SheetContent className="w-[400px] sm:w-[540px]">
-        <SheetHeader>
-          <SheetTitle>{sheetTitle}</SheetTitle>
-          <SheetDescription>
-            {sheetDescription}
-          </SheetDescription>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="mx-auto max-h-[92vh] max-w-[480px] overflow-y-auto rounded-t-[28px] px-6 pb-8">
+        <SheetHeader className="px-0">
+          <SheetTitle className="text-[19px] font-bold">Add transaction</SheetTitle>
+          <SheetDescription className="sr-only">Record an expense or income.</SheetDescription>
         </SheetHeader>
-        <div className="mt-6">
-          <TransactionForm 
-            type={type}
-            onSuccess={handleSuccess}
-            submitButtonText={buttonText}
-            defaultWalletId={defaultWalletId}
-          />
-        </div>
+        {open && <TransactionForm onSuccess={handleSuccess} defaultWalletId={defaultWalletId} />}
       </SheetContent>
     </Sheet>
   );

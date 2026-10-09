@@ -23,7 +23,7 @@ test('G2 changing the name is saved', async ({ page }) => {
 test('G3 changing the password takes effect', async ({ page }) => {
   const email = await signUp(page, 'g3');
   await page.goto('/settings');
-  await page.getByRole('tab', { name: 'Security' }).click();
+  await page.getByRole('radio', { name: 'Security' }).click();
   await page.getByLabel('Current Password').fill(PASSWORD);
   await page.getByLabel('New Password', { exact: true }).fill('newpassword456');
   await page.getByLabel('Confirm New Password').fill('newpassword456');
@@ -41,8 +41,8 @@ test('G3 changing the password takes effect', async ({ page }) => {
 test('G4 dark theme is applied and survives a reload', async ({ page }) => {
   await signUp(page, 'g4');
   await page.goto('/settings');
-  await page.getByRole('tab', { name: 'Appearance' }).click();
-  await page.getByRole('button', { name: 'Dark' }).click();
+  await page.getByRole('radio', { name: 'Appearance' }).click();
+  await page.getByRole('radio', { name: 'Dark' }).click();
   await expect(page.locator('html')).toHaveClass(/dark/);
 
   await page.reload();
@@ -50,16 +50,15 @@ test('G4 dark theme is applied and survives a reload', async ({ page }) => {
   await expect(page.locator('html')).toHaveClass(/dark/);
 });
 
-test('G5 every settings tab is reachable on a phone-width screen', async ({ page }) => {
+test('G5 every settings section is reachable on a phone-width screen', async ({ page }) => {
   await signUp(page, 'g5');
   await page.goto('/settings');
   for (const [tab, text] of [
     ['Security', 'Change Password'],
-    ['Notifications', 'Email Notifications'],
-    ['Appearance', 'Color Theme'],
+    ['Appearance', 'Theme'],
     ['Profile', 'Update Profile'],
   ]) {
-    await page.getByRole('tab', { name: tab }).click();
+    await page.getByRole('radio', { name: tab }).click();
     await expect(page.getByText(text).first()).toBeVisible();
   }
 });

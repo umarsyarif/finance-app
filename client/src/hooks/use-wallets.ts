@@ -9,6 +9,7 @@ interface Wallet {
   color: string;
   isMain: boolean;
   displayOrder: number;
+  _count?: { transactions: number };
 }
 
 interface UseWalletsReturn {

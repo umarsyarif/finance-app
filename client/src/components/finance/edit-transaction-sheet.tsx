@@ -24,28 +24,17 @@ export function EditTransactionSheet({
 
   const handleSuccess = () => {
     onTransactionChange();
-    // Close sheet after successful update
-    setTimeout(() => {
-      onClose();
-    }, 1500);
+    onClose();
   };
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Edit Transaction</SheetTitle>
-          <SheetDescription>
-            Update your transaction details.
-          </SheetDescription>
+      <SheetContent side="bottom" className="mx-auto max-h-[92vh] max-w-[480px] overflow-y-auto rounded-t-[28px] px-6 pb-8">
+        <SheetHeader className="px-0">
+          <SheetTitle className="text-[19px] font-bold">Edit transaction</SheetTitle>
+          <SheetDescription className="sr-only">Change this transaction's details.</SheetDescription>
         </SheetHeader>
-        <div className="mt-6">
-          <TransactionForm 
-            transaction={transaction}
-            onSuccess={handleSuccess}
-            submitButtonText="Update Transaction"
-          />
-        </div>
+        <TransactionForm transaction={transaction} onSuccess={handleSuccess} submitButtonText="Save changes" />
       </SheetContent>
     </Sheet>
   );

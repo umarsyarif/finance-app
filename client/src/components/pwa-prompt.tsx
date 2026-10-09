@@ -160,10 +160,10 @@ export function PWAPrompt() {
       {/* Online Indicator (brief) */}
       {showOnlineIndicator && (
         <div className="fixed top-4 right-4 z-50 animate-fade-in">
-          <Card className="bg-green-50 border-green-200">
+          <Card className="border-0 bg-card shadow-resting">
             <CardContent className="flex items-center gap-2 p-3">
-              <Wifi className="h-4 w-4 text-green-600" />
-              <span className="text-xs text-green-800">Online</span>
+              <Wifi className="h-4 w-4 text-income" />
+              <span className="text-xs text-income">Online</span>
             </CardContent>
           </Card>
         </div>

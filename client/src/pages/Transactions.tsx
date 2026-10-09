@@ -1,32 +1,23 @@
 import { useState } from 'react';
 import { getCurrentDate } from '@/lib/date-utils';
 import { TransactionsList } from '@/components/finance/transactions-list';
+import { PageTitle } from '@/components/page-header';
+import { useAppShell } from '@/components/app-layout';
 
-interface MonthlyTransactionsViewProps {
-  className?: string;
-}
-
-export function MonthlyTransactionsView({ className }: MonthlyTransactionsViewProps) {
+export function MonthlyTransactionsView() {
   const [currentDate, setCurrentDate] = useState(getCurrentDate());
-
-  // Extract month and year from the current date state
-  const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11, we need 1-12
-  const currentYear = currentDate.getFullYear();
-
-  const handleMonthChange = (newDate: Date) => {
-    setCurrentDate(newDate);
-  };
+  const { dataVersion } = useAppShell();
 
   return (
-    <TransactionsList
-      className={className}
-      variant="full"
-      month={currentMonth}
-      year={currentYear}
-      limit={100}
-      showMonthNavigation={true}
-      currentDate={currentDate}
-      onMonthChange={handleMonthChange}
-    />
+    <>
+      <PageTitle eyebrow="Monthly ledger" title="Transactions" />
+      <TransactionsList
+        month={currentDate.getMonth() + 1}
+        year={currentDate.getFullYear()}
+        currentDate={currentDate}
+        onMonthChange={setCurrentDate}
+        refreshKey={dataVersion}
+      />
+    </>
   );
 }

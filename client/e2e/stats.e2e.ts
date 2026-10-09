@@ -1,6 +1,6 @@
 // Scenarios S1–S7 (see SCENARIOS.md)
 import { type Page } from '@playwright/test';
-import { test, expect, signUp, seedWallet, seedCategory, seedTx, card, thisMonth } from './helpers';
+import { test, expect, signUp, seedWallet, seedCategory, seedTx, thisMonth, prevMonth, openAddSheet, fillTransaction, saveButton } from './helpers';
 
 async function setup(page: Page, tag: string) {
   await signUp(page, tag);
@@ -12,99 +12,71 @@ async function setup(page: Page, tag: string) {
   await seedTx(page, wallet, food, 'lunch', thisMonth(3), 50000);
   await seedTx(page, wallet, transport, 'bus', thisMonth(5), 20000);
   await page.goto('/stats');
-  await expect(page.getByText('Monthly Summary')).toBeVisible();
+  await expect(summary(page)).toBeVisible();
   return { wallet };
 }
 
-const summary = (page: Page, title: string) => card(page, title).filter({ has: page.getByText(title, { exact: true }) });
+const summary = (page: Page) => page.getByRole('region', { name: 'Monthly summary' });
+const breakdown = (page: Page) => page.locator('section', { has: page.getByRole('heading', { name: 'Where it went' }) });
 
 test('S1 monthly summary matches the month\'s transactions', async ({ page }) => {
   await setup(page, 's1');
-  await expect(summary(page, 'Total Income')).toContainText('₩3,000,000');
-  await expect(summary(page, 'Total Expenses')).toContainText('₩70,000');
-  await expect(summary(page, 'Net Balance')).toContainText('₩2,930,000');
+  await expect(summary(page)).toContainText('₩2,930,000');
+  await expect(summary(page)).toContainText('+₩3,000,000');
+  await expect(summary(page)).toContainText('-₩70,000');
 });
 
-test('S2 category breakdown lists expense categories with amounts', async ({ page }) => {
+test('S2 breakdown lists expense categories with amounts and shares', async ({ page }) => {
   await setup(page, 's2');
-  const breakdown = card(page, 'Category Breakdown');
-  await expect(breakdown).toContainText('Food');
-  await expect(breakdown).toContainText('₩50,000');
-  await expect(breakdown).toContainText('Transport');
-  await expect(breakdown).toContainText('₩20,000');
-  await expect(breakdown).not.toContainText('Salary');
+  await expect(breakdown(page)).toContainText('Food');
+  await expect(breakdown(page)).toContainText('-₩50,000');
+  await expect(breakdown(page)).toContainText('71% of spending');
+  await expect(breakdown(page)).toContainText('Transport');
+  await expect(breakdown(page)).not.toContainText('Salary');
 });
 
-test('S3 custom date range only counts transactions inside it', async ({ page }) => {
+test('S3 the previous month has its own (empty) numbers', async ({ page }) => {
   await setup(page, 's3');
-  await page.getByRole('button', { name: 'Show Filters' }).click();
-  const filters = card(page, 'Apply Filters');
-  await filters.getByRole('button').nth(0).click();
-  await pickDayInOpenCalendar(page, 3);
-  await filters.getByRole('button').nth(1).click();
-  await pickDayInOpenCalendar(page, 3);
-  await page.getByRole('button', { name: 'Apply Filters' }).click();
-
-  await expect(summary(page, 'Total Income')).toContainText('₩0');
-  await expect(summary(page, 'Total Expenses')).toContainText('₩50,000');
+  await prevMonth(page);
+  await expect(summary(page)).toContainText('₩0');
+  await expect(page.getByText('No expenses this month.')).toBeVisible();
 });
 
-async function pickDayInOpenCalendar(page: Page, day: number) {
-  const grid = page.getByRole('grid').last();
-  await grid.getByRole('button', { name: new RegExp(`\\b${day}(st|nd|rd|th)?\\b`) }).filter({ hasNotText: /\d{2}/ }).first().click();
-}
-
-test('S4 filtering to another wallet follows its totals and currency', async ({ page }) => {
+test('S4 the wallet picker switches totals and currency', async ({ page }) => {
   await setup(page, 's4');
   const idr = await seedWallet(page, 'IDR', 0, 'Rupiah', false);
-  const food = await seedCategory(page, 'EXPENSE', 'Makan');
-  await seedTx(page, idr, food, 'nasi', thisMonth(4), 25000);
+  const makan = await seedCategory(page, 'EXPENSE', 'Makan');
+  await seedTx(page, idr, makan, 'nasi', thisMonth(4), 25000);
   await page.reload();
 
-  await page.getByRole('button', { name: 'Show Filters' }).click();
-  await page.getByText('Main KRW').first().click(); // open the wallet multi-select
-  await page.getByRole('option', { name: /Main KRW/ }).click(); // only one currency at a time
+  await page.getByRole('combobox', { name: 'Wallet' }).click();
   await page.getByRole('option', { name: /Rupiah/ }).click();
-  await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Apply Filters' }).click();
 
-  await expect(summary(page, 'Total Expenses')).toContainText('25,000');
-  await expect(summary(page, 'Total Expenses')).not.toContainText('₩');
+  await expect(summary(page)).toContainText('-Rp 25,000');
+  await expect(summary(page)).not.toContainText('₩');
 });
 
-test('S5 clear filters returns to this month and the main wallet', async ({ page }) => {
+test('S5 the yearly chart draws income and expense bars', async ({ page }) => {
   await setup(page, 's5');
-  await page.getByRole('button', { name: 'Show Filters' }).click();
-  const filters = card(page, 'Apply Filters');
-  await filters.getByRole('button').nth(0).click();
-  await pickDayInOpenCalendar(page, 3);
-  await filters.getByRole('button').nth(1).click();
-  await pickDayInOpenCalendar(page, 3);
-  await page.getByRole('button', { name: 'Apply Filters' }).click();
-  await expect(summary(page, 'Total Income')).toContainText('₩0');
-
-  await page.getByRole('button', { name: 'Clear Filters' }).click();
-
-  await expect(summary(page, 'Total Income')).toContainText('₩3,000,000');
+  await expect(page.getByRole('heading', { name: `${new Date().getFullYear()} by month` })).toBeVisible();
+  // Bars for months without data have zero height; this month has both an income and an expense bar
+  await expect.poll(() => page.locator('.recharts-bar-rectangle path').evaluateAll(
+    (paths) => paths.filter((p) => p.getBoundingClientRect().height > 0).length
+  )).toBeGreaterThanOrEqual(2);
 });
 
-test('S6 switching the trend chart between bar and line', async ({ page }) => {
+test('S6 adding a transaction from the + sheet updates the stats', async ({ page }) => {
   await setup(page, 's6');
-  const trends = card(page, 'Financial Trends');
-  await trends.getByRole('combobox').click();
-  await page.getByRole('option', { name: 'Line' }).click();
-  await expect(trends.locator('.recharts-line').first()).toBeVisible();
+  const sheet = await openAddSheet(page);
+  await fillTransaction(sheet, { description: 'taxi', amount: '30000', category: 'Transport' });
+  await saveButton(sheet).click();
 
-  await trends.getByRole('combobox').click();
-  await page.getByRole('option', { name: 'Bar' }).click();
-  await expect(trends.locator('.recharts-bar').first()).toBeVisible();
+  await expect(summary(page)).toContainText('-₩100,000');
 });
 
 test('S7 a user with no transactions sees zeroes, not an error', async ({ page }) => {
   await signUp(page, 's7');
   await page.goto('/stats');
-  await expect(page.getByText('Monthly Summary')).toBeVisible();
-  await expect(summary(page, 'Total Income')).toContainText('0');
-  await expect(page.getByText(/^Error:/)).toHaveCount(0);
+  await expect(summary(page)).toContainText('₩0');
+  await expect(page.getByText('No expenses this month.')).toBeVisible();
 });
-

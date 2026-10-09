@@ -7,11 +7,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AppLogo } from './app-logo';
-import { AppSidebar } from './app-sidebar';
 import { ModeToggle } from './mode-toggle';
-import { Button } from './ui/button';
-import { Avatar, AvatarFallback } from './ui/avatar';
 import { useAuth } from '@/contexts/auth.context';
 
 const getUserInitials = (name: string) => {
@@ -23,117 +19,45 @@ const getUserInitials = (name: string) => {
         .slice(0, 2);
 };
 
+const greeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+};
+
 export function AppHeader() {
     const { user, logout } = useAuth();
 
     return (
-        <header className="bg-background sticky top-0 z-50 border-b">
-            <div className="w-full ~max-w-7xl mx-auto flex items-center gap-2 h-14 px-4 md:px-8">
-                <div className='flex items-center gap-2 md:gap-0 h-14'>
-                    <AppSidebar />
-                    <Link to="/">
-                        <AppLogo />
-                    </Link>
-                </div>
-
-                <div className='ml-4 flex-1 flex items-center justify-between'>
-                    {/* <div className='flex-1'>
-                        <nav className="hidden md:flex gap-1">
-                            {mainMenu.map((item, index) => (
-                                (item.items && item.items.length > 0) ? (
-                                    <DropdownMenu key={index}>
-                                        <DropdownMenuTrigger className='focus-visible:outline-none'>
-                                            <NavLink
-                                                key={index}
-                                                to={item.url}
-                                                className={({ isActive }) => cn(
-                                                    "flex items-center gap-2 overflow-hidden rounded-md p-2.5 text-left text-sm outline-none transition-[width,height,padding] hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 active:bg-accent active:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>svg]:size-4",
-                                                    "h-8 text-sm hover:bg-accent hover:text-accent-foreground",
-                                                    isActive ? "text-foreground bg-accent" : "text-foreground/70"
-                                                )}>
-                                                {item.icon && <item.icon />}
-                                                <span className='font-medium'>{item.title}</span>
-                                                <ChevronDown className='!size-3 -ml-1' />
-                                            </NavLink>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align='start' className='min-w-56'>
-                                            {item.items.map((subItem, index) => (
-                                                <DropdownMenuItem key={index} asChild>
-                                                    <NavLink
-                                                        to={subItem.url}
-                                                        className={cn(
-                                                            'cursor-pointer',
-                                                            subItem.url === location.pathname && 'bg-muted'
-                                                        )}>
-                                                        {subItem.title}
-                                                    </NavLink>
-                                                </DropdownMenuItem>
-                                            ))}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                ) : (
-                                    <NavLink
-                                        key={index}
-                                        to={item.url}
-                                        className={({ isActive }) => cn(
-                                            "flex items-center gap-2 overflow-hidden rounded-md p-2.5 text-left text-sm outline-none transition-[width,height,padding] hover:bg-accent hover:text-accent-foreground focus-visible:ring-2 active:bg-accent active:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>svg]:size-4",
-                                            "h-8 text-sm hover:bg-accent hover:text-accent-foreground",
-                                            isActive ? "text-foreground bg-accent" : "text-foreground/70"
-                                        )}>
-                                        {item.icon && <item.icon />}
-                                        <span className='font-medium'>{item.title}</span>
-                                    </NavLink>
-                                )
-                            ))}
-                        </nav>
-                    </div> */}
-                    <nav className="flex gap-1 ml-auto">
-                        <ModeToggle />
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant='ghost'
-                                    className='relative h-8 w-8 rounded-full cursor-pointer ml-2'>
-                                    <Avatar className='h-8 w-8'>
-                                        <AvatarFallback className="rounded-lg">
-                                            {user ? getUserInitials(user.name) : 'U'}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent className='w-56' align='end' forceMount>
-                                <DropdownMenuLabel className='font-normal'>
-                                    <div className='flex flex-col space-y-1'>
-                                        <p className='text-sm font-medium leading-none'>{user?.name || 'Guest'}</p>
-                                        <p className='text-xs leading-none text-muted-foreground'>
-                                            {user?.email || 'guest@example.com'}
-                                        </p>
-                                    </div>
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {user ? (
-                                    <>
-                                        <DropdownMenuItem asChild>
-                                            <Link to="/settings" className="cursor-pointer">Settings</Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
-                                    </>
-                                ) : (
-                                    <>
-                                        <DropdownMenuItem asChild>
-                                            <Link to="/login" className="cursor-pointer">Log in</Link>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem asChild>
-                                            <Link to="/register" className="cursor-pointer">Register</Link>
-                                        </DropdownMenuItem>
-                                    </>
-                                )}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </nav>
-                </div>
+        <header className="w-full max-w-[480px] mx-auto px-6 pt-6 pb-2 flex items-center gap-3">
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    aria-label="Account menu"
+                    className="size-11 shrink-0 rounded-full bg-lime-soft text-foreground font-semibold text-sm flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                    {user ? getUserInitials(user.name) : 'U'}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 rounded-2xl" align="start">
+                    <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                            <p className="text-sm font-medium leading-none">{user?.name}</p>
+                            <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                        </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                        <Link to="/settings" className="cursor-pointer">Settings</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">{greeting()}</p>
+                <p className="text-[19px] font-bold leading-tight truncate">{user?.name}</p>
             </div>
-        </header >
+            <ModeToggle />
+        </header>
     );
 }

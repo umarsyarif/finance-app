@@ -94,7 +94,7 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="name">Category Name</Label>
         <Input
@@ -104,6 +104,7 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
           placeholder="Enter category name"
           required
+          className="h-[52px] rounded-[20px] bg-card px-[18px]"
         />
       </div>
 
@@ -111,9 +112,9 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
         <Label htmlFor="type">Category Type</Label>
         <Select
           value={formData.type}
-          onValueChange={(value: 'INCOME' | 'EXPENSE') => setFormData(prev => ({ ...prev, type: value }))}
+          onValueChange={(value: 'INCOME' | 'EXPENSE') => value && setFormData(prev => ({ ...prev, type: value }))}
         >
-          <SelectTrigger>
+          <SelectTrigger className="h-[52px] w-full rounded-[20px] bg-card px-[18px]">
             <SelectValue placeholder="Select type" />
           </SelectTrigger>
           <SelectContent>
@@ -133,8 +134,8 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
                 type="button"
                 className={`w-8 h-8 rounded-full border-2 transition-all ${
                   (customColor || formData.color) === color
-                    ? 'border-gray-900 scale-110'
-                    : 'border-gray-300 hover:scale-105'
+                    ? 'border-foreground scale-110'
+                    : 'border-border hover:scale-105'
                 }`}
                 style={{ backgroundColor: color }}
                 onClick={() => handleColorSelect(color)}
@@ -149,9 +150,9 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
               type="color"
               value={customColor || formData.color}
               onChange={handleCustomColorChange}
-              className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+              className="w-8 h-8 rounded-lg border border-border cursor-pointer"
             />
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-muted-foreground">
               {customColor || formData.color}
             </span>
           </div>
@@ -163,11 +164,11 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
           className="w-4 h-4 rounded-full border" 
           style={{ backgroundColor: customColor || formData.color }}
         />
-        <span className="text-sm text-gray-600">Preview</span>
+        <span className="text-sm text-muted-foreground">Preview</span>
       </div>
 
-      <Button type="submit" disabled={isSubmitting} className="w-full">
-        {isSubmitting ? 'Saving...' : category ? 'Update Category' : 'Create Category'}
+      <Button type="submit" disabled={isSubmitting} className="h-[52px] w-full rounded-full text-[15px]">
+        {isSubmitting ? 'Saving…' : category ? 'Save changes' : 'Create category'}
       </Button>
     </form>
   );

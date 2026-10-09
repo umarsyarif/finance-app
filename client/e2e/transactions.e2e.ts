@@ -1,6 +1,6 @@
 // Scenarios T1–T8 (see SCENARIOS.md)
 import { type Page } from '@playwright/test';
-import { test, expect, signUp, seedWallet, seedCategory, seedTx, walletBalance, prevMonth, nextMonth, thisMonth } from './helpers';
+import { test, expect, signUp, seedWallet, seedCategory, seedTx, walletBalance, prevMonth, nextMonth, thisMonth, row, fillTransaction, saveButton } from './helpers';
 
 const monthLabel = (offset: number) => {
   const now = new Date();
@@ -17,8 +17,8 @@ async function setup(page: Page, tag: string) {
   return { wallet, food, refund, tx };
 }
 
-const details = (page: Page) => page.getByRole('dialog', { name: 'Transaction Details' });
-const row = (page: Page, text: string) => page.locator('#root').getByText(text, { exact: true });
+const details = (page: Page) => page.getByRole('dialog', { name: 'Transaction details' });
+const editSheet = (page: Page) => page.getByRole('dialog', { name: 'Edit transaction' });
 
 test('T1 details modal shows amount, description, category, wallet and local time', async ({ page }) => {
   await setup(page, 't1');
@@ -26,9 +26,9 @@ test('T1 details modal shows amount, description, category, wallet and local tim
 
   const modal = details(page);
   await expect(modal.getByText('-₩12,000')).toBeVisible();
-  await expect(modal.getByText('Lunch')).toBeVisible();
-  await expect(modal.getByText('Food')).toBeVisible();
-  await expect(modal.getByText('Daily')).toBeVisible();
+  await expect(modal.getByText('Lunch', { exact: true })).toBeVisible();
+  await expect(modal.getByText('Food', { exact: true })).toBeVisible();
+  await expect(modal.getByText('Daily', { exact: true })).toBeVisible();
   await expect(modal.getByText(/13[.:]00/)).toBeVisible();
 });
 
@@ -45,10 +45,9 @@ test('T3 edit amount and description updates list and balance', async ({ page })
   await row(page, 'Lunch').click();
   await details(page).getByRole('button', { name: 'Edit' }).click();
 
-  const sheet = page.getByRole('dialog', { name: 'Edit Transaction' });
-  await sheet.getByPlaceholder('Enter description').fill('Dinner');
-  await sheet.getByPlaceholder('0.00').fill('15000');
-  await sheet.getByRole('button', { name: 'Update Transaction' }).click();
+  const sheet = editSheet(page);
+  await fillTransaction(sheet, { description: 'Dinner', amount: '15000' });
+  await saveButton(sheet).click();
 
   await expect(row(page, 'Dinner')).toBeVisible();
   await expect(row(page, 'Lunch')).toBeHidden();
@@ -61,10 +60,9 @@ test('T4 switching to an income category moves the balance', async ({ page }) =>
   await row(page, 'Lunch').click();
   await details(page).getByRole('button', { name: 'Edit' }).click();
 
-  const sheet = page.getByRole('dialog', { name: 'Edit Transaction' });
-  await sheet.getByRole('combobox', { name: 'Category' }).click();
-  await page.getByRole('option', { name: 'Refund' }).click();
-  await sheet.getByRole('button', { name: 'Update Transaction' }).click();
+  const sheet = editSheet(page);
+  await fillTransaction(sheet, { type: 'Income', category: 'Refund' });
+  await saveButton(sheet).click();
 
   await expect(page.getByText('+₩12,000')).toBeVisible();
   expect(await walletBalance(page, wallet)).toBe(112000);
@@ -74,10 +72,10 @@ test('T5 delete with confirmation removes the row and restores the balance', asy
   const { wallet } = await setup(page, 't5');
   await row(page, 'Lunch').click();
   await details(page).getByRole('button', { name: 'Delete' }).click();
-  await page.getByRole('dialog', { name: 'Delete Transaction' }).getByRole('button', { name: 'Delete' }).click();
+  await page.getByRole('dialog', { name: 'Delete transaction?' }).getByRole('button', { name: 'Delete' }).click();
 
   await expect(row(page, 'Lunch')).toBeHidden();
-  await expect(page.getByText('No transactions for this month')).toBeVisible();
+  await expect(page.getByText('No transactions this month.')).toBeVisible();
   await expect(details(page)).toBeHidden(); // no popup left showing the deleted transaction
   expect(await walletBalance(page, wallet)).toBe(100000);
 });
@@ -86,7 +84,7 @@ test('T6 cancelling delete keeps the row', async ({ page }) => {
   const { wallet } = await setup(page, 't6');
   await row(page, 'Lunch').click();
   await details(page).getByRole('button', { name: 'Delete' }).click();
-  await page.getByRole('dialog', { name: 'Delete Transaction' }).getByRole('button', { name: 'Cancel' }).click();
+  await page.getByRole('dialog', { name: 'Delete transaction?' }).getByRole('button', { name: 'Cancel' }).click();
 
   await expect(row(page, 'Lunch')).toBeVisible();
   expect(await walletBalance(page, wallet)).toBe(88000);
@@ -98,12 +96,12 @@ test('T7 month navigation shows labels and empty states', async ({ page }) => {
 
   await prevMonth(page);
   await expect(page.getByText(monthLabel(-1))).toBeVisible();
-  await expect(page.getByText('No transactions for this month')).toBeVisible();
+  await expect(page.getByText('No transactions this month.')).toBeVisible();
 
   await nextMonth(page);
   await nextMonth(page);
   await expect(page.getByText(monthLabel(1))).toBeVisible();
-  await expect(page.getByText('No transactions for this month')).toBeVisible();
+  await expect(page.getByText('No transactions this month.')).toBeVisible();
 });
 
 test('T8 each month lists only its own transactions', async ({ page }) => {

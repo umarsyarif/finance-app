@@ -1,17 +1,12 @@
+import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Card } from '../ui/card';
-import { Combobox } from '../ui/combobox';
 import { DateTimePicker } from '../ui/datetime-picker';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
 import { useTransactionForm } from '../../hooks/use-transaction-form';
 import { Transaction } from './transactions-list';
+import { cn } from '@/lib/utils';
 import axios from '@/lib/axios';
 
 type TransactionType = 'INCOME' | 'EXPENSE';
@@ -24,20 +19,40 @@ interface TransactionFormProps {
   defaultWalletId?: string;
 }
 
-export function TransactionForm({ 
-  type, 
-  transaction, 
-  onSuccess, 
-  submitButtonText = 'Add Transaction',
-  defaultWalletId
+const CURRENCY_SYMBOL: Record<string, string> = { KRW: '₩', IDR: 'Rp' };
+
+// Pill used for the type switch and category choices
+function ChoiceChip({ selected, className, ...props }: React.ComponentProps<'button'> & { selected?: boolean }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      className={cn(
+        'h-11 shrink-0 rounded-full px-4 text-[15px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
+        selected ? 'bg-lime-soft text-foreground font-semibold' : 'bg-card text-muted-foreground border border-border hover:text-foreground',
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+export function TransactionForm({
+  type: initialType,
+  transaction,
+  onSuccess,
+  submitButtonText,
+  defaultWalletId,
 }: TransactionFormProps) {
+  const [type, setType] = useState<TransactionType>(initialType ?? transaction?.type ?? 'EXPENSE');
+  const [newCategory, setNewCategory] = useState<string | null>(null);
+
   const {
     formData,
     updateField,
     submitForm,
     isSubmitting,
     submitError,
-    submitSuccess,
     wallets,
     categories,
     loadingWallets,
@@ -47,169 +62,135 @@ export function TransactionForm({
     refetchCategories,
   } = useTransactionForm({ type, transaction, onSuccess, defaultWalletId });
 
-  // Generate random color for new categories
-  const generateRandomColor = () => {
-    const colors = [
-      '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-      '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-      '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2'
-    ];
-    return colors[Math.floor(Math.random() * colors.length)];
+  const wallet = wallets.find((w) => w.id === formData.walletId);
+
+  const switchType = (next: TransactionType) => {
+    setType(next);
+    updateField('categoryId', '');
   };
 
-  // Handle creating new category
-  const handleCreateCategory = async (name: string) => {
-    try {
-      const color = generateRandomColor();
-      const response = await axios.post('/api/categories', {
-        name,
-        type: type || 'EXPENSE',
-        color
-      });
-      
-      // Refetch categories to update the list
-      if (refetchCategories) {
-        await refetchCategories();
-      }
-      
-      // Set the newly created category as selected
-      const categoryId = response.data.data.category.id;
-      updateField('categoryId', categoryId);
-
-      return categoryId;
-    } catch (error) {
-      console.error('Error creating category:', error);
-      throw error;
-    }
+  const createCategory = async () => {
+    const name = newCategory?.trim();
+    if (!name) return;
+    const response = await axios.post('/api/categories', { name, type });
+    await refetchCategories();
+    updateField('categoryId', response.data.data.category.id);
+    setNewCategory(null);
   };
-
-  // Filter categories based on transaction type
-  const filteredCategories = categories.filter(category => 
-    !type || category.type === type
-  );
 
   if (loadingWallets || loadingCategories) {
-    return (
-      <Card className="p-6">
-        <div className="text-center">Loading...</div>
-      </Card>
-    );
+    return <p className="py-8 text-center text-muted-foreground">Loading…</p>;
   }
 
   if (walletsError || categoriesError) {
-    return (
-      <Card className="p-6">
-        <div className="text-center text-pastel-red">
-          Error loading data: {walletsError || categoriesError}
-        </div>
-      </Card>
-    );
+    return <p className="py-8 text-center text-expense">Couldn't load your data: {walletsError || categoriesError}</p>;
   }
 
   return (
-    <Card className="p-6">
-      <form onSubmit={submitForm} className="space-y-4">
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-            Description
-          </label>
-          <input
-            type="text"
-            id="description"
-            value={formData.description}
-            onChange={(e) => updateField('description', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter description"
-            required
-          />
-        </div>
+    <form onSubmit={submitForm} className="space-y-6">
+      <div role="group" aria-label="Type" className="flex gap-2">
+        <ChoiceChip selected={type === 'EXPENSE'} onClick={() => switchType('EXPENSE')}>Expense</ChoiceChip>
+        <ChoiceChip selected={type === 'INCOME'} onClick={() => switchType('INCOME')}>Income</ChoiceChip>
+      </div>
 
-        <div>
-          <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
-            Amount
-          </label>
+      <div>
+        <Label htmlFor="amount" className="text-xs text-muted-foreground">Amount</Label>
+        <div className="mt-1 flex items-baseline gap-2">
+          <span className="text-2xl font-bold text-muted-foreground">{CURRENCY_SYMBOL[wallet?.currency ?? ''] ?? ''}</span>
           <input
-            type="number"
             id="amount"
+            type="number"
+            inputMode="decimal"
             value={formData.amount}
             onChange={(e) => updateField('amount', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="0.00"
+            className="w-full bg-transparent text-[32px] font-bold leading-tight tracking-tight tabular-nums outline-none placeholder:text-muted-foreground/50"
+            placeholder="0"
             step="0.01"
             min="0"
             required
           />
         </div>
+      </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="date">Date & Time</Label>
-          <DateTimePicker
-            date={formData.date ? new Date(formData.date) : undefined}
-            onSelect={(date) => updateField('date', date ? date.toISOString() : '')}
-            placeholder="Select transaction date and time"
-            showTime={true}
-          />
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <input
+          id="description"
+          type="text"
+          value={formData.description}
+          onChange={(e) => updateField('description', e.target.value)}
+          className="h-[52px] w-full rounded-[20px] border border-border bg-card px-[18px] text-[15px] outline-none placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          placeholder="What was it for?"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label id="category-label">Category</Label>
+        <div role="group" aria-labelledby="category-label" className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-1">
+          {categories.map((category) => (
+            <ChoiceChip
+              key={category.id}
+              selected={formData.categoryId === category.id}
+              onClick={() => updateField('categoryId', category.id)}
+            >
+              {category.name}
+            </ChoiceChip>
+          ))}
+          {newCategory === null && (
+            <ChoiceChip onClick={() => setNewCategory('')}>
+              <span className="flex items-center gap-1"><Plus className="size-4" /> New</span>
+            </ChoiceChip>
+          )}
         </div>
+        {newCategory !== null && (
+          <div className="flex gap-2">
+            <input
+              aria-label="New category name"
+              autoFocus
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); createCategory(); } }}
+              placeholder="Category name"
+              className="h-11 flex-1 rounded-full border border-border bg-card px-4 text-[15px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            />
+            <Button type="button" className="h-11 rounded-full px-5" onClick={createCategory}>Add</Button>
+          </div>
+        )}
+      </div>
 
+      <div className="grid gap-4">
         <div className="space-y-2">
-          <Label htmlFor="wallet">Wallet</Label>
-          <Select
-            value={formData.walletId}
-            onValueChange={(value) => updateField('walletId', value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a wallet" />
+          <Label>Wallet</Label>
+          {/* Radix Select can emit "" while its options mount; never let that clear the wallet */}
+          <Select value={formData.walletId} onValueChange={(value) => value && updateField('walletId', value)}>
+            <SelectTrigger aria-label="Wallet" className="h-11 w-full rounded-full bg-card">
+              <SelectValue placeholder="Choose" />
             </SelectTrigger>
             <SelectContent>
-              {wallets.map((wallet) => (
-                <SelectItem key={wallet.id} value={wallet.id}>
-                  {wallet.name}
-                </SelectItem>
+              {wallets.map((w) => (
+                <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-
-        <div>
-          <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-            Category
-          </label>
-          <Combobox
-            id="category"
-            value={formData.categoryId}
-            onValueChange={(value) => updateField('categoryId', value)}
-            placeholder="Select or create a category"
-            searchPlaceholder="Search categories..."
-            emptyText="No categories found."
-            options={filteredCategories.map((category) => ({
-              value: category.id,
-              label: category.name,
-              color: category.color
-            }))}
-            onCreateNew={handleCreateCategory}
+        <div className="space-y-2">
+          <Label>Date</Label>
+          <DateTimePicker
+            date={formData.date ? new Date(formData.date) : undefined}
+            onSelect={(date) => updateField('date', date ? date.toISOString() : '')}
+            placeholder="Pick a date"
+            showTime={true}
+            className="h-11 w-full rounded-full bg-card"
           />
         </div>
+      </div>
 
-        {submitError && (
-          <div className="text-pastel-red text-sm">
-            {submitError}
-          </div>
-        )}
+      {submitError && <p role="alert" className="text-sm text-expense">{submitError}</p>}
 
-        {submitSuccess && (
-          <div className="text-pastel-green-dark text-sm">
-            {transaction ? 'Transaction updated successfully!' : 'Transaction added successfully!'}
-          </div>
-        )}
-
-        <Button 
-          type="submit" 
-          disabled={isSubmitting}
-          className="w-full"
-        >
-          {isSubmitting ? 'Submitting...' : submitButtonText}
-        </Button>
-      </form>
-    </Card>
+      <Button type="submit" disabled={isSubmitting} className="h-[52px] w-full rounded-full text-[15px]">
+        {isSubmitting ? 'Saving…' : submitButtonText ?? (type === 'INCOME' ? 'Save income' : 'Save expense')}
+      </Button>
+    </form>
   );
 }

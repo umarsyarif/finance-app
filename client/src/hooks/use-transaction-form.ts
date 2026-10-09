@@ -70,12 +70,15 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
     }
   }, [transaction]);
 
-  // Set default wallet when provided and not editing
+  // New transactions start on the given wallet, else the main wallet, else the first one
   useEffect(() => {
-    if (defaultWalletId && !transaction) {
-      setFormData(prev => ({ ...prev, walletId: defaultWalletId }));
+    if (transaction) return;
+    const fallback = wallets.find(w => w.isMain) ?? wallets[0];
+    const walletId = defaultWalletId ?? fallback?.id;
+    if (walletId) {
+      setFormData(prev => (prev.walletId ? prev : { ...prev, walletId }));
     }
-  }, [defaultWalletId, transaction]);
+  }, [defaultWalletId, transaction, wallets]);
 
 
 

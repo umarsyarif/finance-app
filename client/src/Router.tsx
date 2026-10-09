@@ -2,8 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/app-layout';
 import NotMatch from './pages/NotMatch';
 import Dashboard from './pages/Dashboard';
-import Sample from './pages/Sample';
-import ComingSoon from './pages/ComingSoon';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { MonthlyTransactionsView } from './pages/Transactions';
@@ -31,10 +29,6 @@ export default function Router() {
                 <Route path="wallets" element={<Wallets />} />
                 <Route path="stats" element={<Stats />} />
                 <Route path="settings" element={<Settings />} />
-                <Route path="pages">
-                    <Route path="sample" element={<Sample />} />
-                    <Route path="feature" element={<ComingSoon />} />
-                </Route>
                 <Route path="*" element={<NotMatch />} />
             </Route>
         </Routes>

@@ -67,31 +67,28 @@ export const formatDateDetailed = (dateString: string): string => {
   }
 };
 
+// "₩48,500", "Rp 18,450,000": narrow symbols, decimals only when present
+const money = (currency: string) => new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency,
+  currencyDisplay: 'narrowSymbol',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
 /**
- * Formats an amount with currency and sign based on transaction type
- * @param amount - The transaction amount
- * @param type - Transaction type ('INCOME' or 'EXPENSE')
+ * Formats an amount with currency, signed by transaction type
+ * @param amount - The amount
+ * @param type - 'INCOME' (+), 'EXPENSE' (-), or null to keep the amount's own sign (e.g. a balance)
  * @param currency - Currency code (default: 'KRW')
- * @returns Formatted amount string with appropriate sign
  */
-export const formatAmount = (amount: number, type: string|null = null, currency: string = 'KRW'): string => {
-  const formattedAmount = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-  }).format(Math.abs(amount));
-  
-  return type === null ? `${formattedAmount}` : (type === 'INCOME' ? `+${formattedAmount}` : `-${formattedAmount}`);
+export const formatAmount = (amount: number, type: string | null = null, currency: string = 'KRW'): string => {
+  if (type === null) return money(currency).format(amount);
+  const formatted = money(currency).format(Math.abs(amount));
+  return type === 'INCOME' ? `+${formatted}` : `-${formatted}`;
 };
 
 /**
- * Formats an amount as currency without sign
- * @param amount - The amount to format
- * @param currency - Currency code (default: 'KRW')
- * @returns Formatted currency string
+ * Formats an amount as currency without a forced sign
  */
-export const formatCurrency = (amount: number, currency: string = 'KRW'): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-  }).format(amount);
-};
+export const formatCurrency = (amount: number, currency: string = 'KRW'): string => money(currency).format(amount);

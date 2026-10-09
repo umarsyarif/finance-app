@@ -102,7 +102,7 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="name">Wallet Name</Label>
         <Input
@@ -112,6 +112,7 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
           onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
           placeholder="Enter wallet name"
           required
+          className="h-[52px] rounded-[20px] bg-card px-[18px]"
         />
       </div>
 
@@ -119,9 +120,9 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
         <Label htmlFor="currency">Currency</Label>
         <Select
           value={formData.currency}
-          onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}
+          onValueChange={(value) => value && setFormData(prev => ({ ...prev, currency: value }))}
         >
-          <SelectTrigger>
+          <SelectTrigger className="h-[52px] w-full rounded-[20px] bg-card px-[18px]">
             <SelectValue placeholder="Select currency" />
           </SelectTrigger>
           <SelectContent>
@@ -135,7 +136,7 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="balance">Initial Balance</Label>
+        <Label htmlFor="balance">{wallet ? 'Balance' : 'Starting balance'}</Label>
         <Input
           id="balance"
           type="number"
@@ -144,6 +145,7 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
           onChange={(e) => setFormData(prev => ({ ...prev, balance: parseFloat(e.target.value) || 0 }))}
           placeholder="0.00"
           required
+          className="h-[52px] rounded-[20px] bg-card px-[18px]"
         />
       </div>
 
@@ -157,8 +159,8 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
                 type="button"
                 className={`w-8 h-8 rounded-full border-2 transition-all ${
                   (customColor || formData.color) === color
-                    ? 'border-gray-900 scale-110'
-                    : 'border-gray-300 hover:scale-105'
+                    ? 'border-foreground scale-110'
+                    : 'border-border hover:scale-105'
                 }`}
                 style={{ backgroundColor: color }}
                 onClick={() => handleColorSelect(color)}
@@ -173,9 +175,9 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
               type="color"
               value={customColor || formData.color}
               onChange={handleCustomColorChange}
-              className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+              className="w-8 h-8 rounded-lg border border-border cursor-pointer"
             />
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-muted-foreground">
               {customColor || formData.color}
             </span>
           </div>
@@ -187,11 +189,11 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
           className="w-4 h-4 rounded-full border" 
           style={{ backgroundColor: customColor || formData.color }}
         />
-        <span className="text-sm text-gray-600">Preview</span>
+        <span className="text-sm text-muted-foreground">Preview</span>
       </div>
 
-      <Button type="submit" disabled={isSubmitting} className="w-full">
-        {isSubmitting ? 'Saving...' : wallet ? 'Update Wallet' : 'Create Wallet'}
+      <Button type="submit" disabled={isSubmitting} className="h-[52px] w-full rounded-full text-[15px]">
+        {isSubmitting ? 'Saving…' : wallet ? 'Save changes' : 'Create wallet'}
       </Button>
     </form>
   );

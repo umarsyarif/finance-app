@@ -30,11 +30,11 @@ regression suite `app.e2e.ts`.
 | D3 | Submit the sheet with no description / zero amount | Validation error, nothing created |
 | D4 | Amount above the server cap | Server message shown, nothing created |
 | D5 | Create a category inline from the sheet's category box | New category is selected and the transaction saves with it |
-| D6 | Switch wallets with the arrows | Name, balance and Recent list follow the selected wallet |
-| D7 | Add expense while the 2nd wallet is shown | Saved to the 2nd wallet (sheet defaults to the shown wallet) |
-| D8 | Double-tap a wallet chip | That wallet becomes Main (badge moves, persists after reload) |
+| D6 | Swipe to another wallet card | Selected wallet, balance and Recent list follow it |
+| D7 | Add from the + sheet while the 2nd wallet is shown | Saved to that wallet; dashboard stays on it |
+| D8 | Long-press a wallet card | That wallet becomes Main (tag moves, persists after reload) |
 | D9 | "See all transactions" link | Opens /transactions |
-| D10 | Bottom navigation | Each tab opens its page and is marked active |
+| D10 | Bottom navigation | Each tab opens its page |
 
 ## Transactions (`transactions.e2e.ts`)
 | ID | Scenario | Expected |
@@ -61,17 +61,18 @@ regression suite `app.e2e.ts`.
 | W8 | Flip type of a category in use | Error toast; type unchanged |
 | W9 | Delete category in use | Error toast; card stays |
 | W10 | Delete unused category | Card gone |
-| W11 | Open "Add Wallet" right after editing a wallet | Empty form, not the previous wallet's values |
+| W11 | Open "Add wallet" right after editing a wallet | Empty form, not the previous wallet's values |
+| W12 | Rename an IDR wallet | Currency stays IDR |
 
 ## Stats (`stats.e2e.ts`)
 | ID | Scenario | Expected |
 |---|---|---|
-| S1 | Summary for current month | Income, expense, net match seeded data |
-| S2 | Category breakdown | Expense categories with amounts |
-| S3 | Filter by a custom date range | Totals only include that range |
-| S4 | Filter by a different wallet | Totals and currency follow that wallet |
-| S5 | Clear filters | Back to current month / main wallet |
-| S6 | Switch chart Bar ↔ Line | Chart re-renders without errors |
+| S1 | Summary for current month | Net, income, expense match seeded data |
+| S2 | Category breakdown | Expense categories with amounts and shares |
+| S3 | Previous month | Its own (empty) numbers |
+| S4 | Pick another wallet | Totals and currency follow that wallet |
+| S5 | Yearly chart | Income and expense bars drawn |
+| S6 | Add from the + sheet while on Stats | Numbers update without a reload (and the sheet defaults to a wallet) |
 | S7 | User with no transactions | Zeroes / empty state, no error |
 
 ## Settings (`settings.e2e.ts`)
@@ -81,7 +82,7 @@ regression suite `app.e2e.ts`.
 | G2 | Change name and save | Persisted (header initials and reload show the new name) |
 | G3 | Change password form | Either works (old password stops working) or isn't offered |
 | G4 | Appearance: pick Dark | `dark` class on <html>, persists after reload |
-| G5 | All tabs reachable on a phone-width screen | Each tab opens |
+| G5 | All sections reachable on a phone-width screen | Each section opens |
 | G6 | 404 page while signed in | 404 content with a working "Back to Home" |
 
 ## Cross-cutting checks (every scenario)

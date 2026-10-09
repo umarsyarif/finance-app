@@ -36,6 +36,7 @@ interface UseTransactionsOptions {
   categoryId?: string;
   month?: number;
   year?: number;
+  refreshKey?: number; // change to force a refetch (e.g. after the global Add sheet saves)
 }
 
 interface UseTransactionsReturn {
@@ -58,7 +59,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
 
-  const { limit = 10, walletId, categoryId, month, year } = options;
+  const { limit = 10, walletId, categoryId, month, year, refreshKey } = options;
   const { isOnline, saveOfflineData, getOfflineData } = useOffline();
 
   const query = new URLSearchParams({ limit: limit.toString() });
@@ -151,7 +152,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
   useEffect(() => {
     fetchTransactions(1);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cacheKey]);
+  }, [cacheKey, refreshKey]);
 
   return {
     transactions,

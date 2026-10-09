@@ -1,20 +1,15 @@
 import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Edit, Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { isAxiosError } from 'axios';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { EditTransactionSheet } from './edit-transaction-sheet';
 import { ConfirmationModal } from '../ui/confirmation-modal';
-import { Transaction } from './transactions-list';
+import { RowsCard, type Transaction } from './transactions-list';
+import { PillButton } from '@/components/page-header';
 import axios from '@/lib/axios';
+import { cn } from '@/lib/utils';
 import { formatAmount, formatDate } from '../../lib/format-utils';
-// Using console.log instead of toast since sonner is not installed
 
 interface TransactionDetailsModalProps {
   transaction: Transaction | null;
@@ -24,140 +19,85 @@ interface TransactionDetailsModalProps {
   onDelete: () => void;
 }
 
-export function TransactionDetailsModal({
-  transaction,
-  isOpen,
-  onClose,
-  onUpdate,
-  onDelete,
-}: TransactionDetailsModalProps) {
+// Details as a bottom sheet (DESIGN.md "Transaction details")
+export function TransactionDetailsModal({ transaction, isOpen, onClose, onUpdate, onDelete }: TransactionDetailsModalProps) {
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   if (!transaction) return null;
-
-  const handleEdit = () => {
-    setIsEditSheetOpen(true);
-  };
+  const income = transaction.type === 'INCOME';
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
       await axios.delete(`/api/transactions/${transaction.id}`);
-      console.log('Transaction deleted successfully');
-      onDelete();
       setIsDeleteModalOpen(false);
-      onClose();
+      onDelete();
     } catch (error) {
-      console.error('Error deleting transaction:', error);
-      alert('Failed to delete transaction');
+      const message = isAxiosError(error) ? error.response?.data?.message : undefined;
+      toast.error(message || "Couldn't delete this transaction. Try again.");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  const handleEditSuccess = () => {
-    setIsEditSheetOpen(false);
-    onUpdate();
-  };
-
+  const detail = (label: string, value?: string) => (
+    <div className="flex justify-between gap-4 py-3 text-[15px]">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-semibold">{value}</span>
+    </div>
+  );
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="text-center">
-            <DialogTitle className="text-lg font-semibold">
-              Transaction Details
-            </DialogTitle>
-          </DialogHeader>
-
+      <Sheet open={isOpen && !isEditSheetOpen} onOpenChange={(open) => !open && onClose()}>
+        <SheetContent side="bottom" className="mx-auto max-w-[480px] rounded-t-[28px] px-6 pb-8">
+          <SheetHeader className="px-0">
+            <SheetTitle className="sr-only">Transaction details</SheetTitle>
+            <SheetDescription className="sr-only">Details of {transaction.description}</SheetDescription>
+          </SheetHeader>
           <div className="space-y-6">
-            {/* Category Badge */}
-            <div className="flex justify-end">
-              <Badge 
-                className={`px-3 py-1 text-sm font-medium ${
-                  transaction.type === 'INCOME' 
-                    ? 'bg-blue-100 text-blue-800 hover:bg-blue-100' 
-                    : 'bg-orange-100 text-orange-800 hover:bg-orange-100'
-                }`}
-              >
-                {transaction.category?.name}
-              </Badge>
-            </div>
-
-            {/* Amount */}
-            <div className="text-center">
-              <div className="text-3xl font-bold text-gray-900 mb-2">
+            <div>
+              <p className={cn('text-2xl font-bold tabular-nums', income ? 'text-income' : 'text-expense')}>
                 {formatAmount(transaction.amount, transaction.type, transaction.wallet?.currency)}
-              </div>
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-sm">{transaction.description}</span>
-              </div>
+              </p>
+              <p className="text-[19px] font-bold">{transaction.description}</p>
             </div>
-
-            {/* Details List */}
-            <div className="space-y-4">
-
-              <div className="flex justify-between">
-                <span className="text-gray-600">Transaction Type</span>
-                <span className="font-medium">{transaction.type}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span className="text-gray-600">Transaction Date</span>
-                <span className="font-medium">{formatDate(transaction.date)}</span>
-              </div>
-
-              <Separator />
-
-              <div className="flex justify-between">
-                <span className="text-gray-600">Wallet</span>
-                <span className="font-medium">{transaction.wallet?.name}</span>
-              </div>
-
-            </div>
-
-
-            {/* Action Buttons */}
-            <div className="flex gap-2 pt-4">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={handleEdit}
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                variant="destructive"
-                className="flex-1"
-                onClick={() => setIsDeleteModalOpen(true)}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </Button>
+            <RowsCard className="bg-background shadow-none">
+              {detail('Type', income ? 'Income' : 'Expense')}
+              {detail('Category', transaction.category?.name)}
+              {detail('Wallet', transaction.wallet?.name)}
+              {detail('Date', formatDate(transaction.date))}
+            </RowsCard>
+            <div className="grid grid-cols-2 gap-3">
+              <PillButton className="justify-center" onClick={() => setIsEditSheetOpen(true)}>
+                <Pencil /> Edit
+              </PillButton>
+              <PillButton className="justify-center text-expense" onClick={() => setIsDeleteModalOpen(true)}>
+                <Trash2 /> Delete
+              </PillButton>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
-      {/* Edit Transaction Sheet */}
       <EditTransactionSheet
         transaction={transaction}
         isOpen={isEditSheetOpen}
         onClose={() => setIsEditSheetOpen(false)}
-        onTransactionChange={handleEditSuccess}
+        onTransactionChange={() => {
+          setIsEditSheetOpen(false);
+          onUpdate();
+        }}
       />
 
-      {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
-        title="Delete Transaction"
-        description={`Are you sure you want to delete "${transaction.title}"? This action cannot be undone.`}
+        title="Delete transaction?"
+        description={`"${transaction.description}" will be removed and the wallet balance updated.`}
         confirmText="Delete"
         cancelText="Cancel"
         isLoading={isDeleting}

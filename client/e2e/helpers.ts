@@ -66,10 +66,10 @@ export async function walletBalance(page: Page, walletId: string) {
   return data.wallet.balance as number;
 }
 
-export const prevMonth = (page: Page) => page.locator('button:has(svg.lucide-chevron-left)').first().click();
-export const nextMonth = (page: Page) => page.locator('button:has(svg.lucide-chevron-right)').first().click();
+export const prevMonth = (page: Page) => page.getByRole('button', { name: 'Previous month' }).first().click();
+export const nextMonth = (page: Page) => page.getByRole('button', { name: 'Next month' }).first().click();
 
-export const avatarButton = (page: Page) => page.locator('header').getByRole('button').last();
+export const avatarButton = (page: Page) => page.getByRole('button', { name: 'Account menu' });
 
 export async function logOutViaUi(page: Page) {
   await avatarButton(page).click();
@@ -77,8 +77,31 @@ export async function logOutViaUi(page: Page) {
   await expect(page).toHaveURL(/\/login/);
 }
 
-// A shadcn Card (data-slot="card") containing the given text
-export const card = (page: Page, text: string) => page.locator('[data-slot="card"]').filter({ hasText: text });
+// A wallet card (article) or category row, found by its accessible name
+export const card = (page: Page, name: string) => page.getByLabel(name, { exact: true });
+
+// Rows in the page (sheets and dialogs render in a portal outside #root)
+export const row = (page: Page, text: string) => page.locator('#root').getByText(text, { exact: true });
+
+// The global Add sheet opened from the bottom bar
+export async function openAddSheet(page: Page) {
+  await page.getByRole('button', { name: 'Add transaction' }).click();
+  const sheet = page.getByRole('dialog', { name: 'Add transaction' });
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
+export async function fillTransaction(
+  sheet: ReturnType<Page['getByRole']>,
+  { type, description, amount, category }: { type?: 'Income' | 'Expense'; description?: string; amount?: string; category?: string }
+) {
+  if (type) await sheet.getByRole('button', { name: type, exact: true }).click();
+  if (amount !== undefined) await sheet.getByLabel('Amount').fill(amount);
+  if (description !== undefined) await sheet.getByPlaceholder('What was it for?').fill(description);
+  if (category) await sheet.getByRole('group', { name: 'Category' }).getByRole('button', { name: category, exact: true }).click();
+}
+
+export const saveButton = (sheet: ReturnType<Page['getByRole']>) => sheet.getByRole('button', { name: /^Save (expense|income|changes)$/ });
 
 // A local date-time this month, as an ISO instant
 export function thisMonth(day: number, hour = 12) {

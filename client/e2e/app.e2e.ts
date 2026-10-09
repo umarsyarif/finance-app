@@ -6,18 +6,18 @@
  * cookies and token refresh, browser timezone, offline mode, double taps,
  * data left behind across users.
  */
-import { test, expect, signUp, api, seedWallet, seedCategory, seedTx, txCount, prevMonth, logOutViaUi } from './helpers';
+import { test, expect, signUp, api, seedWallet, seedCategory, seedTx, txCount, prevMonth, logOutViaUi, row, openAddSheet, fillTransaction, saveButton } from './helpers';
 
 test('stays signed in after the access token cookie expires', async ({ page, context }) => {
   await signUp(page, 'refresh');
   await seedWallet(page);
   await page.goto('/');
-  await expect(page.getByText('Current Balance')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'This month' })).toBeVisible();
 
   await context.clearCookies({ name: 'access_token' }); // what the browser does after 2h
   await page.reload();
 
-  await expect(page.getByText('Current Balance')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'This month' })).toBeVisible();
   await expect(page).not.toHaveURL(/\/login/);
 });
 
@@ -27,15 +27,11 @@ test('double-tapping Add Expense creates exactly one transaction', async ({ page
   await seedCategory(page, 'EXPENSE', 'Food');
   await page.goto('/');
 
-  await page.getByRole('button', { name: 'Add Expense' }).first().click();
-  const sheet = page.getByRole('dialog');
-  await sheet.getByPlaceholder('Enter description').fill('Coffee');
-  await sheet.getByPlaceholder('0.00').fill('4500');
-  await sheet.getByRole('combobox', { name: 'Category' }).click();
-  await page.getByRole('option', { name: 'Food' }).click();
-  await sheet.getByRole('button', { name: 'Add Expense' }).dblclick();
+  const sheet = await openAddSheet(page);
+  await fillTransaction(sheet, { description: 'Coffee', amount: '4500', category: 'Food' });
+  await saveButton(sheet).dblclick();
 
-  await expect(page.getByText('Coffee').first()).toBeVisible();
+  await expect(row(page, 'Coffee')).toBeVisible();
   await page.waitForTimeout(1000);
   expect(await txCount(page, wallet)).toBe(1);
 });
@@ -47,10 +43,10 @@ test('saving an edit without changes keeps the date, time and amount', async ({ 
   const id = await seedTx(page, wallet, cat, 'edit-me', '2026-10-05T03:07:00.000Z', 1234.5);
   await page.goto('/transactions');
 
-  await page.getByText('edit-me').click();
+  await row(page, 'edit-me').click();
   await page.getByRole('button', { name: 'Edit' }).click();
-  await page.getByRole('button', { name: 'Update Transaction' }).click();
-  await expect(page.getByRole('button', { name: 'Update Transaction' })).toBeHidden();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByRole('button', { name: 'Save changes' })).toBeHidden();
 
   const { data } = await api(page, 'get', `/api/transactions/${id}`);
   expect(data.transaction.date).toBe('2026-10-05T03:07:00.000Z');
@@ -66,10 +62,10 @@ test('Transactions page shows every transaction of a busy month', async ({ page 
   }
   await page.goto('/transactions');
 
-  await expect(page.getByText(/^bulk-\d+$/)).toHaveCount(100);
+  await expect(page.locator('#root').getByText(/^bulk-\d+$/)).toHaveCount(100);
   await page.getByRole('button', { name: 'Load more' }).click();
 
-  await expect(page.getByText(/^bulk-\d+$/)).toHaveCount(105);
+  await expect(page.locator('#root').getByText(/^bulk-\d+$/)).toHaveCount(105);
   await expect(page.getByRole('button', { name: 'Load more' })).toBeHidden();
 });
 
@@ -139,7 +135,7 @@ test('without "Remember me", closing the browser signs you out', async ({ page, 
   await page.getByTestId('input-email').fill(email);
   await page.getByTestId('input-password').fill('password123');
   await page.getByTestId('submit-button').click();
-  await expect(page.getByText('Current Balance')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'This month' })).toBeVisible();
 
   // Browser restart: session cookies (no expiry) are dropped, persistent ones survive
   const state = await page.context().storageState();
@@ -161,7 +157,7 @@ test('stats for a rupiah-only user are shown in rupiah', async ({ page }) => {
   await seedTx(page, wallet, cat, 'nasi', new Date().toISOString(), 25000);
   await page.goto('/stats');
 
-  await expect(page.getByText('Monthly Summary')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Monthly summary' })).toBeVisible();
   await expect(page.getByText(/25,000/).first()).toBeVisible();
   await expect(page.locator('body')).not.toContainText('₩');
 });

@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
-import { Card } from '../ui/card';
+import { useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
 import { TransactionDetailsModal } from './transaction-details-modal';
+import { FilterChips } from './filter-chips';
+import { MonthSwitcher } from './month-switcher';
+import { PillButton } from '@/components/page-header';
 import { cn } from '@/lib/utils';
 import { useTransactions } from '@/hooks/use-transactions';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
-import { formatDate, formatAmount, formatMonthAndYear } from '@/lib/format-utils';
-import { getPreviousMonth, getNextMonth, dateToISOString } from '@/lib/date-utils';
-import { Link } from 'react-router-dom';
+import { formatAmount } from '@/lib/format-utils';
 
 export interface Transaction {
   id: string;
@@ -29,312 +28,172 @@ export interface Transaction {
   };
 }
 
-interface TransactionsListProps {
-  className?: string;
-  walletId?: string;
-  categoryId?: string;
-  limit?: number;
-  onTransactionChange?: () => void;
-  title?: string;
-  showSeeAllLink?: boolean;
-  variant?: 'card' | 'full';
-  month?: number;
-  year?: number;
-  showMonthNavigation?: boolean;
-  onMonthChange?: (date: Date) => void;
-  currentDate?: Date;
-}
+export type TypeFilter = 'ALL' | 'INCOME' | 'EXPENSE';
 
-const TransactionListItem: React.FC<{
+const time = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+const shortDate = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+// Row from DESIGN.md "Transaction Row": tile, description + meta, signed amount
+export function TransactionRow({ transaction, onClick, showDate = false }: {
   transaction: Transaction;
   onClick: () => void;
-  variant?: 'card' | 'full';
-}> = ({ transaction, onClick, variant: _variant = 'card' }) => {
-  const isIncome = transaction.type === 'INCOME';
-  
+  showDate?: boolean;
+}) {
+  const income = transaction.type === 'INCOME';
+  const when = showDate ? `${shortDate(transaction.date)}, ${time(transaction.date)}` : time(transaction.date);
   return (
-    <div 
-      className="flex items-center justify-between py-4 px-4 hover:bg-accent cursor-pointer transition-colors"
+    <button
+      type="button"
       onClick={onClick}
+      className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
     >
-      <div className="flex items-center space-x-3">
-        <div className={cn(
-          "w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold",
-          isIncome ? "bg-blue-500" : "bg-orange-500"
-        )}>
-          {transaction.category?.name.charAt(0)}
-        </div>
-        <div className="flex-1">
-          <div className="font-medium text-foreground">
-            {transaction.description || transaction.category?.name}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {formatDate(transaction.date)}
-          </div>
-        </div>
-      </div>
-      <div className="text-right">
-        <div className={cn(
-          "font-semibold",
-          isIncome ? "text-blue-500" : "text-foreground"
-        )}>
-          {formatAmount(transaction.amount, transaction.type, transaction.wallet?.currency)}
-        </div>
-      </div>
+      <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-muted text-base font-semibold">
+        {transaction.category?.name?.charAt(0).toUpperCase() ?? '?'}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[15px] font-semibold">{transaction.description}</span>
+        <span className="block truncate text-xs text-muted-foreground">{transaction.category?.name} · {when}</span>
+      </span>
+      <span className={cn('shrink-0 text-[15px] font-bold tabular-nums', income ? 'text-income' : 'text-expense')}>
+        {formatAmount(transaction.amount, transaction.type, transaction.wallet?.currency)}
+      </span>
+    </button>
+  );
+}
+
+// A card of rows separated by inset hairlines; never nested in another card
+export function RowsCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn('rounded-[24px] bg-card px-5 py-1 shadow-resting [&>*+*]:border-t [&>*+*]:border-border', className)}>
+      {children}
     </div>
   );
-  
-};
+}
 
-export function TransactionsList({ 
-  className, 
-  walletId, 
-  categoryId, 
-  limit = 10, 
-  onTransactionChange,
-  title = "Recent Transactions",
-  showSeeAllLink = false,
-  variant = 'card',
-  month,
-  year,
-  showMonthNavigation = false,
-  onMonthChange,
-  currentDate
-}: TransactionsListProps) {
-  const { transactions, loading, error, refetch, loadMore, loadingMore, hasMore } = useTransactions({
-    limit,
-    walletId,
-    categoryId,
-    month,
-    year,
-  });
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+export function typeCounts(transactions: Transaction[]) {
+  const income = transactions.filter((t) => t.type === 'INCOME').length;
+  return { ALL: transactions.length, INCOME: income, EXPENSE: transactions.length - income };
+}
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    if (!currentDate || !onMonthChange) return;
-    
-    const newDate = direction === 'prev' ? getPreviousMonth(currentDate) : getNextMonth(currentDate);
-    onMonthChange(newDate);
-  };
+export const typeOptions = (counts: Record<TypeFilter, number>) => [
+  { value: 'ALL' as const, label: 'All', count: counts.ALL },
+  { value: 'INCOME' as const, label: 'Income', count: counts.INCOME },
+  { value: 'EXPENSE' as const, label: 'Expense', count: counts.EXPENSE },
+];
 
-  const handleTransactionClick = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
-    setIsDetailsModalOpen(true);
-  };
+interface TransactionsListProps {
+  month: number;
+  year: number;
+  currentDate: Date;
+  onMonthChange: (date: Date) => void;
+  limit?: number;
+  refreshKey?: number;
+  onTransactionChange?: () => void;
+}
 
-  const handleUpdate = () => {
-    handleModalClose();
+// The Transactions page body: month switcher, search, type chips, rows grouped by day
+export function TransactionsList({ month, year, currentDate, onMonthChange, limit = 100, refreshKey, onTransactionChange }: TransactionsListProps) {
+  const { transactions, loading, error, refetch, loadMore, loadingMore, hasMore } = useTransactions({ limit, month, year, refreshKey });
+  const [selected, setSelected] = useState<Transaction | null>(null);
+  const [query, setQuery] = useState('');
+  const [type, setType] = useState<TypeFilter>('ALL');
+
+  const searched = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q
+      ? transactions.filter((t) => `${t.description} ${t.category?.name ?? ''}`.toLowerCase().includes(q))
+      : transactions;
+  }, [transactions, query]);
+  const visible = type === 'ALL' ? searched : searched.filter((t) => t.type === type);
+
+  // Group by local calendar day, newest first (API order)
+  const days = useMemo(() => {
+    const groups = new Map<string, Transaction[]>();
+    for (const t of visible) {
+      const key = new Date(t.date).toDateString();
+      groups.set(key, [...(groups.get(key) ?? []), t]);
+    }
+    return [...groups.entries()];
+  }, [visible]);
+
+  const changed = () => {
+    setSelected(null);
     refetch();
     onTransactionChange?.();
   };
 
-  const handleDelete = () => {
-    handleModalClose();
-    refetch();
-    onTransactionChange?.();
+  const dayLabel = (key: string) => {
+    const d = new Date(key);
+    const today = new Date();
+    const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+    const label = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    if (d.toDateString() === today.toDateString()) return `Today, ${shortDate(key)}`;
+    if (d.toDateString() === yesterday.toDateString()) return `Yesterday, ${shortDate(key)}`;
+    return label;
   };
-
-  const handleModalClose = () => {
-    setIsDetailsModalOpen(false);
-    setSelectedTransaction(null);
-  };
-
-  if (variant === 'full') {
-    // Month navigation stays usable while loading or after an error (e.g. offline with no cache)
-    return (
-      <div className={cn("bg-background min-h-screen", className)}>
-        {/* Month Navigation */}
-        {showMonthNavigation && currentDate && (
-          <div className="bg-background border-b border-border px-4 py-3">
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigateMonth('prev')}
-                className="p-1"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </Button>
-
-              <div className="flex items-center space-x-2">
-                <span className="text-lg font-semibold">
-                  {formatMonthAndYear(dateToISOString(currentDate))}
-                </span>
-              </div>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigateMonth('next')}
-                className="p-1"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Transactions List */}
-        <div className="bg-background">
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            </div>
-          ) : error && transactions.length === 0 ? (
-            <div className="text-center py-8 px-4">
-              <p className="text-red-500 mb-4">{error}</p>
-              <Button onClick={refetch} variant="outline">
-                Try again
-              </Button>
-            </div>
-          ) : transactions.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                {showMonthNavigation ? "No transactions for this month" : "No transactions found"}
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {transactions.map((transaction) => (
-                <TransactionListItem
-                  key={transaction.id}
-                  transaction={transaction}
-                  onClick={() => handleTransactionClick(transaction)}
-                  variant="full"
-                />
-              ))}
-              {hasMore && (
-                <div className="flex justify-center py-4">
-                  <Button onClick={loadMore} variant="outline" disabled={loadingMore}>
-                    {loadingMore ? 'Loading...' : 'Load more'}
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-          {error && transactions.length > 0 && (
-            <p className="text-center text-sm text-muted-foreground py-2">{error}</p>
-          )}
-        </div>
-
-        {/* Transaction Details Modal */}
-        <TransactionDetailsModal
-          transaction={selectedTransaction}
-          isOpen={isDetailsModalOpen}
-          onClose={handleModalClose}
-          onUpdate={handleUpdate}
-          onDelete={handleDelete}
-        />
-      </div>
-    );
-  }
-
-  // Card variant (for dashboard)
-  if (loading) {
-    return (
-      <Card className={cn("bg-pastel-green/30 rounded-xl shadow px-6 py-4", className)}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-pastel-blue">{title}</h2>
-          {showSeeAllLink && (
-            <Link 
-              to="/transactions" 
-              className="text-sm text-pastel-blue hover:text-pastel-blue/80 transition-colors flex items-center gap-1"
-            >
-              See all transactions
-              <ExternalLink className="w-3 h-3" />
-            </Link>
-          )}
-        </div>
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pastel-blue"></div>
-        </div>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className={cn("bg-pastel-green/30 rounded-xl shadow px-6 py-4", className)}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-pastel-blue">{title}</h2>
-          {showSeeAllLink && (
-            <Link 
-              to="/transactions" 
-              className="text-sm text-pastel-blue hover:text-pastel-blue/80 transition-colors flex items-center gap-1"
-            >
-              See all transactions
-              <ExternalLink className="w-3 h-3" />
-            </Link>
-          )}
-        </div>
-        <div className="text-center py-8">
-          <p className="text-red-500 mb-4">{error}</p>
-          <button 
-            onClick={refetch}
-            className="px-4 py-2 bg-pastel-blue text-white rounded-lg hover:bg-pastel-blue/80 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </Card>
-    );
-  }
-
-  if (transactions.length === 0) {
-    return (
-      <Card className={cn("bg-pastel-green/30 rounded-xl shadow px-6 py-4", className)}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-pastel-blue">{title}</h2>
-          {showSeeAllLink && (
-            <Link 
-              to="/transactions" 
-              className="text-sm text-pastel-blue hover:text-pastel-blue/80 transition-colors flex items-center gap-1"
-            >
-              See all transactions
-              <ExternalLink className="w-3 h-3" />
-            </Link>
-          )}
-        </div>
-        <div className="text-center py-8">
-          <p className="text-gray-500">No transactions found</p>
-        </div>
-      </Card>
-    );
-  }
 
   return (
-    <Card className={cn("bg-pastel-green/30 rounded-xl shadow px-6 py-4", className)}>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-pastel-blue">{title}</h2>
-        {showSeeAllLink && (
-          <Link 
-            to="/transactions" 
-            className="text-sm text-pastel-blue hover:text-pastel-blue/80 transition-colors flex items-center gap-1"
-          >
-            See all transactions
-            <ExternalLink className="w-3 h-3" />
-          </Link>
-        )}
-      </div>
-      <ul className="divide-y divide-pastel-green-dark/20">
-        {transactions.map((transaction) => (
-          <TransactionListItem
-            key={transaction.id}
-            transaction={transaction}
-            onClick={() => handleTransactionClick(transaction)}
-            variant="card"
-          />
-        ))}
-      </ul>
-      
-      <TransactionDetailsModal
-        transaction={selectedTransaction}
-        isOpen={isDetailsModalOpen}
-        onClose={handleModalClose}
-        onUpdate={handleUpdate}
-        onDelete={handleDelete}
-      />
-    </Card>
+    <div className="space-y-6">
+      <MonthSwitcher date={currentDate} onChange={onMonthChange} />
+
+      <label className="flex h-[52px] items-center gap-3 rounded-[20px] bg-card px-[18px] shadow-resting focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
+        <Search aria-hidden className="size-[18px] text-muted-foreground" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search this month"
+          aria-label="Search this month"
+          className="h-full flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
+        />
+      </label>
+
+      <FilterChips label="Transaction type" options={typeOptions(typeCounts(searched))} value={type} onChange={setType} />
+
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <div className="size-8 animate-spin rounded-full border-2 border-muted border-t-foreground" />
+        </div>
+      ) : error && transactions.length === 0 ? (
+        <div className="space-y-4 py-8 text-center">
+          <p className="text-expense">{error}</p>
+          <PillButton onClick={refetch}>Try again</PillButton>
+        </div>
+      ) : days.length === 0 ? (
+        <p className="py-12 text-center text-muted-foreground">
+          {transactions.length === 0 ? 'No transactions this month.' : 'Nothing matches.'}
+        </p>
+      ) : (
+        <div className="space-y-6">
+          {days.map(([key, rows]) => (
+            <section key={key} className="space-y-2">
+              <div className="flex justify-between px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <h2>{dayLabel(key)}</h2>
+                <span className="normal-case tracking-normal">{rows.length} {rows.length === 1 ? 'transaction' : 'transactions'}</span>
+              </div>
+              <RowsCard>
+                {rows.map((t) => <TransactionRow key={t.id} transaction={t} onClick={() => setSelected(t)} />)}
+              </RowsCard>
+            </section>
+          ))}
+          {hasMore && (
+            <PillButton className="w-full justify-center" onClick={loadMore} disabled={loadingMore}>
+              {loadingMore ? 'Loading…' : 'Load more'}
+            </PillButton>
+          )}
+          {error && <p className="text-center text-sm text-muted-foreground">{error}</p>}
+        </div>
+      )}
+
+      {selected && (
+        <TransactionDetailsModal
+          transaction={selected}
+          isOpen={!!selected}
+          onClose={() => setSelected(null)}
+          onUpdate={changed}
+          onDelete={changed}
+        />
+      )}
+    </div>
   );
 }

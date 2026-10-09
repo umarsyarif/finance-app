@@ -88,9 +88,11 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 - `hooks/` — custom hooks manage all data fetching (useState + useEffect pattern, no React Query). Each hook exposes `{ data, loading, error, refetch }`. Offline caching is handled inside `useTransactions`/`useStats` via `useOffline`, keyed per query (cleared on logout); transactions created offline are queued (`queuePendingChange`) and replayed on reconnect.
 - `services/biometric.service.ts` — WebAuthn credential creation/assertion (client-side only, no server verification). Credentials stored in `localStorage`. It only unlocks an existing cookie session; it cannot sign in once the session has expired.
 - `services/secure-storage.service.ts` — prefixed localStorage/sessionStorage wrapper for client-side flags (last activity, remember-me, preferences); no tokens are stored client-side
-- `components/finance/` — domain components (transaction sheets, wallet carousel, category form, etc.)
+- `components/app-layout.tsx` — app shell: greeting header, bottom nav (Home, Transactions, center **+**, Stats, Wallets) and the global Add Transaction sheet. Pages read shared state via `useAppShell()` (`selectedWalletId`, and `dataVersion`, which is bumped after the sheet saves so pages refetch)
+- `components/finance/` — domain components (wallet cards, transaction rows/list, filter chips, month switcher, transaction/wallet/category forms, details sheet)
+- Visual design follows `DESIGN.md` (tokens in `src/index.css`: canvas/surface/ink, `lime`, `income`, `expense`; Plus Jakarta Sans). Reference mockups live in `docs/design/stitch/`
 - `components/ui/` — shadcn/ui component library files (do not hand-edit; use `npx shadcn@latest add <component>` to add new ones)
-- `config/app.ts` + `config/menu.ts` — app-wide config and sidebar nav definition
+- `config/app.ts` — app-wide config
 
 ### Data Model (Prisma)
 - `User` → has many `Wallet`s and `Category`s
