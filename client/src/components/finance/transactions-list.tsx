@@ -124,11 +124,13 @@ export function TransactionsList({
   };
 
   const handleUpdate = () => {
+    handleModalClose();
     refetch();
     onTransactionChange?.();
   };
 
   const handleDelete = () => {
+    handleModalClose();
     refetch();
     onTransactionChange?.();
   };

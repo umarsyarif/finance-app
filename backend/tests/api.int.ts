@@ -78,7 +78,7 @@ afterAll(async () => {
   await prisma.wallet.deleteMany({ where: { userId: { in: ids } } });
   await prisma.category.deleteMany({ where: { userId: { in: ids } } });
   await prisma.user.deleteMany({ where: { id: { in: ids } } });
-  await Promise.all(ids.map(deleteAllSessions));
+  await Promise.all(ids.map((id) => deleteAllSessions(id)));
   await prisma.$disconnect();
   await redisClient.quit();
 });
@@ -231,5 +231,56 @@ describe('sessions', () => {
 
     const login = await request(app).post('/api/auth/login').send({ email: emails[0].toUpperCase(), password: 'password123' });
     expect(login.status).toBe(200);
+  });
+});
+
+describe('profile and password', () => {
+  let carol: Agent;
+  let carolEmail: string;
+
+  beforeAll(async () => {
+    carol = await newUser('carol');
+    carolEmail = emails[emails.length - 1];
+  });
+
+  it('validation errors carry a readable message', async () => {
+    const res = await carol.post('/api/users/me/password').send({ currentPassword: 'x', newPassword: 'short', newPasswordConfirm: 'short' });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/more than 8 characters/);
+  });
+
+  it('updates the name', async () => {
+    const res = await carol.patch('/api/users/me').send({ name: 'Carol Shaw' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.user.password).toBeUndefined();
+    expect((await carol.get('/api/users/me')).body.data.user.name).toBe('Carol Shaw');
+  });
+
+  it('refuses an email that belongs to someone else', async () => {
+    const res = await carol.patch('/api/users/me').send({ email: emails[0].toUpperCase() });
+    expect(res.status).toBe(409);
+  });
+
+  it('refuses a wrong current password', async () => {
+    const res = await carol
+      .post('/api/users/me/password')
+      .send({ currentPassword: 'wrongpassword', newPassword: 'newpassword456', newPasswordConfirm: 'newpassword456' });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Current password is incorrect');
+  });
+
+  it('changes the password, signs out other devices, keeps this one', async () => {
+    const phone = request.agent(app);
+    expect((await phone.post('/api/auth/login').send({ email: carolEmail, password: 'password123' })).status).toBe(200);
+
+    const res = await carol
+      .post('/api/users/me/password')
+      .send({ currentPassword: 'password123', newPassword: 'newpassword456', newPasswordConfirm: 'newpassword456' });
+    expect(res.status).toBe(200);
+
+    expect((await carol.get('/api/users/me')).status).toBe(200);
+    expect((await phone.get('/api/users/me')).status).toBe(401);
+    expect((await request(app).post('/api/auth/login').send({ email: carolEmail, password: 'password123' })).status).toBe(400);
+    expect((await request(app).post('/api/auth/login').send({ email: carolEmail, password: 'newpassword456' })).status).toBe(200);
   });
 });

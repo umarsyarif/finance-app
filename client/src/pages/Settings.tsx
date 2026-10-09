@@ -9,6 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/auth.context';
 import { toast } from 'sonner';
+import axios from '@/lib/axios';
+import { AxiosError } from 'axios';
+
+const apiMessage = (err: unknown) => (err instanceof AxiosError ? err.response?.data?.message : undefined);
 import { User, Shield, Bell, Palette, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from '@/contexts/theme.context';
 
@@ -20,20 +24,46 @@ export default function Settings() {
     name: user?.name || '',
     email: user?.email || '',
   });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    newPasswordConfirm: '',
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // TODO: Implement profile update API call
-      toast.success('Profile updated successfully!');
+      await axios.patch('/api/users/me', profileData);
       await refreshUser();
+      toast.success('Profile updated successfully!');
     } catch (err) {
-      toast.error('Failed to update profile. Please try again.');
+      toast.error(apiMessage(err) || 'Failed to update profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsChangingPassword(true);
+
+    try {
+      await axios.post('/api/users/me/password', passwordData);
+      setPasswordData({ currentPassword: '', newPassword: '', newPasswordConfirm: '' });
+      toast.success('Password changed. Other devices have been signed out.');
+    } catch (err) {
+      toast.error(apiMessage(err) || 'Failed to change password. Please try again.');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handlePasswordInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,34 +149,52 @@ export default function Settings() {
                 Change your password to keep your account secure.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="current-password">Current Password</Label>
-                <Input
-                  id="current-password"
-                  type="password"
-                  placeholder="Enter your current password"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new-password">New Password</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  placeholder="Enter your new password"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password">Confirm New Password</Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  placeholder="Confirm your new password"
-                />
-              </div>
-              <Button>
-                Change Password
-              </Button>
+            <CardContent>
+              <form onSubmit={handlePasswordChange} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="current-password">Current Password</Label>
+                  <Input
+                    id="current-password"
+                    name="currentPassword"
+                    type="password"
+                    autoComplete="current-password"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordInput}
+                    placeholder="Enter your current password"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <Input
+                    id="new-password"
+                    name="newPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordInput}
+                    placeholder="Enter your new password"
+                    minLength={8}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm New Password</Label>
+                  <Input
+                    id="confirm-password"
+                    name="newPasswordConfirm"
+                    type="password"
+                    autoComplete="new-password"
+                    value={passwordData.newPasswordConfirm}
+                    onChange={handlePasswordInput}
+                    placeholder="Confirm your new password"
+                    required
+                  />
+                </div>
+                <Button type="submit" disabled={isChangingPassword}>
+                  {isChangingPassword ? 'Changing...' : 'Change Password'}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </TabsContent>

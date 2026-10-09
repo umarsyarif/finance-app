@@ -97,21 +97,6 @@ export function TransactionDetailsModal({
               </div>
             </div>
 
-            {/* Transaction Details */}
-            <div className="bg-blue-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">💳</span>
-                </div>
-                <span className="text-sm font-medium text-blue-800">
-                  메모 결제를 떠미다 직접
-                </span>
-                <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">
-                  확인
-                </Badge>
-              </div>
-            </div>
-
             {/* Details List */}
             <div className="space-y-4">
 

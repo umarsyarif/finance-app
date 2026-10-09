@@ -22,9 +22,10 @@ interface Wallet {
 interface WalletCarouselProps {
   onTransactionChange?: () => void;
   onWalletChange?: (walletId: string) => void;
+  selectedWalletId?: string; // wallet to show; falls back to the main wallet
 }
 
-export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCarouselProps) {
+export function WalletCarousel({ onTransactionChange, onWalletChange, selectedWalletId }: WalletCarouselProps) {
   const { wallets: initialWallets, loading, error, refetch, updateWalletOrder, getMainWallet: _getMainWallet, setMainWallet } = useWallets();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -37,12 +38,15 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
     if (initialWallets && !isUpdatingOrder) {
       setWallets(initialWallets);
       
-      // Find and set main wallet as current index
+      // Keep showing the selected wallet (e.g. after a remount); otherwise start on the main wallet
+      const selectedIndex = initialWallets.findIndex(wallet => wallet.id === selectedWalletId);
       const mainWalletIndex = initialWallets.findIndex(wallet => wallet.isMain);
-      if (mainWalletIndex !== -1) {
-        setCurrentIndex(mainWalletIndex);
+      const index = selectedIndex !== -1 ? selectedIndex : mainWalletIndex;
+      if (index !== -1) {
+        setCurrentIndex(index);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialWallets, isUpdatingOrder]);
 
   // Fetch wallet-specific statistics for current month only

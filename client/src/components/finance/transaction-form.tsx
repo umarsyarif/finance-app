@@ -73,9 +73,10 @@ export function TransactionForm({
       }
       
       // Set the newly created category as selected
-      updateField('categoryId', response.data.id);
-      
-      return response.data.id;
+      const categoryId = response.data.data.category.id;
+      updateField('categoryId', categoryId);
+
+      return categoryId;
     } catch (error) {
       console.error('Error creating category:', error);
       throw error;

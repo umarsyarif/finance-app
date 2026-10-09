@@ -27,6 +27,7 @@ export default function Dashboard() {
                 key={`wallet-carousel-${refreshKey}`}
                 onTransactionChange={handleTransactionChange}
                 onWalletChange={handleWalletChange}
+                selectedWalletId={currentWalletId}
             />
             
             {!currentWalletId ? (

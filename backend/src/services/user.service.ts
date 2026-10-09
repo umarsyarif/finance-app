@@ -51,9 +51,10 @@ export const updateUser = async (
 // One Redis key per login (device), so logging out one device leaves the others signed in
 export const sessionKey = (userId: string, sid: string) => `session:${userId}:${sid}`;
 
-export const deleteAllSessions = async (userId: string) => {
+export const deleteAllSessions = async (userId: string, keepSid?: string) => {
+  const keep = keepSid && sessionKey(userId, keepSid);
   for await (const key of redisClient.scanIterator({ MATCH: sessionKey(userId, "*") })) {
-    await redisClient.del(key);
+    if (key !== keep) await redisClient.del(key);
   }
 };
 

@@ -46,21 +46,24 @@ export const verifyEmailSchema = object({
   }),
 });
 
-export const updateUserSchema = object({
+export const updateMeSchema = object({
   body: object({
-    name: string({}),
-    email: string({}).email('Invalid email address'),
-    password: string({})
+    name: string().trim().min(1, 'Name is required').max(255).optional(),
+    email: string().email('Invalid email address').optional(),
+  }),
+});
+
+export const changePasswordSchema = object({
+  body: object({
+    currentPassword: string({ required_error: 'Current password is required' }),
+    newPassword: string({ required_error: 'New password is required' })
       .min(8, 'Password must be more than 8 characters')
       .max(32, 'Password must be less than 32 characters'),
-    passwordConfirm: string({}),
-    role: z.optional(z.nativeEnum(RoleEnumType)),
-  })
-    .partial()
-    .refine((data) => data.password === data.passwordConfirm, {
-      path: ['passwordConfirm'],
-      message: 'Passwords do not match',
-    }),
+    newPasswordConfirm: string({ required_error: 'Please confirm your new password' }),
+  }).refine((data) => data.newPassword === data.newPasswordConfirm, {
+    path: ['newPasswordConfirm'],
+    message: 'Passwords do not match',
+  }),
 });
 
 export const forgotPasswordSchema = object({
@@ -95,7 +98,8 @@ export type RegisterUserInput = Omit<
 
 export type LoginUserInput = TypeOf<typeof loginUserSchema>['body'];
 export type VerifyEmailInput = TypeOf<typeof verifyEmailSchema>['params'];
-export type UpdateUserInput = TypeOf<typeof updateUserSchema>['body'];
+export type UpdateMeInput = TypeOf<typeof updateMeSchema>['body'];
+export type ChangePasswordInput = TypeOf<typeof changePasswordSchema>['body'];
 
 export type ForgotPasswordInput = TypeOf<typeof forgotPasswordSchema>['body'];
 export type ResetPasswordInput = TypeOf<typeof resetPasswordSchema>;

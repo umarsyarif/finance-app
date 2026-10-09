@@ -22,8 +22,8 @@ export default function Router() {
     return (
         <Routes>
             {/* Auth routes without AppLayout */}
-            {!user && <Route path="login" element={<Login />} />}
-            {!user && <Route path="register" element={<Register />} />}
+            <Route path="login" element={user ? <Navigate to="/" replace /> : <Login />} />
+            <Route path="register" element={user ? <Navigate to="/" replace /> : <Register />} />
             {/* Protected routes with AppLayout */}
             <Route element={<ProtectedRoutes><AppLayout /></ProtectedRoutes>}>
                 <Route path="" element={<Dashboard />} />

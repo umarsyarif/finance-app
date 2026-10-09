@@ -31,6 +31,8 @@ export function Wallets() {
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [deleteWalletId, setDeleteWalletId] = useState<string | null>(null);
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null);
+  // Controlled so a refetch (which briefly shows the loading view) doesn't reset the tab
+  const [tab, setTab] = useState('wallets');
 
   const handleWalletSuccess = () => {
     setIsWalletDialogOpen(false);
@@ -118,7 +120,7 @@ export function Wallets() {
         <PageHeaderHeading>Wallets & Categories</PageHeaderHeading>
       </PageHeader>
       
-      <Tabs defaultValue="wallets" className="w-full">
+      <Tabs value={tab} onValueChange={setTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="wallets">Wallets</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
