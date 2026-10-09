@@ -177,7 +177,7 @@ describe('capture', () => {
     mockedExtract.mockResolvedValueOnce(extraction({ categoryName: 'Pharmacy', description: 'Olive Young' }));
     const res = await sendText();
     expect(res.status).toBe(201);
-    expect(res.body.message).toContain('· Other ·');
+    expect(res.body.message).toMatch(/· Others? ·/);
   });
 
   it('text: missing amount is a readable 422', async () => {

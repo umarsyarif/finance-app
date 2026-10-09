@@ -92,7 +92,11 @@ async function bootstrap() {
     // Body-parser failures (no logging: client errors)
     const parseType = (err as { type?: string }).type;
     if (parseType === 'entity.too.large') {
-      return res.status(413).json({ status: 'fail', message: 'Request is too large (max 5 MB image)' });
+      const isPhoto = req.originalUrl.split('?')[0] === '/api/capture/photo';
+      return res.status(413).json({
+        status: 'fail',
+        message: isPhoto ? 'Request is too large (max 5 MB image)' : 'Request is too large',
+      });
     }
     if (parseType === 'entity.parse.failed') {
       return res.status(400).json({ status: 'fail', message: 'Request body is not valid JSON' });
