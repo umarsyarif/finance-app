@@ -57,7 +57,7 @@ export const deleteAllSessions = async (userId: string) => {
   }
 };
 
-export const signTokens = async (user: Prisma.UserCreateInput) => {
+export const signTokens = async (user: Prisma.UserCreateInput, rememberMe = true) => {
   // 1. Create Session
   const sid = crypto.randomUUID();
   await redisClient.set(sessionKey(user.id!, sid), JSON.stringify(omit(user, excludedFields)), {
@@ -69,7 +69,8 @@ export const signTokens = async (user: Prisma.UserCreateInput) => {
     expiresIn: `${config.get<number>("accessTokenExpiresIn")}m`,
   });
 
-  const refresh_token = signJwt({ sub: user.id, sid }, "refreshTokenPrivateKey", {
+  // rm tells the refresh endpoint whether re-issued cookies may outlive the browser session
+  const refresh_token = signJwt({ sub: user.id, sid, rm: rememberMe }, "refreshTokenPrivateKey", {
     expiresIn: `${config.get<number>("refreshTokenExpiresIn")}m`,
   });
 

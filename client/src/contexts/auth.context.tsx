@@ -3,6 +3,7 @@ import axios from '@/lib/axios';
 import { AxiosError } from 'axios';
 import { biometricService } from '@/services/biometric.service';
 import { secureStorage } from '@/services/secure-storage.service';
+import { clearOfflineStorage } from '@/hooks/use-offline';
 
 interface User {
   id: string;
@@ -133,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Logout failed:', error);
     } finally {
       secureStorage.clear();
+      clearOfflineStorage();
       setUser(null);
     }
   };

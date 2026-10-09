@@ -101,7 +101,7 @@ export function TransactionsList({
   onMonthChange,
   currentDate
 }: TransactionsListProps) {
-  const { transactions, loading, error, refetch } = useTransactions({
+  const { transactions, loading, error, refetch, loadMore, loadingMore, hasMore } = useTransactions({
     limit,
     walletId,
     categoryId,
@@ -139,29 +139,7 @@ export function TransactionsList({
   };
 
   if (variant === 'full') {
-    if (loading) {
-      return (
-        <div className={cn("bg-background min-h-screen", className)}>
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          </div>
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className={cn("bg-background min-h-screen p-4", className)}>
-          <div className="text-center py-8">
-            <p className="text-red-500 mb-4">{error}</p>
-            <Button onClick={refetch} variant="outline">
-              Try again
-            </Button>
-          </div>
-        </div>
-      );
-    }
-
+    // Month navigation stays usable while loading or after an error (e.g. offline with no cache)
     return (
       <div className={cn("bg-background min-h-screen", className)}>
         {/* Month Navigation */}
@@ -197,7 +175,18 @@ export function TransactionsList({
 
         {/* Transactions List */}
         <div className="bg-background">
-          {transactions.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            </div>
+          ) : error && transactions.length === 0 ? (
+            <div className="text-center py-8 px-4">
+              <p className="text-red-500 mb-4">{error}</p>
+              <Button onClick={refetch} variant="outline">
+                Try again
+              </Button>
+            </div>
+          ) : transactions.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground">
                 {showMonthNavigation ? "No transactions for this month" : "No transactions found"}
@@ -213,7 +202,17 @@ export function TransactionsList({
                   variant="full"
                 />
               ))}
+              {hasMore && (
+                <div className="flex justify-center py-4">
+                  <Button onClick={loadMore} variant="outline" disabled={loadingMore}>
+                    {loadingMore ? 'Loading...' : 'Load more'}
+                  </Button>
+                </div>
+              )}
             </div>
+          )}
+          {error && transactions.length > 0 && (
+            <p className="text-center text-sm text-muted-foreground py-2">{error}</p>
           )}
         </div>
 

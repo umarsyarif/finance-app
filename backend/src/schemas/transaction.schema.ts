@@ -56,6 +56,9 @@ export const getTransactionsSchema = object({
   query: object({
     walletId: string().optional(),
     categoryId: string().optional(),
+    // Exact instants from the client's own timezone; preferred over month/year
+    startDate: string().datetime({ offset: true }).optional(),
+    endDate: string().datetime({ offset: true }).optional(),
     month: z.preprocess(
       (val) => val ? parseInt(val as string, 10) : undefined,
       z.number().int().min(1).max(12).optional()

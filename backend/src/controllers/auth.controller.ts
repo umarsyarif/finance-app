@@ -40,23 +40,26 @@ const refreshTokenCookieOptions: CookieOptions = {
   maxAge: config.get<number>('refreshTokenExpiresIn') * 60 * 1000,
 };
 
-// Without rememberMe the refresh token is a session cookie, cleared when the browser closes
+// Without rememberMe every auth cookie is a session cookie, cleared when the browser closes
+// (the JWTs still carry their own expiry)
+function setAccessCookies(res: Response, access_token: string, rememberMe: boolean) {
+  const options = rememberMe ? accessTokenCookieOptions : cookiesOptions;
+  res.cookie('access_token', access_token, options);
+  res.cookie('logged_in', true, { ...options, httpOnly: false });
+}
+
 function setAuthCookies(
   res: Response,
   access_token: string,
   refresh_token: string,
   rememberMe: boolean
 ) {
-  res.cookie('access_token', access_token, accessTokenCookieOptions);
+  setAccessCookies(res, access_token, rememberMe);
   res.cookie(
     'refresh_token',
     refresh_token,
     rememberMe ? refreshTokenCookieOptions : cookiesOptions
   );
-  res.cookie('logged_in', true, {
-    ...accessTokenCookieOptions,
-    httpOnly: false,
-  });
 }
 
 export const registerUserHandler = async (
@@ -116,7 +119,7 @@ export const loginUserHandler = async (
     }
 
     // Sign Tokens
-    const { access_token, refresh_token } = await signTokens(user);
+    const { access_token, refresh_token } = await signTokens(user, rememberMe);
     setAuthCookies(res, access_token, refresh_token, rememberMe);
 
     res.status(200).json({
@@ -142,7 +145,7 @@ export const refreshAccessTokenHandler = async (
     }
 
     // Validate refresh token
-    const decoded = verifyJwt<{ sub: string; sid: string }>(
+    const decoded = verifyJwt<{ sub: string; sid: string; rm?: boolean }>(
       refresh_token,
       'refreshTokenPublicKey'
     );
@@ -170,12 +173,8 @@ export const refreshAccessTokenHandler = async (
       expiresIn: `${config.get<number>('accessTokenExpiresIn')}m`,
     });
 
-    // 4. Add Cookies
-    res.cookie('access_token', access_token, accessTokenCookieOptions);
-    res.cookie('logged_in', true, {
-      ...accessTokenCookieOptions,
-      httpOnly: false,
-    });
+    // 4. Add Cookies (keep them session-only if the login was not remembered)
+    setAccessCookies(res, access_token, decoded.rm !== false);
 
     // 5. Send response
     res.status(200).json({

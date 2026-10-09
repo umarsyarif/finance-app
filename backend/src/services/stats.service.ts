@@ -32,6 +32,7 @@ export interface StatsFilters {
   categoryId?: string;
   year?: number;
   month?: number;
+  tz?: string;
 }
 
 export const getMonthlySummary = async (filters: StatsFilters): Promise<MonthlySummary | null> => {
@@ -185,11 +186,14 @@ export const getCategoryBreakdown = async (filters: StatsFilters): Promise<Categ
 };
 
 export const getTrendData = async (filters: StatsFilters): Promise<TrendData[]> => {
-  const { userId, walletIds, categoryId, year } = filters;
+  const { userId, walletIds, categoryId, year, startDate, endDate, tz } = filters;
   const currentYear = year || new Date().getFullYear();
 
-  const startOfYear = new Date(currentYear, 0, 1);
-  const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+  // Prefer the client's own year range; fall back to the server-local year
+  const startOfYear = startDate || new Date(currentYear, 0, 1);
+  const endOfYear = endDate || new Date(currentYear, 11, 31, 23, 59, 59, 999);
+  // Month of a transaction as seen in the client's timezone (server-local if not given)
+  const monthOf = new Intl.DateTimeFormat('en-US', { timeZone: tz, month: 'numeric' });
 
   const whereClause: Prisma.TransactionWhereInput = {
     wallet: { userId },
@@ -209,7 +213,7 @@ export const getTrendData = async (filters: StatsFilters): Promise<TrendData[]> 
   }
 
   for (const t of transactions) {
-    const m = new Date(t.date).getMonth() + 1;
+    const m = Number(monthOf.format(t.date));
     if (t.category.type === 'INCOME') {
       monthlyData[m].income += t.amount.toNumber();
     } else {

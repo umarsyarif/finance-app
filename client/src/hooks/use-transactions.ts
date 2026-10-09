@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import axios from '@/lib/axios';
 import { Transaction } from '@/components/finance/transactions-list';
 import { useOffline } from '@/hooks/use-offline';
+import { getStartOfMonth, getEndOfMonth } from '@/lib/date-utils';
+import { toast } from 'sonner';
 
 interface ApiTransaction {
   id: string;
@@ -29,7 +31,6 @@ interface ApiTransaction {
 }
 
 interface UseTransactionsOptions {
-  page?: number;
   limit?: number;
   walletId?: string;
   categoryId?: string;
@@ -42,6 +43,8 @@ interface UseTransactionsReturn {
   loading: boolean;
   error: string | null;
   refetch: () => void;
+  loadMore: () => void;
+  loadingMore: boolean;
   hasMore: boolean;
   totalCount: number;
 }
@@ -49,41 +52,44 @@ interface UseTransactionsReturn {
 export function useTransactions(options: UseTransactionsOptions = {}): UseTransactionsReturn {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
 
-  const { page = 1, limit = 10, walletId, categoryId, month, year } = options;
+  const { limit = 10, walletId, categoryId, month, year } = options;
   const { isOnline, saveOfflineData, getOfflineData } = useOffline();
 
-  const fetchTransactions = async () => {
+  const query = new URLSearchParams({ limit: limit.toString() });
+  if (walletId) query.append('walletId', walletId);
+  if (categoryId) query.append('categoryId', categoryId);
+  if (month && year) {
+    // Send the month as exact instants in the browser's timezone, so the server's timezone doesn't matter
+    query.append('startDate', getStartOfMonth(year, month).toISOString());
+    query.append('endDate', getEndOfMonth(year, month).toISOString());
+  }
+  const cacheKey = `transactions?${query.toString()}`;
+
+  const fetchTransactions = async (pageToLoad: number) => {
+    const append = pageToLoad > 1;
     try {
-      setLoading(true);
+      if (append) setLoadingMore(true);
+      else setLoading(true);
       setError(null);
 
-      // Try to get cached data first if offline
-      if (!isOnline) {
-        const cachedTransactions = getOfflineData('transactions');
+      // Offline: show what was cached for this exact query (first page only)
+      if (!isOnline && !append) {
+        const cachedTransactions = getOfflineData(cacheKey);
         if (cachedTransactions && cachedTransactions.length > 0) {
           setTransactions(cachedTransactions);
           setTotalCount(cachedTransactions.length);
           setHasMore(false);
-          setLoading(false);
           return;
         }
       }
 
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: limit.toString(),
-      });
-
-      if (walletId) params.append('walletId', walletId);
-      if (categoryId) params.append('categoryId', categoryId);
-      if (month) params.append('month', month.toString());
-      if (year) params.append('year', year.toString());
-
-      const response = await axios.get(`/api/transactions?${params.toString()}`);
+      const response = await axios.get(`/api/transactions?${query.toString()}&page=${pageToLoad}`);
       const { data } = response.data;
 
       // Transform API data to match our Transaction interface
@@ -107,42 +113,53 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
         },
       }));
 
-      setTransactions(transformedTransactions);
+      setTransactions((prev) => (append ? [...prev, ...transformedTransactions] : transformedTransactions));
+      setPage(pageToLoad);
       setTotalCount(data.pagination?.total || 0);
-      setHasMore((page * limit) < (data.pagination?.total || 0));
+      setHasMore(pageToLoad * limit < (data.pagination?.total || 0));
 
-      // Save to offline cache when online
-      if (isOnline) {
-        saveOfflineData('transactions', transformedTransactions);
+      if (!append) {
+        saveOfflineData(cacheKey, transformedTransactions);
       }
     } catch (err: any) {
       console.error('Failed to fetch transactions:', err);
-      
-      // Try to use cached data on error
-      const cachedTransactions = getOfflineData('transactions');
+      if (append) {
+        toast.error(err.response?.data?.message || 'Failed to load more transactions');
+        return;
+      }
+
+      // Fall back to what was cached for this exact query
+      const cachedTransactions = getOfflineData(cacheKey);
       if (cachedTransactions && cachedTransactions.length > 0) {
         setTransactions(cachedTransactions);
         setTotalCount(cachedTransactions.length);
         setHasMore(false);
         setError('Using cached data - some information may be outdated');
       } else {
+        // Don't keep showing the previous query's rows (e.g. last month's) under this one
+        setTransactions([]);
+        setTotalCount(0);
+        setHasMore(false);
         setError(err.response?.data?.message || 'Failed to fetch transactions');
       }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    fetchTransactions();
+    fetchTransactions(1);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, walletId, categoryId, month, year]);
+  }, [cacheKey]);
 
   return {
     transactions,
     loading,
     error,
-    refetch: fetchTransactions,
+    refetch: () => fetchTransactions(1),
+    loadMore: () => fetchTransactions(page + 1),
+    loadingMore,
     hasMore,
     totalCount,
   };

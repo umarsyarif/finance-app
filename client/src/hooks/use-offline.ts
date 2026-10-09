@@ -2,21 +2,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import axios from '@/lib/axios';
 
-interface OfflineData {
-  transactions: any[];
-  wallets: any[];
-  categories: any[];
-  'stats-summary': any;
-  'stats-breakdown': any[];
-  'stats-trend': any[];
-  lastSync: string;
-}
+// Cached API responses keyed by query (e.g. "transactions?walletId=..&startDate=.."),
+// so one view's data is never served for a different query
+// ponytail: one entry per distinct query, never evicted; add LRU if the blob grows large
+type OfflineData = Record<string, any> & { lastSync?: string };
 
 interface UseOfflineReturn {
   isOnline: boolean;
   offlineData: OfflineData | null;
-  saveOfflineData: (key: keyof OfflineData, data: any) => void;
-  getOfflineData: (key: keyof OfflineData) => any;
+  saveOfflineData: (key: string, data: any) => void;
+  getOfflineData: (key: string) => any;
   clearOfflineData: () => void;
   syncPendingChanges: () => Promise<void>;
 }
@@ -30,6 +25,21 @@ const OFFLINE_STORAGE_KEY = 'finance-app-offline-data';
 const PENDING_CHANGES_KEY = 'finance-app-pending-changes';
 
 let isSyncing = false;
+
+function readOfflineStorage(): OfflineData {
+  try {
+    return JSON.parse(localStorage.getItem(OFFLINE_STORAGE_KEY) || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+// Remove everything this device cached for the signed-in user (call on logout / session loss)
+export function clearOfflineStorage() {
+  localStorage.removeItem(OFFLINE_STORAGE_KEY);
+  // ponytail: unsynced offline writes are dropped too; they belong to the user who is leaving
+  localStorage.removeItem(PENDING_CHANGES_KEY);
+}
 
 // Queue a write made while offline; it is replayed by syncPendingChanges when back online
 export function queuePendingChange(change: PendingChange) {
@@ -82,44 +92,19 @@ export function useOffline(): UseOfflineReturn {
     };
   }, []);
 
-  const saveOfflineData = useCallback((key: keyof OfflineData, data: any) => {
-    let stored: OfflineData | null = null;
-    try {
-      stored = JSON.parse(localStorage.getItem(OFFLINE_STORAGE_KEY) || 'null');
-    } catch {
-      stored = null;
-    }
-    const currentData = stored || {
-      transactions: [],
-      wallets: [],
-      categories: [],
-      'stats-summary': null,
-      'stats-breakdown': [],
-      'stats-trend': [],
-      lastSync: new Date().toISOString()
-    };
-
-    const updatedData = {
-      ...currentData,
-      [key]: data,
-      lastSync: new Date().toISOString()
-    };
-
+  const saveOfflineData = useCallback((key: string, data: any) => {
+    const updatedData = { ...readOfflineStorage(), [key]: data, lastSync: new Date().toISOString() };
     setOfflineData(updatedData);
     localStorage.setItem(OFFLINE_STORAGE_KEY, JSON.stringify(updatedData));
   }, []);
 
-  const getOfflineData = useCallback((key: keyof OfflineData) => {
-    return offlineData?.[key] || [];
-  }, [offlineData]);
+  // Read storage directly so a value saved by another hook instance is visible
+  const getOfflineData = useCallback((key: string) => readOfflineStorage()[key], []);
 
   const clearOfflineData = useCallback(() => {
     setOfflineData(null);
-    localStorage.removeItem(OFFLINE_STORAGE_KEY);
-    localStorage.removeItem(PENDING_CHANGES_KEY);
+    clearOfflineStorage();
   }, []);
-
-
 
   const syncPendingChanges = useCallback(async () => {
     // Several components use this hook; only one sync may run at a time

@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { AddTransactionSheet } from './add-transaction-sheet';
 import { useWallets } from '@/hooks/use-wallets';
 import axios from '@/lib/axios';
+import { getStartOfMonth, getEndOfMonth } from '@/lib/date-utils';
 import { formatAmount } from '@/lib/format-utils';
 
 
@@ -59,7 +60,14 @@ export function WalletCarousel({ onTransactionChange, onWalletChange }: WalletCa
       for (const wallet of wallets) {
         try {
           // Use API-level filtering instead of frontend filtering
-          const response = await axios.get(`/api/transactions?walletId=${wallet.id}&month=${currentMonth}&year=${currentYear}&limit=1000`);
+          const response = await axios.get('/api/transactions', {
+            params: {
+              walletId: wallet.id,
+              startDate: getStartOfMonth(currentYear, currentMonth).toISOString(),
+              endDate: getEndOfMonth(currentYear, currentMonth).toISOString(),
+              limit: 1000,
+            },
+          });
           const transactions = response.data.data.transactions || [];
           
           let income = 0;

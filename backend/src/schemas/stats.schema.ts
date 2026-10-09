@@ -39,6 +39,15 @@ export const getStatsSchema = object({
       }
       return true;
     }, 'Invalid month (must be 1-12)'),
+    tz: string().optional().refine((val) => {
+      if (!val) return true;
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: val });
+        return true;
+      } catch {
+        return false;
+      }
+    }, 'Invalid time zone'),
   }),
 });
 

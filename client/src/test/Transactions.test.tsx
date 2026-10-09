@@ -60,7 +60,9 @@ describe('MonthlyTransactionsView', () => {
       error: null,
       refetch: vi.fn(),
       totalCount: 2,
-      hasMore: false
+      hasMore: false,
+      loadMore: vi.fn(),
+      loadingMore: false
     })
   })
 
@@ -199,7 +201,9 @@ describe('MonthlyTransactionsView', () => {
       error: null,
       refetch: vi.fn(),
       totalCount: 0,
-      hasMore: false
+      hasMore: false,
+      loadMore: vi.fn(),
+      loadingMore: false
     })
     
     renderComponent()
@@ -215,7 +219,9 @@ describe('MonthlyTransactionsView', () => {
       error: 'Failed to fetch transactions',
       refetch: vi.fn(),
       totalCount: 0,
-      hasMore: false
+      hasMore: false,
+      loadMore: vi.fn(),
+      loadingMore: false
     })
     
     renderComponent()
@@ -231,7 +237,9 @@ describe('MonthlyTransactionsView', () => {
       error: null,
       refetch: vi.fn(),
       totalCount: 0,
-      hasMore: false
+      hasMore: false,
+      loadMore: vi.fn(),
+      loadingMore: false
     })
     
     renderComponent()

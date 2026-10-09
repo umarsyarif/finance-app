@@ -96,14 +96,17 @@ export const getTrendDataHandler = async (
   next: NextFunction
 ) => {
   try {
-    const { walletIds, categoryId, year } = req.query;
+    const { startDate, endDate, walletIds, categoryId, year, tz } = req.query;
     const userId = res.locals.user.id;
 
     const filters: StatsFilters = {
       userId,
+      startDate: startDate ? parseRangeDate(startDate, false) : undefined,
+      endDate: endDate ? parseRangeDate(endDate, true) : undefined,
       walletIds: walletIds ? walletIds.split(',').map(id => id.trim()) : undefined,
       categoryId,
       year: year ? parseInt(year) : undefined,
+      tz,
     };
 
     const trendData = await getTrendData(filters);

@@ -48,6 +48,7 @@ npm run lint        # ESLint
 npm run test        # Vitest (watch)
 npm run test:run    # Vitest (single run, CI)
 npm run test:ui     # Vitest browser UI
+npm run test:e2e    # Playwright (e2e/*.e2e.ts): real browser + own backend on :8010 / Vite on :5180; needs `make infra`
 ```
 
 Run a single frontend test file:
@@ -84,7 +85,7 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 - `Router.tsx` — protected routes nested under `<ProtectedRoutes>` which checks `useAuth().user`; auth pages (`/login`, `/register`) shown only when unauthenticated
 - `contexts/auth.context.tsx` — single source of auth state; handles login, register, logout, biometric unlock, and a 30-min inactivity logout that applies only when "Remember me" was not checked
 - `lib/axios.ts` — Axios instance with `VITE_API_URL` base URL and `withCredentials`; response interceptor auto-refreshes on 401/403 and redirects to `/login` on refresh failure
-- `hooks/` — custom hooks manage all data fetching (useState + useEffect pattern, no React Query). Each hook exposes `{ data, loading, error, refetch }`. Offline caching is handled inside `useTransactions`/`useStats` via `useOffline`; transactions created offline are queued (`queuePendingChange`) and replayed on reconnect.
+- `hooks/` — custom hooks manage all data fetching (useState + useEffect pattern, no React Query). Each hook exposes `{ data, loading, error, refetch }`. Offline caching is handled inside `useTransactions`/`useStats` via `useOffline`, keyed per query (cleared on logout); transactions created offline are queued (`queuePendingChange`) and replayed on reconnect.
 - `services/biometric.service.ts` — WebAuthn credential creation/assertion (client-side only, no server verification). Credentials stored in `localStorage`. It only unlocks an existing cookie session; it cannot sign in once the session has expired.
 - `services/secure-storage.service.ts` — prefixed localStorage/sessionStorage wrapper for client-side flags (last activity, remember-me, preferences); no tokens are stored client-side
 - `components/finance/` — domain components (transaction sheets, wallet carousel, category form, etc.)
@@ -108,6 +109,7 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 
 - Backend env vars are loaded from `backend/.env`; the `config` package reads them via `custom-environment-variables.ts`, not `process.env` directly
 - JWT keys (`accessTokenPrivateKey`, `accessTokenPublicKey`, `refreshTokenPrivateKey`, `refreshTokenPublicKey`) are stored as base64-encoded strings in env/config — always decode with `Buffer.from(key, 'base64').toString('ascii')` before use
+- Month/date filters are sent as exact ISO instants computed in the browser's timezone (`startDate`/`endDate`, plus `tz` for the stats trend), so the server timezone never decides which month a transaction belongs to
 - Frontend env vars use `VITE_` prefix; `VITE_API_URL` controls the backend base URL
 - The `@` path alias maps to `client/src/` in both Vite and TypeScript configs
 - Currency support is intentionally limited to KRW and IDR in wallet creation

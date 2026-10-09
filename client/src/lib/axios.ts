@@ -26,6 +26,8 @@ axiosInstance.interceptors.response.use(
         await axiosInstance.get('/api/auth/refresh');
         return axiosInstance(originalRequest);
       } catch (refreshError) {
+        // Session is gone: drop the previous user's cached data from this device
+        localStorage.removeItem('finance-app-offline-data');
         if (window.location.pathname !== '/login') {
           window.location.href = '/login';
         }

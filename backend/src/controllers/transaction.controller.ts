@@ -125,7 +125,7 @@ export const getTransactionsHandler = async (
   next: NextFunction
 ) => {
   try {
-    const { walletId, categoryId, month, year, page = 1, limit = 10 } = req.query;
+    const { walletId, categoryId, startDate, endDate, month, year, page = 1, limit = 10 } = req.query;
     const userId = res.locals.user.id;
     
     const pageNum = Number(page);
@@ -140,8 +140,10 @@ export const getTransactionsHandler = async (
     if (walletId) where.walletId = walletId;
     if (categoryId) where.categoryId = categoryId;
     
-    // Add date filtering for month and year
-    if (month || year) {
+    if (startDate && endDate) {
+      where.date = { gte: new Date(startDate), lte: new Date(endDate) };
+    } else if (month || year) {
+      // Legacy month/year filter, bucketed in server-local time
       const currentYear = year || new Date().getFullYear();
       const currentMonth = month || new Date().getMonth() + 1;
       
