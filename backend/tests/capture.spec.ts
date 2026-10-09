@@ -126,3 +126,62 @@ describe('summarize', () => {
     expect(summarize(draft)).toBe('Added +₩3,200,000 Payroll · Salary · KRW Main');
   });
 });
+
+describe('resolveDraft: untrusted AI fields', () => {
+  it('rejects NaN, Infinity and string amounts', async () => {
+    for (const amount of [NaN, Infinity, '6500' as unknown as number]) {
+      await expect(resolveDraft(extraction({ amount }), ctx())).rejects.toThrow("Couldn't find an amount");
+    }
+  });
+
+  it('rejects an invalid type before touching categories', async () => {
+    for (const type of ['TRANSFER', 'expense', undefined] as unknown as Array<'INCOME'>) {
+      await expect(resolveDraft(extraction({ type }), ctx())).rejects.toThrow("Couldn't tell if this was income or an expense");
+    }
+    expect(other).not.toHaveBeenCalled();
+  });
+
+  it('treats a junk currency as unknown and uses the main wallet', async () => {
+    const draft = await resolveDraft(extraction({ currency: 'US$ approx' }), ctx());
+    expect(draft.walletId).toBe('w-krw-main');
+  });
+
+  it('uses the named wallet when the currency is null', async () => {
+    const draft = await resolveDraft(extraction({ currency: null, walletName: 'Rupiah' }), ctx());
+    expect(draft.walletId).toBe('w-idr');
+  });
+
+  it('reports the exact message when nothing was found', async () => {
+    await expect(resolveDraft(extraction({ found: false }), ctx())).rejects.toThrow("Couldn't find an amount");
+  });
+
+  it('honours a date with a Z offset as an instant', async () => {
+    const draft = await resolveDraft(extraction({ date: '2026-10-09T05:20:00Z' }), ctx());
+    expect(draft.date).toBe('2026-10-09T05:20:00.000Z');
+  });
+
+  it('keeps now+1h, but not now+25h or a date 2 years ago', async () => {
+    const plus1 = new Date(now.getTime() + 3600_000).toISOString();
+    expect((await resolveDraft(extraction({ date: plus1 }), ctx())).date).toBe(plus1);
+    const plus25 = new Date(now.getTime() + 25 * 3600_000).toISOString();
+    expect((await resolveDraft(extraction({ date: plus25 }), ctx())).date).toBe(now.toISOString());
+    const old = new Date(now.getTime() - 2 * 365 * 24 * 3600_000).toISOString();
+    expect((await resolveDraft(extraction({ date: old }), ctx())).date).toBe(now.toISOString());
+  });
+
+  it('truncates by code points and collapses whitespace', async () => {
+    const long = 'a'.repeat(254) + '😀' + 'bbb';
+    const d = await resolveDraft(extraction({ description: long }), ctx());
+    expect(Array.from(d.description).length).toBe(255);
+    expect(d.description.endsWith('😀')).toBe(true);
+    const spaced = await resolveDraft(extraction({ description: '  Big \n  Mart\t run ' }), ctx());
+    expect(spaced.description).toBe('Big Mart run');
+  });
+});
+
+describe('summarize: IDR', () => {
+  it('uses Rp with no forced decimals', async () => {
+    const draft = await resolveDraft(extraction({ currency: 'IDR', amount: 25000 }), ctx());
+    expect(summarize(draft)).toBe('Added -Rp 25,000 Starbucks · Food · Rupiah');
+  });
+});
