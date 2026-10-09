@@ -37,6 +37,8 @@ async function bootstrap() {
   app.set('trust proxy', 1);
 
   // 1.Body Parser
+  // Photos are base64 JSON (≤5 MB image); every other route keeps the 10kb limit
+  app.use('/api/capture/photo', express.json({ limit: '7mb' }));
   app.use(express.json({ limit: '10kb' }));
 
   // 2. Cookie Parser

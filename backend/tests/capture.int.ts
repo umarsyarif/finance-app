@@ -16,6 +16,13 @@ import app, { ready } from '../src/app';
 import prisma from '../src/middleware/prismaMiddleware';
 import redisClient from '../src/utils/connectRedis';
 import { deleteAllSessions } from '../src/services/user.service';
+import { extractTransaction, AiUnavailableError, AiNotConfiguredError, type AiExtraction } from '../src/services/ai.service';
+
+const mockedExtract = extractTransaction as jest.MockedFunction<typeof extractTransaction>;
+const extraction = (over: Partial<AiExtraction> = {}): AiExtraction => ({
+  found: true, type: 'EXPENSE', amount: 6500, currency: 'KRW', description: 'Latte',
+  date: null, categoryName: 'Coffee', walletName: null, ...over,
+});
 
 const run = Date.now();
 const emails: string[] = [];
@@ -128,5 +135,112 @@ describe('personal API token', () => {
     expect((await other.get('/api/users/me/api-token')).body.data.exists).toBe(false);
     const res = await request(app).post('/api/capture/text').set('Authorization', `Bearer ${token}`).send({ text: 'x' });
     expect(res.status).toBe(401);
+  });
+});
+
+describe('capture', () => {
+  let shortcut: Agent;
+  let token: string;
+  let walletId: string;
+
+  beforeAll(async () => {
+    shortcut = await newUser('shortcut');
+    walletId = (await shortcut.post('/api/wallets').send({ name: 'KRW Main', currency: 'KRW', balance: 10000 })).body.data.wallet.id;
+    await shortcut.put(`/api/wallets/${walletId}/main`);
+    await shortcut.post('/api/categories').send({ name: 'Coffee', type: 'EXPENSE' });
+    token = (await shortcut.post('/api/users/me/api-token')).body.data.token;
+  });
+
+  const sendText = (text = 'STARBUCKS 6,500원 승인') =>
+    request(app).post('/api/capture/text').set('Authorization', `Bearer ${token}`).send({ text });
+
+  it('text: saves the transaction and returns a summary', async () => {
+    mockedExtract.mockResolvedValueOnce(extraction());
+    const res = await sendText();
+
+    expect(res.status).toBe(201);
+    expect(res.body.message).toBe('Added -₩6,500 Latte · Coffee · KRW Main');
+    expect(res.body.data.transaction.amount).toBe(6500);
+    const wallet = await shortcut.get(`/api/wallets/${walletId}`);
+    expect(wallet.body.data.wallet.balance).toBe(3500);
+    expect(mockedExtract).toHaveBeenLastCalledWith({ text: 'STARBUCKS 6,500원 승인' }, expect.objectContaining({ timeZone: 'Asia/Seoul' }));
+  });
+
+  it('text: unknown category lands in an auto-created Other', async () => {
+    mockedExtract.mockResolvedValueOnce(extraction({ categoryName: 'Pharmacy', description: 'Olive Young' }));
+    const res = await sendText();
+    expect(res.status).toBe(201);
+    expect(res.body.message).toContain('· Other ·');
+  });
+
+  it('text: missing amount is a readable 422', async () => {
+    mockedExtract.mockResolvedValueOnce(extraction({ amount: null }));
+    const res = await sendText();
+    expect(res.status).toBe(422);
+    expect(res.body.message).toBe("Couldn't find an amount");
+  });
+
+  it('text: AI failures are a readable 503', async () => {
+    mockedExtract.mockRejectedValueOnce(new AiUnavailableError('boom'));
+    expect((await sendText()).body).toEqual({ status: 'error', message: 'AI is unavailable, try again later' });
+    mockedExtract.mockRejectedValueOnce(new AiNotConfiguredError('no key'));
+    const res = await sendText();
+    expect(res.status).toBe(503);
+    expect(res.body.message).toBe("AI capture isn't set up");
+  });
+
+  it('text: validates the body', async () => {
+    const res = await request(app).post('/api/capture/text').set('Authorization', `Bearer ${token}`).send({});
+    expect(res.status).toBe(400);
+  });
+
+  it('photo: returns a draft and saves nothing', async () => {
+    mockedExtract.mockResolvedValueOnce(extraction({ amount: 12000, description: 'Emart' }));
+    const before = (await shortcut.get(`/api/transactions?walletId=${walletId}`)).body.data.pagination.total;
+
+    const res = await shortcut.post('/api/capture/photo').send({ image: Buffer.from('fake-jpeg').toString('base64'), mimeType: 'image/jpeg' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.draft).toMatchObject({ amount: 12000, description: 'Emart', walletId, categoryName: 'Coffee', type: 'EXPENSE' });
+    expect(mockedExtract).toHaveBeenLastCalledWith({ image: expect.any(String), mimeType: 'image/jpeg' }, expect.anything());
+    const after = (await shortcut.get(`/api/transactions?walletId=${walletId}`)).body.data.pagination.total;
+    expect(after).toBe(before);
+  });
+
+  it('photo: requires a session, not the API token', async () => {
+    const res = await request(app).post('/api/capture/photo').set('Authorization', `Bearer ${token}`)
+      .send({ image: 'AAAA', mimeType: 'image/jpeg' });
+    expect(res.status).toBe(401);
+  });
+
+  it('photo: rejects images over 5 MB and unsupported types', async () => {
+    const big = Buffer.alloc(5 * 1024 * 1024 + 1).toString('base64');
+    expect((await shortcut.post('/api/capture/photo').send({ image: big, mimeType: 'image/jpeg' })).status).toBe(400);
+    expect((await shortcut.post('/api/capture/photo').send({ image: 'AAAA', mimeType: 'image/gif' })).status).toBe(400);
+  });
+
+  // Keep this last in the block: it uses up the user's hourly budget
+  it('limits captures to 30 per hour per user, shared across both endpoints', async () => {
+    mockedExtract.mockResolvedValue(extraction({ amount: null })); // 422s: nothing is written
+    let last = await sendText();
+    for (let i = 0; i < 31 && last.status !== 429; i++) last = await sendText();
+    expect(last.status).toBe(429);
+    expect(last.body.message).toBe('Too many captures, try again in an hour.');
+    const photo = await shortcut.post('/api/capture/photo').send({ image: 'AAAA', mimeType: 'image/jpeg' });
+    expect(photo.status).toBe(429);
+    mockedExtract.mockReset();
+  });
+});
+
+// Keep this describe LAST in the file: it exhausts the per-IP budget for failed token attempts
+describe('failed token attempts', () => {
+  it('are throttled per IP after 20 failures in 15 minutes', async () => {
+    let last;
+    for (let i = 0; i < 25; i++) {
+      last = await request(app).post('/api/capture/text').set('Authorization', `Bearer ft_${'x'.repeat(43)}`).send({ text: 'x' });
+      if (last.status === 429) break;
+    }
+    expect(last!.status).toBe(429);
+    expect(last!.body.message).toBe('Too many failed attempts, try again later.');
   });
 });
