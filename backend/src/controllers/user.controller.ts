@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { omit } from 'lodash';
 import { Prisma } from '@prisma/client';
 import { ChangePasswordInput, UpdateMeInput } from '../schemas/user.schema';
-import { deleteAllSessions, excludedFields, findUniqueUser, updateUser } from '../services/user.service';
+import { deleteAllSessions, excludedFields, findUniqueUser, getApiTokenStatus, issueApiToken, revokeApiToken, updateUser } from '../services/user.service';
 import AppError from '../utils/appError';
 
 export const getMeHandler = async (
@@ -72,6 +72,32 @@ export const changePasswordHandler = async (
       status: 'success',
       message: 'Password changed successfully',
     });
+  } catch (err: any) {
+    next(err);
+  }
+};
+
+export const getApiTokenHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.status(200).json({ status: 'success', data: await getApiTokenStatus(res.locals.user.id) });
+  } catch (err: any) {
+    next(err);
+  }
+};
+
+export const createApiTokenHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = await issueApiToken(res.locals.user.id);
+    res.status(201).json({ status: 'success', data: { token } });
+  } catch (err: any) {
+    next(err);
+  }
+};
+
+export const deleteApiTokenHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await revokeApiToken(res.locals.user.id);
+    res.status(204).end();
   } catch (err: any) {
     next(err);
   }

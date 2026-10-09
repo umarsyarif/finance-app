@@ -78,3 +78,44 @@ export const signTokens = async (user: Prisma.UserCreateInput, rememberMe = true
 
   return { access_token, refresh_token };
 };
+
+// Personal API tokens (iOS Shortcut). Only a SHA-256 hash is stored.
+const API_TOKEN_PREFIX = "ft_";
+const hashApiToken = (token: string) => crypto.createHash("sha256").update(token).digest("hex");
+
+export const issueApiToken = async (userId: string) => {
+  const token = API_TOKEN_PREFIX + crypto.randomBytes(32).toString("base64url");
+  await prisma.user.update({
+    where: { id: userId },
+    data: { apiTokenHash: hashApiToken(token), apiTokenCreatedAt: new Date(), apiTokenLastUsedAt: null },
+  });
+  return token;
+};
+
+export const revokeApiToken = async (userId: string) => {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { apiTokenHash: null, apiTokenCreatedAt: null, apiTokenLastUsedAt: null },
+  });
+};
+
+export const getApiTokenStatus = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { apiTokenHash: true, apiTokenCreatedAt: true, apiTokenLastUsedAt: true },
+  });
+  return {
+    exists: !!user?.apiTokenHash,
+    createdAt: user?.apiTokenCreatedAt ?? null,
+    lastUsedAt: user?.apiTokenLastUsedAt ?? null,
+  };
+};
+
+// Returns the user (without secrets) for a valid token and records the use; null otherwise
+export const findUserByApiToken = async (token: string) => {
+  if (!token.startsWith(API_TOKEN_PREFIX)) return null;
+  const user = await prisma.user.findUnique({ where: { apiTokenHash: hashApiToken(token) } });
+  if (!user) return null;
+  await prisma.user.update({ where: { id: user.id }, data: { apiTokenLastUsedAt: new Date() } });
+  return omit(user, excludedFields);
+};
