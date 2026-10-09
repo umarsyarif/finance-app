@@ -110,11 +110,11 @@ export default function Stats() {
   const selectedCurrency = useMemo(() => {
     if (!filters.walletIds || filters.walletIds.length === 0) {
       const mainWallet = getMainWallet();
-      return mainWallet?.currency || 'USD';
+      return mainWallet?.currency || wallets[0]?.currency || 'KRW';
     }
     
     const selectedWallet = wallets.find(wallet => filters.walletIds?.includes(wallet.id));
-    return selectedWallet?.currency || 'USD';
+    return selectedWallet?.currency || 'KRW';
   }, [filters.walletIds, wallets, getMainWallet]);
 
 

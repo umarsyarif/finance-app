@@ -71,7 +71,7 @@ export const formatDateDetailed = (dateString: string): string => {
  * Formats an amount with currency and sign based on transaction type
  * @param amount - The transaction amount
  * @param type - Transaction type ('INCOME' or 'EXPENSE')
- * @param currency - Currency code (default: 'USD')
+ * @param currency - Currency code (default: 'KRW')
  * @returns Formatted amount string with appropriate sign
  */
 export const formatAmount = (amount: number, type: string|null = null, currency: string = 'KRW'): string => {
@@ -86,7 +86,7 @@ export const formatAmount = (amount: number, type: string|null = null, currency:
 /**
  * Formats an amount as currency without sign
  * @param amount - The amount to format
- * @param currency - Currency code (default: 'USD')
+ * @param currency - Currency code (default: 'KRW')
  * @returns Formatted currency string
  */
 export const formatCurrency = (amount: number, currency: string = 'KRW'): string => {

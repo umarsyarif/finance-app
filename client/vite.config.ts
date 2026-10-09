@@ -45,42 +45,8 @@ export default defineConfig(({ mode }) => {
           ]
         },
         workbox: {
+          // API responses are not cached by the service worker; offline data lives in use-offline
           globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/api\./i,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'api-cache',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
-                }
-              }
-            },
-            {
-              urlPattern: /\/api\/transactions/,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'transactions-cache',
-                expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
-                }
-              }
-            },
-            {
-              urlPattern: /\/api\/wallets/,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'wallets-cache',
-                expiration: {
-                  maxEntries: 20,
-                  maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
-                }
-              }
-            }
-          ]
         },
         devOptions: {
           enabled: true
