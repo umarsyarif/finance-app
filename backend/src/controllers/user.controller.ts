@@ -67,6 +67,8 @@ export const changePasswordHandler = async (
     await updateUser({ id: userId }, { password: await bcrypt.hash(newPassword, 12) });
     // Sign out every other device; this one stays signed in
     await deleteAllSessions(userId, res.locals.sessionId);
+    // A password change also invalidates the Shortcut token
+    await revokeApiToken(userId);
 
     res.status(200).json({
       status: 'success',

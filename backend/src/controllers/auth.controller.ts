@@ -13,6 +13,7 @@ import {
   deleteAllSessions,
   findUniqueUser,
   findUser,
+  revokeApiToken,
   sessionKey,
   signTokens,
   updateUser,
@@ -370,6 +371,7 @@ export const resetPasswordHandler = async (
 
     // Password changed: sign out every device
     await deleteAllSessions(user.id);
+    await revokeApiToken(user.id);
     logout(res);
     res.status(200).json({
       status: 'success',

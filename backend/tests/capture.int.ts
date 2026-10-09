@@ -10,6 +10,7 @@ jest.mock('../src/services/ai.service', () => ({
   extractTransaction: jest.fn(),
 }));
 
+import crypto from 'crypto';
 import request from 'supertest';
 import app, { ready } from '../src/app';
 import prisma from '../src/middleware/prismaMiddleware';
@@ -91,5 +92,41 @@ describe('personal API token', () => {
     const res = await request(app).post('/api/capture/text').set('Authorization', 'Bearer nope').send({ text: 'x' });
     expect(res.status).toBe(401);
     expect(res.body.message).toBe('Invalid or missing API token');
+  });
+
+  it('stores the hash, not the token', async () => {
+    const token = (await owner.post('/api/users/me/api-token')).body.data.token;
+    const row = await prisma.user.findUnique({ where: { email: emails[0] } });
+    expect(row?.apiTokenHash).toBe(crypto.createHash('sha256').update(token).digest('hex'));
+    expect(row?.apiTokenHash).not.toBe(token);
+  });
+
+  it('does not accept a cookie session on the Shortcut endpoint', async () => {
+    expect((await owner.post('/api/capture/text').send({ text: 'x' })).status).toBe(401);
+  });
+
+  it('records lastUsedAt on successful use', async () => {
+    const token = (await owner.post('/api/users/me/api-token')).body.data.token;
+    const res = await request(app).post('/api/capture/text').set('Authorization', `Bearer ${token}`).send({ text: 'x' });
+    expect(res.status).not.toBe(401);
+    expect((await owner.get('/api/users/me/api-token')).body.data.lastUsedAt).not.toBeNull();
+  });
+
+  it('is not accepted on a write endpoint', async () => {
+    const token = (await owner.post('/api/users/me/api-token')).body.data.token;
+    const res = await request(app).post('/api/transactions').set('Authorization', `Bearer ${token}`).send({});
+    expect(res.status).toBe(401);
+  });
+
+  it('is revoked when the password changes', async () => {
+    const other = await newUser('pw');
+    const token = (await other.post('/api/users/me/api-token')).body.data.token;
+    const change = await other
+      .post('/api/users/me/password')
+      .send({ currentPassword: 'password123', newPassword: 'newpassword456', newPasswordConfirm: 'newpassword456' });
+    expect(change.status).toBe(200);
+    expect((await other.get('/api/users/me/api-token')).body.data.exists).toBe(false);
+    const res = await request(app).post('/api/capture/text').set('Authorization', `Bearer ${token}`).send({ text: 'x' });
+    expect(res.status).toBe(401);
   });
 });

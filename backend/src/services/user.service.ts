@@ -81,6 +81,7 @@ export const signTokens = async (user: Prisma.UserCreateInput, rememberMe = true
 
 // Personal API tokens (iOS Shortcut). Only a SHA-256 hash is stored.
 const API_TOKEN_PREFIX = "ft_";
+const API_TOKEN_PATTERN = /^ft_[A-Za-z0-9_-]{43}$/;
 const hashApiToken = (token: string) => crypto.createHash("sha256").update(token).digest("hex");
 
 export const issueApiToken = async (userId: string) => {
@@ -113,9 +114,15 @@ export const getApiTokenStatus = async (userId: string) => {
 
 // Returns the user (without secrets) for a valid token and records the use; null otherwise
 export const findUserByApiToken = async (token: string) => {
-  if (!token.startsWith(API_TOKEN_PREFIX)) return null;
-  const user = await prisma.user.findUnique({ where: { apiTokenHash: hashApiToken(token) } });
-  if (!user) return null;
-  await prisma.user.update({ where: { id: user.id }, data: { apiTokenLastUsedAt: new Date() } });
-  return omit(user, excludedFields);
+  if (!API_TOKEN_PATTERN.test(token)) return null;
+  try {
+    const user = await prisma.user.update({
+      where: { apiTokenHash: hashApiToken(token) },
+      data: { apiTokenLastUsedAt: new Date() },
+    });
+    return omit(user, excludedFields);
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") return null;
+    throw err;
+  }
 };
