@@ -26,6 +26,11 @@ model User {
   passwordResetToken String?
   passwordResetAt DateTime?
 
+  // Personal API token for the iOS Shortcut (SHA-256 hash; the token is shown once)
+  apiTokenHash       String?   @unique
+  apiTokenCreatedAt  DateTime?
+  apiTokenLastUsedAt DateTime?
+
   createdAt  DateTime   @default(now())
   updatedAt DateTime @updatedAt
 

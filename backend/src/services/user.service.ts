@@ -12,6 +12,7 @@ export const excludedFields = [
   "verificationCode",
   "passwordResetAt",
   "passwordResetToken",
+  "apiTokenHash",
 ];
 
 export const createUser = async (input: Prisma.UserCreateInput) => {
