@@ -53,6 +53,10 @@ export default defineConfig(({ mode }) => {
         }
       })
     ],
+    server: {
+      // The PWA plugin writes dev-dist/ at startup; watching it made Vite reload open pages
+      watch: { ignored: ['**/dev-dist/**'] },
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
