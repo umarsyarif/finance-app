@@ -1,10 +1,13 @@
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Camera, Plus } from 'lucide-react';
+import { isAxiosError } from 'axios';
 import { Button } from '../ui/button';
 import { DateTimePicker } from '../ui/datetime-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
 import { useTransactionForm } from '../../hooks/use-transaction-form';
+import type { TransactionDraft } from '../../hooks/use-transaction-form';
+import { downscaleImage } from '@/lib/image';
 import { Transaction } from './transactions-list';
 import { cn } from '@/lib/utils';
 import axios from '@/lib/axios';
@@ -46,10 +49,15 @@ export function TransactionForm({
 }: TransactionFormProps) {
   const [type, setType] = useState<TransactionType>(initialType ?? transaction?.type ?? 'EXPENSE');
   const [newCategory, setNewCategory] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanned, setScanned] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   const {
     formData,
     updateField,
+    applyDraft,
     submitForm,
     isSubmitting,
     submitError,
@@ -78,6 +86,28 @@ export function TransactionForm({
     setNewCategory(null);
   };
 
+  // Photo → AI draft → form. Nothing is saved until the user taps Save.
+  const scanPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setScanning(true);
+    setScanError(null);
+    setScanned(false);
+    try {
+      const payload = await downscaleImage(file);
+      const { data } = await axios.post('/api/capture/photo', payload);
+      const draft: TransactionDraft = data.data.draft;
+      setType(draft.type);
+      await refetchCategories(); // the draft may use a just-created "Other" category
+      applyDraft(draft);
+      setScanned(true);
+    } catch (err) {
+      setScanError((isAxiosError(err) && err.response?.data?.message) || "Couldn't read the photo. Enter the details manually.");
+    } finally {
+      setScanning(false);
+      if (fileInput.current) fileInput.current.value = '';
+    }
+  };
+
   if (loadingWallets || loadingCategories) {
     return <p className="py-8 text-center text-muted-foreground">Loading…</p>;
   }
@@ -88,10 +118,31 @@ export function TransactionForm({
 
   return (
     <form onSubmit={submitForm} className="space-y-6">
-      <div role="group" aria-label="Type" className="flex gap-2">
-        <ChoiceChip selected={type === 'EXPENSE'} onClick={() => switchType('EXPENSE')}>Expense</ChoiceChip>
-        <ChoiceChip selected={type === 'INCOME'} onClick={() => switchType('INCOME')}>Income</ChoiceChip>
+      <div className="flex items-center gap-2">
+        <div role="group" aria-label="Type" className="flex gap-2">
+          <ChoiceChip selected={type === 'EXPENSE'} onClick={() => switchType('EXPENSE')}>Expense</ChoiceChip>
+          <ChoiceChip selected={type === 'INCOME'} onClick={() => switchType('INCOME')}>Income</ChoiceChip>
+        </div>
+        {!transaction && (
+          <>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              aria-label="Scan photo"
+              className="sr-only"
+              onChange={(e) => scanPhoto(e.target.files?.[0])}
+            />
+            <ChoiceChip className="ml-auto" disabled={scanning} onClick={() => fileInput.current?.click()}>
+              <span className="flex items-center gap-1.5"><Camera className="size-4" /> {scanning ? 'Reading…' : 'Scan'}</span>
+            </ChoiceChip>
+          </>
+        )}
       </div>
+
+      {scanning && <p className="text-sm text-muted-foreground">Reading photo…</p>}
+      {scanned && <p className="rounded-[20px] bg-lime-soft px-4 py-3 text-sm font-semibold">Filled from photo. Check before saving.</p>}
+      {scanError && <p role="alert" className="text-sm text-expense">{scanError}</p>}
 
       <div>
         <Label htmlFor="amount" className="text-xs text-muted-foreground">Amount</Label>
@@ -188,7 +239,7 @@ export function TransactionForm({
 
       {submitError && <p role="alert" className="text-sm text-expense">{submitError}</p>}
 
-      <Button type="submit" disabled={isSubmitting} className="h-[52px] w-full rounded-full text-[15px]">
+      <Button type="submit" disabled={isSubmitting || scanning} className="h-[52px] w-full rounded-full text-[15px]">
         {isSubmitting ? 'Saving…' : submitButtonText ?? (type === 'INCOME' ? 'Save income' : 'Save expense')}
       </Button>
     </form>

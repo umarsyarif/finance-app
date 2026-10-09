@@ -25,6 +25,16 @@ interface TransactionFormData {
   categoryId: string;
 }
 
+// What POST /api/capture/photo returns (see backend capture.service TransactionDraft)
+export interface TransactionDraft {
+  type: TransactionType;
+  amount: number;
+  description: string;
+  date: string;
+  walletId: string;
+  categoryId: string;
+}
+
 export function useTransactionForm({ type, transaction, onSuccess, defaultWalletId }: UseTransactionFormProps) {
   const [formData, setFormData] = useState<TransactionFormData>({
     title: '',
@@ -84,6 +94,19 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
 
   const updateField = (field: keyof TransactionFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Fill the form from an AI draft; the user still reviews it and taps Save
+  const applyDraft = (draft: TransactionDraft) => {
+    setFormData(prev => ({
+      ...prev,
+      description: draft.description,
+      amount: String(draft.amount),
+      date: draft.date,
+      walletId: draft.walletId,
+      categoryId: draft.categoryId,
+    }));
+    setSubmitError(null);
   };
 
   const resetForm = () => {
@@ -175,6 +198,7 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
   return {
     formData,
     updateField,
+    applyDraft,
     resetForm,
     submitForm,
     isSubmitting,
