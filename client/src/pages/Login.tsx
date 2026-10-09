@@ -28,7 +28,7 @@ export default function Login() {
     setError('');
 
     try {
-      await login(formData.email, formData.password);
+      await login(formData.email, formData.password, rememberMe);
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');

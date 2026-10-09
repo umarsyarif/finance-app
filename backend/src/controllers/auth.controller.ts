@@ -30,19 +30,32 @@ const cookiesOptions: CookieOptions = {
 
 const accessTokenCookieOptions: CookieOptions = {
   ...cookiesOptions,
-  expires: new Date(
-    Date.now() + config.get<number>('accessTokenExpiresIn') * 60 * 1000
-  ),
   maxAge: config.get<number>('accessTokenExpiresIn') * 60 * 1000,
 };
 
 const refreshTokenCookieOptions: CookieOptions = {
   ...cookiesOptions,
-  expires: new Date(
-    Date.now() + config.get<number>('refreshTokenExpiresIn') * 60 * 1000
-  ),
   maxAge: config.get<number>('refreshTokenExpiresIn') * 60 * 1000,
 };
+
+// Without rememberMe the refresh token is a session cookie, cleared when the browser closes
+function setAuthCookies(
+  res: Response,
+  access_token: string,
+  refresh_token: string,
+  rememberMe: boolean
+) {
+  res.cookie('access_token', access_token, accessTokenCookieOptions);
+  res.cookie(
+    'refresh_token',
+    refresh_token,
+    rememberMe ? refreshTokenCookieOptions : cookiesOptions
+  );
+  res.cookie('logged_in', true, {
+    ...accessTokenCookieOptions,
+    httpOnly: false,
+  });
+}
 
 export const registerUserHandler = async (
   req: Request<{}, {}, RegisterUserInput>,
@@ -52,38 +65,20 @@ export const registerUserHandler = async (
   try {
     const hashedPassword = await bcrypt.hash(req.body.password, 12);
 
-    const verifyCode = crypto.randomBytes(32).toString('hex');
-    const verificationCode = crypto
-      .createHash('sha256')
-      .update(verifyCode)
-      .digest('hex');
-
+    // Email verification is disabled: accounts are verified on creation
     const user = await createUser({
       name: req.body.name,
       email: req.body.email.toLowerCase(),
       password: hashedPassword,
-      verificationCode,
+      verified: true,
     });
 
-    const redirectUrl = `${config.get<string>(
-      'origin'
-    )}/verifyemail/${verifyCode}`;
-    try {
-      await new Email(user, redirectUrl).sendVerificationCode();
-      await updateUser({ id: user.id }, { verificationCode });
+    const { access_token, refresh_token } = await signTokens(user);
+    setAuthCookies(res, access_token, refresh_token, true);
 
-      res.status(201).json({
-        status: 'success',
-        message:
-          'An email with a verification code has been sent to your email',
-      });
-    } catch (error) {
-      await updateUser({ id: user.id }, { verificationCode: null });
-      return res.status(500).json({
-        status: 'error',
-        message: 'There was an error sending email, please try again',
-      });
-    }
+    res.status(201).json({
+      status: 'success',
+    });
   } catch (err: any) {
     if (err instanceof Prisma.PrismaClientKnownRequestError) {
       if (err.code === 'P2002') {
@@ -103,7 +98,7 @@ export const loginUserHandler = async (
   next: NextFunction
 ) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe = true } = req.body;
 
     const user = await findUniqueUser(
       { email: email.toLowerCase() },
@@ -114,28 +109,13 @@ export const loginUserHandler = async (
       return next(new AppError(400, 'Invalid email or password'));
     }
 
-    // Check if user is verified
-    if (!user.verified) {
-      return next(
-        new AppError(
-          401,
-          'You are not verified, please verify your email to login'
-        )
-      );
-    }
-
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (!(await bcrypt.compare(password, user.password))) {
       return next(new AppError(400, 'Invalid email or password'));
     }
 
     // Sign Tokens
     const { access_token, refresh_token } = await signTokens(user);
-    res.cookie('access_token', access_token, accessTokenCookieOptions);
-    res.cookie('refresh_token', refresh_token, refreshTokenCookieOptions);
-    res.cookie('logged_in', true, {
-      ...accessTokenCookieOptions,
-      httpOnly: false,
-    });
+    setAuthCookies(res, access_token, refresh_token, rememberMe);
 
     res.status(200).json({
       status: 'success',

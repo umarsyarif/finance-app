@@ -36,6 +36,7 @@ export const loginUserSchema = object({
     password: string({
       required_error: 'Password is required',
     }).min(8, 'Invalid email or password'),
+    rememberMe: z.boolean().optional(),
   }),
 });
 

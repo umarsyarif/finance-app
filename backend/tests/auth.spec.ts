@@ -86,13 +86,20 @@ describe('Auth Controller Tests', () => {
       
       (userService.findUniqueUser as jest.Mock).mockResolvedValue(null);
       (userService.createUser as jest.Mock).mockResolvedValue(mockUser);
-      jest.spyOn(Email.prototype, 'sendVerificationCode').mockResolvedValue(undefined);
+      (userService.signTokens as jest.Mock).mockResolvedValue({
+        access_token: 'mock-access-token',
+        refresh_token: 'mock-refresh-token'
+      });
       (bcryptjs.hash as jest.Mock).mockResolvedValue('hashedPassword');
       
       // Act
       await registerUserHandler(req as Request, res as Response, next);
       
-      // Assert
+      // Assert: account is created verified and signed in, no verification email
+      expect(userService.createUser).toHaveBeenCalledWith(expect.objectContaining({ verified: true }));
+      expect(Email.prototype.sendVerificationCode).not.toHaveBeenCalled();
+      expect(cookieMock).toHaveBeenCalledWith('access_token', 'mock-access-token', expect.any(Object));
+      expect(cookieMock).toHaveBeenCalledWith('refresh_token', 'mock-refresh-token', expect.any(Object));
       expect(statusMock).toHaveBeenCalledWith(201);
       expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
         status: 'success'
@@ -185,12 +192,36 @@ describe('Auth Controller Tests', () => {
       // Act
       await loginUserHandler(req as Request, res as Response, next);
 
-      // Assert
+      // Assert: tokens are delivered as cookies, not in the body
       expect(statusMock).toHaveBeenCalledWith(200);
-      expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
-        status: 'success',
-        access_token: 'mock-access-token'
-      }));
+      expect(jsonMock).toHaveBeenCalledWith({ status: 'success' });
+      expect(cookieMock).toHaveBeenCalledWith('access_token', 'mock-access-token', expect.any(Object));
+      expect(cookieMock).toHaveBeenCalledWith(
+        'refresh_token',
+        'mock-refresh-token',
+        expect.objectContaining({ maxAge: expect.any(Number) })
+      );
+    });
+
+    it('should set a session refresh cookie when rememberMe is false', async () => {
+      req.body = { email: 'test@example.com', password: 'password123', rememberMe: false };
+      (userService.findUniqueUser as jest.Mock).mockResolvedValue({
+        id: '123',
+        email: 'test@example.com',
+        password: 'hashedPassword',
+        verified: true
+      });
+      (bcryptjs.compare as jest.Mock).mockResolvedValue(true);
+      (userService.signTokens as jest.Mock).mockResolvedValue({
+        access_token: 'mock-access-token',
+        refresh_token: 'mock-refresh-token'
+      });
+
+      await loginUserHandler(req as Request, res as Response, next);
+
+      const refreshCall = cookieMock.mock.calls.find(([name]) => name === 'refresh_token');
+      expect(refreshCall[2].maxAge).toBeUndefined();
+      expect(refreshCall[2].expires).toBeUndefined();
     });
 
     it('should return error for invalid credentials', async () => {
@@ -209,7 +240,7 @@ describe('Auth Controller Tests', () => {
       expect(next).toHaveBeenCalled();
     });
 
-    it('should return error for unverified user', async () => {
+    it('should allow login for unverified user (email verification disabled)', async () => {
       // Arrange
       const mockUser = {
         id: '123',
@@ -225,12 +256,17 @@ describe('Auth Controller Tests', () => {
 
       (userService.findUniqueUser as jest.Mock).mockResolvedValue(mockUser);
       (bcryptjs.compare as jest.Mock).mockResolvedValue(true);
+      (userService.signTokens as jest.Mock).mockResolvedValue({
+        access_token: 'mock-access-token',
+        refresh_token: 'mock-refresh-token'
+      });
 
       // Act
       await loginUserHandler(req as Request, res as Response, next);
 
       // Assert
-      expect(next).toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+      expect(statusMock).toHaveBeenCalledWith(200);
     });
   });
 
@@ -259,10 +295,8 @@ describe('Auth Controller Tests', () => {
 
       // Assert
       expect(statusMock).toHaveBeenCalledWith(200);
-      expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
-        status: 'success',
-        access_token: 'new_access_token'
-      }));
+      expect(jsonMock).toHaveBeenCalledWith({ status: 'success' });
+      expect(cookieMock).toHaveBeenCalledWith('access_token', 'new_access_token', expect.any(Object));
     });
 
     it('should return error for invalid refresh token', async () => {

@@ -30,6 +30,9 @@ async function bootstrap() {
 
   // MIDDLEWARE
 
+  // Behind Traefik: use X-Forwarded-For so rate limiting keys on the real client IP
+  app.set('trust proxy', 1);
+
   // 1.Body Parser
   app.use(express.json({ limit: '10kb' }));
 
