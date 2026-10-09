@@ -136,7 +136,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
   useEffect(() => {
     fetchTransactions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, walletId, categoryId, month, year, saveOfflineData]);
+  }, [page, limit, walletId, categoryId, month, year]);
 
   return {
     transactions,

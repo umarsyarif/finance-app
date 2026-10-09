@@ -8,6 +8,16 @@ import {
 } from '../services/stats.service';
 import AppError from '../utils/appError';
 
+// Date-only strings ("2026-10-01") would parse as UTC midnight; treat them as whole local days instead
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+export function parseRangeDate(value: string, endOfDay: boolean): Date {
+  const match = DATE_ONLY.exec(value);
+  if (!match) return new Date(value);
+  const [, y, m, d] = match.map(Number);
+  return endOfDay ? new Date(y, m - 1, d, 23, 59, 59, 999) : new Date(y, m - 1, d);
+}
+
 export const getMonthlySummaryHandler = async (
   req: Request<{}, {}, {}, GetStatsInput>,
   res: Response,
@@ -19,8 +29,8 @@ export const getMonthlySummaryHandler = async (
 
     const filters: StatsFilters = {
       userId,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
+      startDate: startDate ? parseRangeDate(startDate, false) : undefined,
+      endDate: endDate ? parseRangeDate(endDate, true) : undefined,
       walletIds: walletIds ? walletIds.split(',').map(id => id.trim()) : undefined,
       categoryId,
       year: year ? parseInt(year) : undefined,
@@ -62,8 +72,8 @@ export const getCategoryBreakdownHandler = async (
 
     const filters: StatsFilters = {
       userId,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
+      startDate: startDate ? parseRangeDate(startDate, false) : undefined,
+      endDate: endDate ? parseRangeDate(endDate, true) : undefined,
       walletIds: walletIds ? walletIds.split(',').map(id => id.trim()) : undefined,
       year: year ? parseInt(year) : undefined,
       month: month ? parseInt(month) : undefined,

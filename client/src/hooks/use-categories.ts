@@ -24,7 +24,7 @@ export function useCategories(): UseCategoriesReturn {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('/api/categories');
+      const response = await axios.get('/api/categories', { params: { limit: 500 } });
       setCategories(response.data.data.categories || []);
     } catch (err: any) {
       console.error('Failed to fetch categories:', err);

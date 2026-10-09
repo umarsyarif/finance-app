@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
+import axios from '@/lib/axios';
 
 interface OfflineData {
   transactions: any[];
@@ -20,8 +21,22 @@ interface UseOfflineReturn {
   syncPendingChanges: () => Promise<void>;
 }
 
+export interface PendingChange {
+  type: 'CREATE_TRANSACTION';
+  payload: Record<string, unknown>;
+}
+
 const OFFLINE_STORAGE_KEY = 'finance-app-offline-data';
 const PENDING_CHANGES_KEY = 'finance-app-pending-changes';
+
+let isSyncing = false;
+
+// Queue a write made while offline; it is replayed by syncPendingChanges when back online
+export function queuePendingChange(change: PendingChange) {
+  const pending: PendingChange[] = JSON.parse(localStorage.getItem(PENDING_CHANGES_KEY) || '[]');
+  pending.push(change);
+  localStorage.setItem(PENDING_CHANGES_KEY, JSON.stringify(pending));
+}
 
 export function useOffline(): UseOfflineReturn {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -54,6 +69,10 @@ export function useOffline(): UseOfflineReturn {
       toast.info("You're offline. Changes will be saved locally.");
     };
 
+    if (navigator.onLine) {
+      syncRef.current?.();
+    }
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
@@ -63,8 +82,14 @@ export function useOffline(): UseOfflineReturn {
     };
   }, []);
 
-  const saveOfflineData = (key: keyof OfflineData, data: any) => {
-    const currentData = offlineData || {
+  const saveOfflineData = useCallback((key: keyof OfflineData, data: any) => {
+    let stored: OfflineData | null = null;
+    try {
+      stored = JSON.parse(localStorage.getItem(OFFLINE_STORAGE_KEY) || 'null');
+    } catch {
+      stored = null;
+    }
+    const currentData = stored || {
       transactions: [],
       wallets: [],
       categories: [],
@@ -82,53 +107,54 @@ export function useOffline(): UseOfflineReturn {
 
     setOfflineData(updatedData);
     localStorage.setItem(OFFLINE_STORAGE_KEY, JSON.stringify(updatedData));
-  };
+  }, []);
 
-  const getOfflineData = (key: keyof OfflineData) => {
+  const getOfflineData = useCallback((key: keyof OfflineData) => {
     return offlineData?.[key] || [];
-  };
+  }, [offlineData]);
 
-  const clearOfflineData = () => {
+  const clearOfflineData = useCallback(() => {
     setOfflineData(null);
     localStorage.removeItem(OFFLINE_STORAGE_KEY);
     localStorage.removeItem(PENDING_CHANGES_KEY);
-  };
+  }, []);
 
 
 
-  const syncPendingChanges = async () => {
-    const pendingChanges: Array<{ type: string; payload: any }> = JSON.parse(
-      localStorage.getItem(PENDING_CHANGES_KEY) || '[]'
-    );
+  const syncPendingChanges = useCallback(async () => {
+    // Several components use this hook; only one sync may run at a time
+    if (isSyncing) return;
+    isSyncing = true;
 
-    if (pendingChanges.length === 0) return;
-
-    const failed: typeof pendingChanges = [];
-
-    for (const change of pendingChanges) {
-      try {
-        if (change.type === 'CREATE_TRANSACTION') {
-          const response = await fetch('/api/transactions', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(change.payload),
-          });
-          if (!response.ok) throw new Error('sync failed');
-        }
-      } catch {
-        failed.push(change);
-      }
-    }
-
-    if (failed.length === 0) {
+    try {
+      // Take the queue up front so writes queued during the sync are kept
+      const pendingChanges: PendingChange[] = JSON.parse(
+        localStorage.getItem(PENDING_CHANGES_KEY) || '[]'
+      );
+      if (pendingChanges.length === 0) return;
       localStorage.removeItem(PENDING_CHANGES_KEY);
-      toast.success('All changes synced successfully!');
-    } else {
-      localStorage.setItem(PENDING_CHANGES_KEY, JSON.stringify(failed));
-      toast.error(`Failed to sync ${failed.length} change(s). Will retry later.`);
+
+      const failed: PendingChange[] = [];
+      for (const change of pendingChanges) {
+        try {
+          if (change.type === 'CREATE_TRANSACTION') {
+            await axios.post('/api/transactions', change.payload);
+          }
+        } catch {
+          failed.push(change);
+        }
+      }
+
+      if (failed.length === 0) {
+        toast.success('All changes synced successfully!');
+      } else {
+        failed.forEach(queuePendingChange);
+        toast.error(`Failed to sync ${failed.length} change(s). Will retry later.`);
+      }
+    } finally {
+      isSyncing = false;
     }
-  };
+  }, []);
 
   return {
     isOnline,

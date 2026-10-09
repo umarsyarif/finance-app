@@ -56,7 +56,7 @@ export const findCategories = async (
     throw new Error('Cannot use both select and include');
   }
 
-  const query: any = { where };
+  const query: any = { where, orderBy: [{ type: 'asc' }, { name: 'asc' }] };
   if (select) {
     query.select = select;
   } else if (include) {

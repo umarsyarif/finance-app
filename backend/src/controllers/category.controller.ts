@@ -77,8 +77,8 @@ export const getCategoryHandler = async (
       return next(new AppError(404, 'Category not found'));
     }
 
-    // Check if category belongs to the user
-    if (category.userId !== userId) {
+    // Check if category belongs to the user or is global
+    if (category.userId !== null && category.userId !== userId) {
       return next(new AppError(403, 'You can only access your own categories'));
     }
 

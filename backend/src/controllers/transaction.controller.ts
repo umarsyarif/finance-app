@@ -15,7 +15,12 @@ import {
   countTransactions,
 } from '../services/transaction.service';
 import { findWalletById } from '../services/wallet.service';
+import { findCategory } from '../services/category.service';
 import AppError from '../utils/appError';
+
+// A category is usable if it is global (userId null) or owned by the user
+const findAccessibleCategory = (categoryId: string, userId: string) =>
+  findCategory({ id: categoryId, OR: [{ userId: null }, { userId }] });
 
 export const createTransactionHandler = async (
   req: Request<{}, {}, CreateTransactionInput>,
@@ -33,6 +38,10 @@ export const createTransactionHandler = async (
     }
     if (wallet.userId !== userId) {
       return next(new AppError(403, 'Access denied'));
+    }
+
+    if (!(await findAccessibleCategory(categoryId, userId))) {
+      return next(new AppError(404, 'Category not found'));
     }
 
     // Smart date processing that preserves time
@@ -187,12 +196,24 @@ export const updateTransactionHandler = async (
       return next(new AppError(404, 'Transaction not found'));
     }
 
+    if (walletId && walletId !== existingTransaction.walletId) {
+      const wallet = await findWalletById(walletId);
+      if (!wallet || wallet.userId !== userId) {
+        return next(new AppError(404, 'Wallet not found'));
+      }
+    }
+    if (categoryId && categoryId !== existingTransaction.categoryId) {
+      if (!(await findAccessibleCategory(categoryId, userId))) {
+        return next(new AppError(404, 'Category not found'));
+      }
+    }
+
     const updateData: any = {};
     if (walletId) updateData.wallet = { connect: { id: walletId } };
     if (categoryId) updateData.category = { connect: { id: categoryId } };
     if (amount !== undefined) updateData.amount = amount;
     if (description !== undefined) updateData.description = description;
-    if (date) updateData.date = new Date(date);
+    if (date) updateData.date = processTransactionDate(date);
 
     const transaction = await updateTransaction({ id: transactionId }, updateData);
 

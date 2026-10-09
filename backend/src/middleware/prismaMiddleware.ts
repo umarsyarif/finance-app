@@ -1,4 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
+
+// Money columns are Decimal; serialize them as JSON numbers (not strings) so clients can do arithmetic
+Prisma.Decimal.prototype.toJSON = function () {
+  return this.toNumber();
+};
 
 const prisma = new PrismaClient();
 

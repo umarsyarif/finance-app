@@ -4,6 +4,8 @@ import { useWallets } from './use-wallets';
 import { useCategories } from './use-categories';
 import { Transaction } from '../components/finance/transactions-list';
 import axios from '@/lib/axios';
+import { toast } from 'sonner';
+import { queuePendingChange } from './use-offline';
 
 type TransactionType = 'INCOME' | 'EXPENSE';
 
@@ -139,7 +141,11 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
         categoryId: formData.categoryId,
       };
 
-      if (transaction) {
+      if (!transaction && !navigator.onLine) {
+        // Offline: queue the create and sync it when the connection returns
+        queuePendingChange({ type: 'CREATE_TRANSACTION', payload: transactionData });
+        toast.info('Saved offline. It will sync when you are back online.');
+      } else if (transaction) {
         // Update existing transaction
         await axios.patch(`/api/transactions/${transaction.id}`, transactionData);
       } else {

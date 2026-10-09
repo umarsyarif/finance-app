@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as transactionService from '../src/services/transaction.service';
 import * as walletService from '../src/services/wallet.service';
+import * as categoryService from '../src/services/category.service';
 import {
   createTransactionHandler,
   getTransactionHandler,
@@ -12,6 +13,7 @@ import {
 // Mock the modules
 jest.mock('../src/services/transaction.service');
 jest.mock('../src/services/wallet.service');
+jest.mock('../src/services/category.service');
 
 describe('Transaction Controller Tests', () => {
   let req: Partial<Request>;
@@ -26,6 +28,7 @@ describe('Transaction Controller Tests', () => {
       params: {},
       query: {}
     };
+    (categoryService.findCategory as jest.Mock).mockResolvedValue({ id: 'category123', userId: null });
     
     statusMock = jest.fn();
     jsonMock = jest.fn();
@@ -105,6 +108,42 @@ describe('Transaction Controller Tests', () => {
       await createTransactionHandler(req as Request, res as Response, next);
 
       expect(next).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('ownership checks', () => {
+    it('rejects creating a transaction with a category the user cannot access', async () => {
+      req.body = {
+        walletId: 'wallet123',
+        categoryId: 'foreign-category',
+        amount: 10,
+        date: '2024-01-15T12:00:00.000Z'
+      };
+      res.locals = { user: { id: 'user123' } };
+      (walletService.findWalletById as jest.Mock).mockResolvedValue({ id: 'wallet123', userId: 'user123' });
+      (categoryService.findCategory as jest.Mock).mockResolvedValue(null);
+
+      await createTransactionHandler(req as Request, res as Response, next);
+
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
+      expect(transactionService.createTransaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects moving a transaction to another user\'s wallet', async () => {
+      req.params = { transactionId: 'transaction123' };
+      req.body = { walletId: 'foreign-wallet' };
+      res.locals = { user: { id: 'user123' } };
+      (transactionService.findUniqueTransaction as jest.Mock).mockResolvedValue({
+        id: 'transaction123',
+        walletId: 'wallet123',
+        categoryId: 'category123'
+      });
+      (walletService.findWalletById as jest.Mock).mockResolvedValue({ id: 'foreign-wallet', userId: 'other-user' });
+
+      await updateTransactionHandler(req as Request<{transactionId: string}>, res as Response, next);
+
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 404 }));
+      expect(transactionService.updateTransaction).not.toHaveBeenCalled();
     });
   });
 

@@ -1,4 +1,6 @@
 require('dotenv').config();
+// Month/year filters build date ranges in server-local time; pin it to the user's timezone
+process.env.TZ = process.env.TZ || 'Asia/Seoul';
 import express, { NextFunction, Request, Response, response } from 'express';
 import config from 'config';
 import cors from 'cors';
