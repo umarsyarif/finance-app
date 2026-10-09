@@ -24,7 +24,7 @@ export default defineConfig({
       command: 'npm run start',
       cwd: '../backend',
       url: `http://localhost:${API_PORT}/api/healthchecker`,
-      env: { PORT: String(API_PORT), NODE_CONFIG: JSON.stringify({ origin: `http://localhost:${WEB_PORT}` }) },
+      env: { PORT: String(API_PORT), GEMINI_API_KEY: '', NODE_CONFIG: JSON.stringify({ origin: `http://localhost:${WEB_PORT}` }) },
       reuseExistingServer: false,
       timeout: 60_000,
     },

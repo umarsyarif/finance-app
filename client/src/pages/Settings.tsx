@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BiometricSettings } from '@/components/biometric-settings';
+import { ApiTokenSettings } from '@/components/api-token-settings';
 import { PageTitle } from '@/components/page-header';
 import { FilterChips } from '@/components/finance/filter-chips';
 import { Button } from '@/components/ui/button';
@@ -134,6 +135,7 @@ export default function Settings() {
             </form>
           </section>
           <BiometricSettings />
+          <ApiTokenSettings />
         </div>
       )}
 
