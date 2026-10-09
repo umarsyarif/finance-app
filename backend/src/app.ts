@@ -92,16 +92,22 @@ async function bootstrap() {
     });
   });
 
-  const port = config.get<number>('port');
-  app.listen(port, () => {
-    console.log(`Server on port: ${port}`);
-  });
 }
 
-bootstrap()
-  .catch((err) => {
-    throw err;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// Routes are registered synchronously inside bootstrap; tests import `app` without listening
+export const ready = bootstrap();
+export default app;
+
+if (require.main === module) {
+  ready
+    .then(() => {
+      const port = config.get<number>('port');
+      app.listen(port, () => {
+        console.log(`Server on port: ${port}`);
+      });
+    })
+    .catch(async (err) => {
+      await prisma.$disconnect();
+      throw err;
+    });
+}

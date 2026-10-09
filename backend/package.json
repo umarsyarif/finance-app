@@ -11,7 +11,8 @@
     "db:seed": "ts-node prisma/seed.ts",
     "build": "tsc",
     "test": "cross-env NODE_ENV=development jest",
-    "test:watch": "cross-env NODE_ENV=development jest --watch"
+    "test:watch": "cross-env NODE_ENV=development jest --watch",
+    "test:int": "cross-env NODE_ENV=development jest --testMatch '**/*.int.ts' --runInBand --forceExit"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
