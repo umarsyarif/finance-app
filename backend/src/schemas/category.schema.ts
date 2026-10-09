@@ -1,3 +1,4 @@
+import { MAX_PAGE_SIZE } from './transaction.schema';
 import { object, string, TypeOf, z } from 'zod';
 
 enum CategoryTypeEnum {
@@ -49,7 +50,7 @@ export const getCategoriesSchema = object({
     ),
     limit: z.preprocess(
       (val) => val ? parseInt(val as string, 10) : undefined,
-      z.number().int().positive().optional()
+      z.number().int().positive().max(MAX_PAGE_SIZE).optional()
     ),
   }),
 });

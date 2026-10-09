@@ -1,4 +1,7 @@
-import { object, string, number, TypeOf } from 'zod';
+import { object, string, number, array, TypeOf } from 'zod';
+import { MAX_AMOUNT } from './transaction.schema';
+
+const balance = () => number().min(-MAX_AMOUNT).max(MAX_AMOUNT);
 
 export const createWalletSchema = object({
   body: object({
@@ -8,9 +11,7 @@ export const createWalletSchema = object({
     currency: string({
       required_error: 'Currency is required',
     }),
-    balance: number({
-      required_error: 'Initial balance is required',
-    }).default(0),
+    balance: balance().default(0),
     color: string().regex(/^#[0-9A-F]{6}$/i, 'Color must be a valid hex color').default('#3B82F6'),
   }),
 });
@@ -22,7 +23,7 @@ export const updateWalletSchema = object({
   body: object({
     name: string().optional(),
     currency: string().optional(),
-    balance: number().optional(),
+    balance: balance().optional(),
     color: string().regex(/^#[0-9A-F]{6}$/i, 'Color must be a valid hex color').optional(),
   }),
 });
@@ -30,6 +31,17 @@ export const updateWalletSchema = object({
 export const getWalletSchema = object({
   params: object({
     walletId: string(),
+  }),
+});
+
+export const updateWalletOrderSchema = object({
+  body: object({
+    walletOrders: array(
+      object({
+        id: string(),
+        displayOrder: number().int().min(0),
+      })
+    ).min(1),
   }),
 });
 

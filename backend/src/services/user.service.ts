@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Prisma, User } from "@prisma/client";
 import config from "config";
 import { omit } from "lodash";
@@ -47,18 +48,28 @@ export const updateUser = async (
   return (await prisma.user.update({ where, data, select })) as User;
 };
 
+// One Redis key per login (device), so logging out one device leaves the others signed in
+export const sessionKey = (userId: string, sid: string) => `session:${userId}:${sid}`;
+
+export const deleteAllSessions = async (userId: string) => {
+  for await (const key of redisClient.scanIterator({ MATCH: sessionKey(userId, "*") })) {
+    await redisClient.del(key);
+  }
+};
+
 export const signTokens = async (user: Prisma.UserCreateInput) => {
   // 1. Create Session
-  redisClient.set(`${user.id}`, JSON.stringify(omit(user, excludedFields)), {
+  const sid = crypto.randomUUID();
+  await redisClient.set(sessionKey(user.id!, sid), JSON.stringify(omit(user, excludedFields)), {
     EX: config.get<number>("redisCacheExpiresIn") * 60,
   });
 
   // 2. Create Access and Refresh tokens
-  const access_token = signJwt({ sub: user.id }, "accessTokenPrivateKey", {
+  const access_token = signJwt({ sub: user.id, sid }, "accessTokenPrivateKey", {
     expiresIn: `${config.get<number>("accessTokenExpiresIn")}m`,
   });
 
-  const refresh_token = signJwt({ sub: user.id }, "refreshTokenPrivateKey", {
+  const refresh_token = signJwt({ sub: user.id, sid }, "refreshTokenPrivateKey", {
     expiresIn: `${config.get<number>("refreshTokenExpiresIn")}m`,
   });
 

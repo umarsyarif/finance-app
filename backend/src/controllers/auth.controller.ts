@@ -10,8 +10,10 @@ import {
 } from '../schemas/user.schema';
 import {
   createUser,
+  deleteAllSessions,
   findUniqueUser,
   findUser,
+  sessionKey,
   signTokens,
   updateUser,
 } from '../services/user.service';
@@ -140,17 +142,17 @@ export const refreshAccessTokenHandler = async (
     }
 
     // Validate refresh token
-    const decoded = verifyJwt<{ sub: string }>(
+    const decoded = verifyJwt<{ sub: string; sid: string }>(
       refresh_token,
       'refreshTokenPublicKey'
     );
 
-    if (!decoded) {
+    if (!decoded || !decoded.sid) {
       return next(new AppError(403, message));
     }
 
     // Check if user has a valid session
-    const session = await redisClient.get(decoded.sub);
+    const session = await redisClient.get(sessionKey(decoded.sub, decoded.sid));
 
     if (!session) {
       return next(new AppError(403, message));
@@ -164,7 +166,7 @@ export const refreshAccessTokenHandler = async (
     }
 
     // Sign new access token
-    const access_token = signJwt({ sub: user.id }, 'accessTokenPrivateKey', {
+    const access_token = signJwt({ sub: user.id, sid: decoded.sid }, 'accessTokenPrivateKey', {
       expiresIn: `${config.get<number>('accessTokenExpiresIn')}m`,
     });
 
@@ -201,7 +203,7 @@ export const logoutUserHandler = async (
   next: NextFunction
 ) => {
   try {
-    await redisClient.del(res.locals.user.id);
+    await redisClient.del(sessionKey(res.locals.user.id, res.locals.sessionId));
     logout(res);
 
     res.status(200).json({
@@ -367,7 +369,8 @@ export const resetPasswordHandler = async (
       { email: true }
     );
 
-    await redisClient.del(user.id);
+    // Password changed: sign out every device
+    await deleteAllSessions(user.id);
     logout(res);
     res.status(200).json({
       status: 'success',

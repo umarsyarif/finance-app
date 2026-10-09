@@ -178,6 +178,14 @@ export const updateCategoryHandler = async (
       }
     }
 
+    // Flipping INCOME/EXPENSE would silently invalidate every wallet balance built from it
+    if (type && type !== category.type) {
+      const transactionCount = await prisma.transaction.count({ where: { categoryId } });
+      if (transactionCount > 0) {
+        return next(new AppError(400, `Cannot change the type of a category with ${transactionCount} existing transaction(s)`));
+      }
+    }
+
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (type !== undefined) updateData.type = type;

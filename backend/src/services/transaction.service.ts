@@ -1,5 +1,6 @@
 import prisma, { applyBalanceOnCreate, applyBalanceOnDelete, applyBalanceOnUpdate } from '../middleware/prismaMiddleware';
 import { Prisma } from '@prisma/client';
+import AppError from '../utils/appError';
 
 export const createTransaction = async (input: Prisma.TransactionCreateInput) => {
   return await prisma.$transaction(async (tx) => {
@@ -21,11 +22,13 @@ export const updateTransaction = async (
   data: Prisma.TransactionUpdateInput
 ) => {
   return await prisma.$transaction(async (tx) => {
+    // Lock the row so concurrent edits apply their balance deltas one after another
+    await tx.$queryRaw`SELECT id FROM transactions WHERE id = ${where.id} FOR UPDATE`;
     const original = await tx.transaction.findUnique({
       where,
       include: { category: true, wallet: true },
     });
-    if (!original) throw new Error('Transaction not found');
+    if (!original) throw new AppError(404, 'Transaction not found');
 
     const updated = await tx.transaction.update({
       where,
@@ -43,11 +46,12 @@ export const updateTransaction = async (
 
 export const deleteTransaction = async (where: Prisma.TransactionWhereUniqueInput) => {
   return await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM transactions WHERE id = ${where.id} FOR UPDATE`;
     const original = await tx.transaction.findUnique({
       where,
       include: { category: true, wallet: true },
     });
-    if (!original) throw new Error('Transaction not found');
+    if (!original) throw new AppError(404, 'Transaction not found');
 
     await applyBalanceOnDelete(tx, { ...original, amount: original.amount.toNumber() });
     return await tx.transaction.delete({ where });

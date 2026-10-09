@@ -1,5 +1,10 @@
 import { object, string, number, date, TypeOf, z } from 'zod';
 
+// Money columns are DECIMAL(19,4): 15 integer digits. Cap single amounts well below that
+// so wallet balances (sums) cannot overflow either.
+export const MAX_AMOUNT = 999_999_999_999;
+export const MAX_PAGE_SIZE = 1000;
+
 export const createTransactionSchema = object({
   body: object({
     walletId: string({
@@ -10,7 +15,7 @@ export const createTransactionSchema = object({
     }),
     amount: number({
       required_error: 'Amount is required',
-    }).positive('Amount must be greater than 0'),
+    }).positive('Amount must be greater than 0').max(MAX_AMOUNT, 'Amount is too large'),
     description: string().optional(),
     date: string({
       required_error: 'Date is required',
@@ -27,7 +32,7 @@ export const updateTransactionSchema = object({
   body: object({
     walletId: string().optional(),
     categoryId: string().optional(),
-    amount: number().positive('Amount must be greater than 0').optional(),
+    amount: number().positive('Amount must be greater than 0').max(MAX_AMOUNT, 'Amount is too large').optional(),
     description: string().optional(),
     date: string().optional().refine((val) => !val || !isNaN(Date.parse(val)), {
       message: 'Invalid date format',
@@ -65,7 +70,7 @@ export const getTransactionsSchema = object({
     ),
     limit: z.preprocess(
       (val) => val ? parseInt(val as string, 10) : undefined,
-      z.number().int().positive().optional()
+      z.number().int().positive().max(MAX_PAGE_SIZE).optional()
     ),
   }),
 });

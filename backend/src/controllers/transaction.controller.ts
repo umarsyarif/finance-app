@@ -201,6 +201,9 @@ export const updateTransactionHandler = async (
       if (!wallet || wallet.userId !== userId) {
         return next(new AppError(404, 'Wallet not found'));
       }
+      if (wallet.currency !== existingTransaction.wallet.currency) {
+        return next(new AppError(400, 'Cannot move a transaction to a wallet with a different currency'));
+      }
     }
     if (categoryId && categoryId !== existingTransaction.categoryId) {
       if (!(await findAccessibleCategory(categoryId, userId))) {

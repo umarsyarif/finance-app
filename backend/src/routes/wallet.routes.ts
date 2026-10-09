@@ -18,6 +18,7 @@ import {
   deleteWalletSchema,
   getWalletsSchema,
   getWalletSchema,
+  updateWalletOrderSchema,
   updateWalletSchema,
 } from '../schemas/wallet.schema';
 
@@ -38,7 +39,7 @@ router.get('/user', getUserWalletsHandler);
 router.get('/main', getMainWalletHandler);
 
 // PUT /api/wallets/order - Update wallet display order
-router.put('/order', updateWalletOrderHandler);
+router.put('/order', validate(updateWalletOrderSchema), updateWalletOrderHandler);
 
 // GET /api/wallets/:walletId
 router.get('/:walletId', validate(getWalletSchema), getWalletHandler);

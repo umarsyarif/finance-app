@@ -55,6 +55,7 @@ describe('Auth Controller Tests', () => {
       locals: {}
     };
     next = jest.fn() as any;
+    (userService.sessionKey as jest.Mock).mockImplementation((userId: string, sid: string) => `session:${userId}:${sid}`);
     
     // Reset Redis client mocks
     const redisClient = require('../src/utils/connectRedis').default;
@@ -281,7 +282,7 @@ describe('Auth Controller Tests', () => {
       req.cookies = { refresh_token: 'valid_refresh_token' };
       
       // Mock JWT utilities
-      (jwtUtils.verifyJwt as jest.Mock).mockReturnValue({ sub: '123' });
+      (jwtUtils.verifyJwt as jest.Mock).mockReturnValue({ sub: '123', sid: 'sid-1' });
       (jwtUtils.signJwt as jest.Mock).mockReturnValue('new_access_token');
       
       // Mock Redis client
@@ -320,7 +321,7 @@ describe('Auth Controller Tests', () => {
   describe('logoutUserHandler', () => {
     it('should logout user successfully', async () => {
       // Arrange
-      res.locals = { user: { id: 'user123' } };
+      res.locals = { user: { id: 'user123' }, sessionId: 'sid-1' };
       
       // Mock Redis client
       const redisClient = require('../src/utils/connectRedis').default;
@@ -330,7 +331,8 @@ describe('Auth Controller Tests', () => {
       await logoutUserHandler(req as Request, res as Response, next);
 
       // Assert
-      expect(redisClient.del).toHaveBeenCalledWith('user123');
+      // Only this device's session is removed
+      expect(redisClient.del).toHaveBeenCalledWith('session:user123:sid-1');
       expect(cookieMock).toHaveBeenCalledWith('access_token', '', expect.any(Object));
       expect(cookieMock).toHaveBeenCalledWith('refresh_token', '', expect.any(Object));
       expect(statusMock).toHaveBeenCalledWith(200);

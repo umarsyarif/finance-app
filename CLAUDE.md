@@ -28,6 +28,7 @@ npm run start           # ts-node-dev with --respawn --transpile-only (dev serve
 npm run build           # tsc compile to dist/
 npm run test            # Jest (NODE_ENV=development)
 npm run test:watch      # Jest watch mode
+npm run test:int        # Integration scenarios (tests/*.int.ts) against real Postgres + Redis; needs `make infra`
 npx prisma migrate dev  # Create + run a migration
 npm run db:push         # Push schema changes without migration
 npm run db:seed         # Run prisma/seed.ts
@@ -75,7 +76,7 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 
 **Auth flow**: Login/register → sign accessToken (2h) + refreshToken (30 days) → both set as HttpOnly cookies (no tokens in the response body). With `rememberMe: false` the refresh cookie is a session cookie. On 401/403 the axios interceptor calls `/api/auth/refresh`, which re-sets the access cookie.
 
-**Sessions**: After login, user object is stored in Redis under user ID. `deserializeUser` checks Redis on every protected request.
+**Sessions**: Each login gets a session id (`sid`, carried in both JWTs); the user object is stored in Redis under `session:<userId>:<sid>`. `deserializeUser` checks that key on every protected request. Logout deletes only that device's session; password reset deletes all of the user's sessions.
 
 ### Frontend (`client/src/`)
 

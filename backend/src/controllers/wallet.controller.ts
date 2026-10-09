@@ -131,6 +131,14 @@ export const updateWalletHandler = async (
       return next(new AppError(403, 'Access denied'));
     }
 
+    // Changing currency would reinterpret every existing amount in the wallet
+    if (currency !== undefined && currency !== existingWallet.currency) {
+      const txCount = await countTransactionsForWallet(walletId);
+      if (txCount > 0) {
+        return next(new AppError(400, `Cannot change currency of a wallet with ${txCount} existing transaction(s)`));
+      }
+    }
+
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (currency !== undefined) updateData.currency = currency;

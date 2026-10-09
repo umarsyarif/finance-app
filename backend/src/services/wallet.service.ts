@@ -86,6 +86,8 @@ export const findMainWallet = async (userId: string) => {
 
 export const setMainWallet = async (userId: string, walletId: string) => {
   return await prisma.$transaction(async (tx) => {
+    // Lock the user's wallets so concurrent calls cannot each leave a different main wallet
+    await tx.$queryRaw`SELECT id FROM wallets WHERE "userId" = ${userId} FOR UPDATE`;
     await tx.wallet.updateMany({
       where: { userId, isMain: true },
       data: { isMain: false },
