@@ -9,7 +9,7 @@ help:
 	@echo "  setup     - Create required Docker network"
 	@echo "  prod      - Start production environment"
 	@echo "  dev       - Start development environment"
-	@echo "  infra     - Start only infrastructure (DB, Redis, Traefik)"
+	@echo "  infra     - Start only infrastructure (DB, Redis)"
 	@echo "  backend   - Start backend services (DB, Redis, Backend)"
 	@echo "  stop      - Stop all services"
 	@echo "  clean     - Stop and remove all containers and volumes"
@@ -36,8 +36,8 @@ prod: network
 	@echo "🚀 Starting production environment..."
 	docker-compose --profile prod up -d
 	@echo "✅ Production environment started!"
-	@echo "Frontend: https://finance.umarsyariif.site"
-	@echo "Backend API: https://finance-api.umarsyariif.site"
+	@echo "Frontend: https://finance.umeh.me"
+	@echo "Backend API: https://finance-api.umeh.me"
 
 # Development environment
 dev: network
@@ -45,12 +45,12 @@ dev: network
 	docker-compose --profile dev up -d
 	@echo "✅ Development environment started!"
 	@echo "Frontend: https://finance-dev.umarsyariif.site"
-	@echo "Backend API: https://finance-api.umarsyariif.site"
+	@echo "Backend API: https://finance-api.umeh.me"
 
-# Infrastructure only (DB, Redis, Traefik)
+# Infrastructure only (DB, Redis)
 infra: network
 	@echo "🏗️  Starting infrastructure services..."
-	docker-compose up -d traefik postgres redis
+	docker-compose up -d postgres redis
 	@echo "✅ Infrastructure services started!"
 	@echo "You can now run backend and frontend locally"
 

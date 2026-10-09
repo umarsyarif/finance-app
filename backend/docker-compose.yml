@@ -38,7 +38,14 @@ services:
       - redis
     env_file:
       - ./.env
-    command: node build/src/app.js
+    environment:
+      PORT: 4000
+      TZ: Asia/Seoul
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/finance-app?schema=public
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://redis:6379
+    command: sh -c "npx prisma migrate deploy && node build/src/app.js"
     labels:
         - "traefik.enable=true"
         - "traefik.http.routers.backend.rule=Host(`finance-api.umarsyariif.site`)"

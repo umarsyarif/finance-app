@@ -22,4 +22,4 @@ RUN npm run build
 EXPOSE 4000
 
 # Use production command
-CMD ["node", "dist/app.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node build/src/app.js"]
