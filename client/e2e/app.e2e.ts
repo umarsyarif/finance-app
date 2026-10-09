@@ -6,56 +6,7 @@
  * cookies and token refresh, browser timezone, offline mode, double taps,
  * data left behind across users.
  */
-import { test, expect, type Page } from '@playwright/test';
-
-const API = 'http://localhost:8010';
-let ipSeed = 0;
-
-// Each sign-up comes from a distinct client IP so the auth rate limiter (10 / 15 min) doesn't trip
-async function signUp(page: Page, tag: string) {
-  const email = `e2e-${tag}-${Date.now()}@example.test`;
-  const res = await page.request.post(`${API}/api/auth/register`, {
-    data: { name: tag, email, password: 'password123', passwordConfirm: 'password123' },
-    headers: { 'X-Forwarded-For': `10.0.${++ipSeed}.${Date.now() % 250}` },
-  });
-  expect(res.status()).toBe(201);
-  return email;
-}
-
-async function api<T = any>(page: Page, method: 'get' | 'post' | 'patch' | 'put', path: string, data?: object): Promise<T> {
-  const res = await page.request[method](`${API}${path}`, { data });
-  expect(res.ok(), `${method.toUpperCase()} ${path} -> ${res.status()}`).toBeTruthy();
-  return res.json();
-}
-
-async function seedWallet(page: Page, currency = 'KRW', balance = 100000) {
-  const { data } = await api(page, 'post', '/api/wallets', { name: `Main ${currency}`, currency, balance });
-  await api(page, 'put', `/api/wallets/${data.wallet.id}/main`);
-  return data.wallet.id as string;
-}
-
-async function seedCategory(page: Page, type: 'INCOME' | 'EXPENSE', name = `Cat ${type}`) {
-  const { data } = await api(page, 'post', '/api/categories', { name, type });
-  return data.category.id as string;
-}
-
-async function seedTx(page: Page, walletId: string, categoryId: string, description: string, date: string, amount = 1000) {
-  const { data } = await api(page, 'post', '/api/transactions', { walletId, categoryId, amount, description, date });
-  return data.transaction.id as string;
-}
-
-async function txCount(page: Page, walletId: string) {
-  const { data } = await api(page, 'get', `/api/transactions?walletId=${walletId}&limit=1000`);
-  return data.pagination.total as number;
-}
-
-const prevMonth = (page: Page) => page.locator('button:has(svg.lucide-chevron-left)').first().click();
-
-async function logOutViaUi(page: Page) {
-  await page.locator('header').getByRole('button').last().click();
-  await page.getByRole('menuitem', { name: 'Log out' }).click();
-  await expect(page).toHaveURL(/\/login/);
-}
+import { test, expect, signUp, api, seedWallet, seedCategory, seedTx, txCount, prevMonth, logOutViaUi } from './helpers';
 
 test('stays signed in after the access token cookie expires', async ({ page, context }) => {
   await signUp(page, 'refresh');
