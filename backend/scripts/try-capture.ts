@@ -1,6 +1,7 @@
 /**
  * Manual check against real Gemini (uses your quota). Not part of any test run.
- * Usage: GEMINI_API_KEY=... npm run try-capture -- "STARBUCKS 6,500원 10/09 14:20 신한카드 승인"
+ * The key is read from GEMINI_API_KEY in backend/.env (keep it out of shell history).
+ * Usage: npm run try-capture -- "STARBUCKS 6,500원 10/09 14:20 신한카드 승인"
  */
 require('dotenv').config();
 process.env.TZ = process.env.TZ || 'Asia/Seoul';
@@ -26,6 +27,6 @@ extractTransaction(
 )
   .then((result) => console.log(JSON.stringify(result, null, 2)))
   .catch((err) => {
-    console.error(err.message);
+    console.error(err?.message ?? String(err));
     process.exit(1);
   });
