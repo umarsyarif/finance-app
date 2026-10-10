@@ -196,6 +196,12 @@ describe('capture', () => {
     expect(res.body.message).toBe("AI capture isn't set up");
   });
 
+  it('text: accepts 8,000 characters of Korean OCR text (3 bytes each in UTF-8)', async () => {
+    mockedExtract.mockResolvedValueOnce(extraction({ amount: null }));
+    const res = await sendText('가'.repeat(8000));
+    expect(res.status).toBe(422); // reached the AI step, not rejected as too large
+  });
+
   it('text: validates the body', async () => {
     const res = await request(app).post('/api/capture/text').set('Authorization', `Bearer ${token}`).send({});
     expect(res.status).toBe(400);

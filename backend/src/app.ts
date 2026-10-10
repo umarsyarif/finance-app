@@ -39,6 +39,8 @@ async function bootstrap() {
   // 1.Body Parser
   // Photos are base64 JSON (≤5 MB image); every other route keeps the 10kb limit
   app.use('/api/capture/photo', express.json({ limit: '7mb' }));
+  // Shortcut OCR text: 8,000 chars can be ~24kb of Hangul (3 bytes each in UTF-8)
+  app.use('/api/capture/text', express.json({ limit: '32kb' }));
   app.use(express.json({ limit: '10kb' }));
 
   // 2. Cookie Parser
