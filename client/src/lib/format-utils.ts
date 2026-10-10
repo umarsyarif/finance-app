@@ -67,13 +67,14 @@ export const formatDateDetailed = (dateString: string): string => {
   }
 };
 
-// "₩48,500", "Rp 18,450,000": narrow symbols, decimals only when present
+// "₩48,500", "Rp 18,450,000": narrow symbols, whole numbers only.
+// KRW and IDR have no subunit in practice; stored amounts keep their decimals, only the display rounds.
 const money = (currency: string) => new Intl.NumberFormat('en-US', {
   style: 'currency',
   currency,
   currencyDisplay: 'narrowSymbol',
   minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
+  maximumFractionDigits: 0,
 });
 
 /**

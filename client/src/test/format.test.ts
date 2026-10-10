@@ -12,9 +12,10 @@ describe('formatAmount', () => {
     expect(formatAmount(-1500, null, 'KRW')).toBe('-₩1,500');
   });
 
-  it('uses the Rp symbol and only shows decimals when present', () => {
+  it('uses the Rp symbol and rounds to whole numbers', () => {
     expect(formatAmount(18450000, null, 'IDR')).toBe('Rp\u00a018,450,000');
-    expect(formatAmount(0.5, null, 'IDR')).toBe('Rp\u00a00.5');
+    expect(formatAmount(1436.88, null, 'IDR')).toBe('Rp\u00a01,437');
+    expect(formatAmount(500.5, 'EXPENSE', 'KRW')).toBe('-₩501');
   });
 });
 
