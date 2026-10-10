@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from '@/lib/axios';
 import { Transaction } from '@/components/finance/transactions-list';
 import { useOffline } from '@/hooks/use-offline';
@@ -65,6 +65,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
 
   const { limit = 10, walletId, walletIds, enabled = true, categoryId, month, year, refreshKey } = options;
   const { isOnline, saveOfflineData, getOfflineData } = useOffline();
+  const latestRequest = useRef(0);
 
   const query = new URLSearchParams({ limit: limit.toString() });
   if (walletId) query.append('walletId', walletId);
@@ -79,6 +80,9 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
 
   const fetchTransactions = async (pageToLoad: number) => {
     const append = pageToLoad > 1;
+    // Only the newest request may write state, so a slow older query (e.g. a wallet swiped past) can't overwrite a newer one
+    const request = ++latestRequest.current;
+    const stale = () => request !== latestRequest.current;
     try {
       if (append) setLoadingMore(true);
       else setLoading(true);
@@ -96,6 +100,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
       }
 
       const response = await axios.get(`/api/transactions?${query.toString()}&page=${pageToLoad}`);
+      if (stale()) return;
       const { data } = response.data;
 
       // Transform API data to match our Transaction interface
@@ -130,6 +135,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
         saveOfflineData(cacheKey, transformedTransactions);
       }
     } catch (err: any) {
+      if (stale()) return;
       console.error('Failed to fetch transactions:', err);
       if (append) {
         toast.error(err.response?.data?.message || 'Failed to load more transactions');
@@ -151,8 +157,10 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
         setError(err.response?.data?.message || 'Failed to fetch transactions');
       }
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (!stale()) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   };
 

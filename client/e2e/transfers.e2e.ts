@@ -86,6 +86,10 @@ test('TR4 delete a transfer from the details sheet', async ({ page }) => {
   await signUp(page, 'tr4');
   const { krw, idr } = await seedTransfer(page);
   await page.goto('/transactions');
+  // Load the Rupiah list once, so the absence check below isn't satisfied by a list that never loaded
+  await card(page, 'Rupiah').scrollIntoViewIfNeeded();
+  await expect(row(page, 'Transfer from Won')).toBeVisible();
+  await card(page, 'Won').scrollIntoViewIfNeeded();
 
   await row(page, 'Transfer to Rupiah').click();
   await page.getByRole('button', { name: 'Delete' }).click();
@@ -93,6 +97,7 @@ test('TR4 delete a transfer from the details sheet', async ({ page }) => {
 
   await expect(row(page, 'Transfer to Rupiah')).toHaveCount(0);
   await card(page, 'Rupiah').scrollIntoViewIfNeeded();
+  await expect(page.getByText('No transactions this month.')).toBeVisible();
   await expect(row(page, 'Transfer from Won')).toHaveCount(0);
   expect(await walletBalance(page, krw)).toBe(1_000_000);
   expect(await walletBalance(page, idr)).toBe(0);
@@ -110,6 +115,8 @@ test('TR5 income/expense chips hide transfers', async ({ page }) => {
   await expect(row(page, 'Lunch')).toBeVisible();
   await expect(row(page, 'Transfer to Rupiah')).toHaveCount(0);
   await card(page, 'Rupiah').scrollIntoViewIfNeeded();
+  await page.getByRole('radio', { name: /All/ }).click();
+  await expect(row(page, 'Transfer from Won')).toBeVisible();
   await page.getByRole('radio', { name: /Income/ }).click();
   await expect(row(page, 'Transfer from Won')).toHaveCount(0);
   await page.getByRole('radio', { name: /All/ }).click();

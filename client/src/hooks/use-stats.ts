@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from '@/lib/axios';
 import { useOffline } from '@/hooks/use-offline';
 
@@ -55,8 +55,12 @@ export function useStats(filters: StatsFilters = {}): UseStatsReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isOnline, saveOfflineData, getOfflineData } = useOffline();
+  const latestRequest = useRef(0);
 
   const fetchStats = async () => {
+    // Only the newest request may write state, so a slow older query can't overwrite a newer one
+    const request = ++latestRequest.current;
+    const stale = () => request !== latestRequest.current;
     // Set once the query (and so the cache keys) is known; used for offline and error fallback
     let useCached = () => false;
     try {
@@ -115,6 +119,7 @@ export function useStats(filters: StatsFilters = {}): UseStatsReturn {
         axios.get(`/api/stats/category-breakdown?${params.toString()}&type=INCOME`),
         axios.get(`/api/stats/trend?${trendParams.toString()}`)
       ]);
+      if (stale()) return;
 
       const summary = summaryResponse.data.data || null;
       const breakdown = breakdownResponse.data.data || [];
@@ -131,16 +136,22 @@ export function useStats(filters: StatsFilters = {}): UseStatsReturn {
       saveOfflineData(incomeKey, income);
       saveOfflineData(trendKey, trend);
     } catch (err: any) {
+      if (stale()) return;
       console.error('Failed to fetch stats:', err);
-      
+
       // Try to use cached data for this exact query on error
       if (useCached()) {
         setError('Using cached data - some information may be outdated');
       } else {
+        // Don't keep showing the previous query's numbers under this one
+        setMonthlySummary(null);
+        setCategoryBreakdown([]);
+        setIncomeBreakdown([]);
+        setTrendData([]);
         setError(err.response?.data?.message || 'Failed to fetch statistics');
       }
     } finally {
-      setLoading(false);
+      if (!stale()) setLoading(false);
     }
   };
 

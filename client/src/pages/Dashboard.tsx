@@ -13,7 +13,7 @@ import { useAppShell } from '@/components/app-layout';
 import { useWallets } from '@/hooks/use-wallets';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useStats } from '@/hooks/use-stats';
-import { currenciesOf, resolveCurrency } from '@/lib/selection';
+import { currenciesOf, resolveCurrency, resolveWalletId } from '@/lib/selection';
 import { formatAmount } from '@/lib/format-utils';
 import { formatDateForDateInput, getStartOfMonth, getEndOfMonth } from '@/lib/date-utils';
 
@@ -23,7 +23,7 @@ const LATEST = 5;
 export default function Dashboard() {
   const navigate = useNavigate();
   const { selectedWalletId, setSelectedWalletId, selectedCurrency, setSelectedCurrency, dataVersion, notifyDataChanged } = useAppShell();
-  const { wallets, refetch } = useWallets();
+  const { wallets, loading: walletsLoading, error: walletsError, refetch } = useWallets();
   const [month, setMonth] = useState(() => new Date());
   const [selected, setSelected] = useState<Transaction | null>(null);
 
@@ -50,13 +50,16 @@ export default function Dashboard() {
     enabled: ready,
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [y, m, walletIds.join(','), dataVersion, ready]);
-  const { monthlySummary, categoryBreakdown, incomeBreakdown, trendData } = useStats(filters);
+  const { monthlySummary, categoryBreakdown, incomeBreakdown, trendData, loading: statsLoading, error: statsError } = useStats(filters);
+  const noStats = !monthlySummary && trendData.length === 0;
   const monthLabel = month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const openWallet = (walletId: string) => {
     setSelectedWalletId(walletId);
     navigate('/transactions');
   };
+  // Open a wallet of Home's currency: keep the shell's selection if it is one, else that currency's default
+  const seeAll = () => openWallet(walletIds.includes(selectedWalletId ?? '') ? selectedWalletId! : resolveWalletId(inCurrency)!);
   const changed = () => {
     setSelected(null);
     notifyDataChanged();
@@ -66,7 +69,14 @@ export default function Dashboard() {
     <>
       <PageTitle eyebrow="Overview" title="Home" />
 
-      {wallets.length === 0 || !currency ? (
+      {wallets.length === 0 && walletsLoading ? (
+        <div className="h-40 animate-pulse rounded-[24px] bg-card" />
+      ) : walletsError && wallets.length === 0 ? (
+        <div className="space-y-3 text-center">
+          <p className="text-expense">{walletsError}</p>
+          <PillButton onClick={refetch}>Try again</PillButton>
+        </div>
+      ) : wallets.length === 0 || !currency ? (
         <WalletCards onOpen={openWallet} refreshKey={dataVersion} />
       ) : (
         <div className="space-y-6">
@@ -91,14 +101,22 @@ export default function Dashboard() {
                 {latest.map((t) => <TransactionRow key={t.id} transaction={t} showDate onClick={() => setSelected(t)} />)}
               </RowsCard>
             )}
-            <PillButton className="w-full justify-center" onClick={() => navigate('/transactions')}>
+            <PillButton className="w-full justify-center" onClick={seeAll}>
               See all transactions <ArrowRight />
             </PillButton>
           </section>
 
           <MonthSwitcher date={month} onChange={setMonth} />
-          <CurrencySummary currency={currency} monthLabel={monthLabel} summary={monthlySummary} expenses={categoryBreakdown} incomes={incomeBreakdown} />
-          <YearChart year={y} data={trendData} currency={currency} highlightMonth={m} />
+          {statsLoading ? (
+            <div className="h-40 animate-pulse rounded-[24px] bg-card" />
+          ) : statsError && noStats ? (
+            <p className="text-center text-expense">{statsError}</p>
+          ) : (
+            <>
+              <CurrencySummary currency={currency} monthLabel={monthLabel} summary={monthlySummary} expenses={categoryBreakdown} incomes={incomeBreakdown} />
+              <YearChart year={y} data={trendData} currency={currency} highlightMonth={m} />
+            </>
+          )}
         </div>
       )}
 
