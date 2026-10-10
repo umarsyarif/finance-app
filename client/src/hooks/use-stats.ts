@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from '@/lib/axios';
 import { useOffline } from '@/hooks/use-offline';
 
-interface MonthlySummary {
+export interface MonthlySummary {
   income: number;
   expense: number;
   balance: number;
@@ -10,7 +10,7 @@ interface MonthlySummary {
   year: number;
 }
 
-interface CategoryBreakdown {
+export interface CategoryBreakdown {
   categoryId: string;
   categoryName: string;
   amount: number;
@@ -19,7 +19,7 @@ interface CategoryBreakdown {
   color: string;
 }
 
-interface TrendData {
+export interface TrendData {
   month: string;
   income: number;
   expense: number;
@@ -27,6 +27,7 @@ interface TrendData {
 }
 
 interface StatsFilters {
+  enabled?: boolean; // default true
   refreshKey?: number; // change to force a refetch
   startDate?: string;
   endDate?: string;
@@ -39,6 +40,7 @@ interface StatsFilters {
 interface UseStatsReturn {
   monthlySummary: MonthlySummary | null;
   categoryBreakdown: CategoryBreakdown[];
+  incomeBreakdown: CategoryBreakdown[];
   trendData: TrendData[];
   loading: boolean;
   error: string | null;
@@ -48,6 +50,7 @@ interface UseStatsReturn {
 export function useStats(filters: StatsFilters = {}): UseStatsReturn {
   const [monthlySummary, setMonthlySummary] = useState<MonthlySummary | null>(null);
   const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdown[]>([]);
+  const [incomeBreakdown, setIncomeBreakdown] = useState<CategoryBreakdown[]>([]);
   const [trendData, setTrendData] = useState<TrendData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,14 +89,17 @@ export function useStats(filters: StatsFilters = {}): UseStatsReturn {
       // Cache entries are per query so offline never shows another filter's numbers
       const summaryKey = `stats-summary?${params}`;
       const breakdownKey = `stats-breakdown?${params}`;
+      const incomeKey = `stats-income?${params}`;
       const trendKey = `stats-trend?${trendParams}`;
       useCached = () => {
         const cachedSummary = getOfflineData(summaryKey);
         const cachedBreakdown = getOfflineData(breakdownKey);
+        const cachedIncome = getOfflineData(incomeKey);
         const cachedTrend = getOfflineData(trendKey);
-        if (!cachedSummary && !cachedBreakdown && !cachedTrend) return false;
+        if (!cachedSummary && !cachedBreakdown && !cachedIncome && !cachedTrend) return false;
         setMonthlySummary(cachedSummary || null);
         setCategoryBreakdown(cachedBreakdown || []);
+        setIncomeBreakdown(cachedIncome || []);
         setTrendData(cachedTrend || []);
         return true;
       };
@@ -103,22 +109,26 @@ export function useStats(filters: StatsFilters = {}): UseStatsReturn {
       }
 
       // Fetch all stats data in parallel
-      const [summaryResponse, breakdownResponse, trendResponse] = await Promise.all([
+      const [summaryResponse, breakdownResponse, incomeResponse, trendResponse] = await Promise.all([
         axios.get(`/api/stats/monthly-summary?${params.toString()}`),
         axios.get(`/api/stats/category-breakdown?${params.toString()}`),
+        axios.get(`/api/stats/category-breakdown?${params.toString()}&type=INCOME`),
         axios.get(`/api/stats/trend?${trendParams.toString()}`)
       ]);
 
       const summary = summaryResponse.data.data || null;
       const breakdown = breakdownResponse.data.data || [];
+      const income = incomeResponse.data.data || [];
       const trend = trendResponse.data.data || [];
 
       setMonthlySummary(summary);
       setCategoryBreakdown(breakdown);
+      setIncomeBreakdown(income);
       setTrendData(trend);
 
       saveOfflineData(summaryKey, summary);
       saveOfflineData(breakdownKey, breakdown);
+      saveOfflineData(incomeKey, income);
       saveOfflineData(trendKey, trend);
     } catch (err: any) {
       console.error('Failed to fetch stats:', err);
@@ -135,12 +145,14 @@ export function useStats(filters: StatsFilters = {}): UseStatsReturn {
   };
 
   useEffect(() => {
+    if (filters.enabled === false) return;
     fetchStats();
-  }, [filters.startDate, filters.endDate, JSON.stringify(filters.walletIds), filters.categoryId, filters.year, filters.month, filters.refreshKey]);
+  }, [filters.startDate, filters.endDate, JSON.stringify(filters.walletIds), filters.categoryId, filters.year, filters.month, filters.refreshKey, filters.enabled]);
 
   return {
     monthlySummary,
     categoryBreakdown,
+    incomeBreakdown,
     trendData,
     loading,
     error,

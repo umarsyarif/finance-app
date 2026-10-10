@@ -35,6 +35,8 @@ interface ApiTransaction {
 interface UseTransactionsOptions {
   limit?: number;
   walletId?: string;
+  walletIds?: string[]; // sent as walletIds=a,b (ignored if walletId is also given)
+  enabled?: boolean; // false = no request, loading stays true
   categoryId?: string;
   month?: number;
   year?: number;
@@ -61,11 +63,12 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
 
-  const { limit = 10, walletId, categoryId, month, year, refreshKey } = options;
+  const { limit = 10, walletId, walletIds, enabled = true, categoryId, month, year, refreshKey } = options;
   const { isOnline, saveOfflineData, getOfflineData } = useOffline();
 
   const query = new URLSearchParams({ limit: limit.toString() });
   if (walletId) query.append('walletId', walletId);
+  else if (walletIds && walletIds.length > 0) query.append('walletIds', walletIds.join(','));
   if (categoryId) query.append('categoryId', categoryId);
   if (month && year) {
     // Send the month as exact instants in the browser's timezone, so the server's timezone doesn't matter
@@ -154,9 +157,10 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
   };
 
   useEffect(() => {
+    if (!enabled) return;
     fetchTransactions(1);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cacheKey, refreshKey]);
+  }, [cacheKey, refreshKey, enabled]);
 
   return {
     transactions,
