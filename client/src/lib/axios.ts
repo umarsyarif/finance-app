@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Empty VITE_API_URL = same origin (API served under /api by the web server)
+const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
 const axiosInstance = axios.create({
   baseURL,

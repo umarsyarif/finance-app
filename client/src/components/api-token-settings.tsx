@@ -21,7 +21,7 @@ export function ApiTokenSettings() {
   const [busy, setBusy] = useState<'generating' | 'revoking' | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [confirm, setConfirm] = useState<'replace' | 'revoke' | null>(null);
-  const apiUrl = axios.defaults.baseURL;
+  const apiUrl = axios.defaults.baseURL || window.location.origin;
 
   const load = async () => {
     const { data } = await axios.get('/api/users/me/api-token');
