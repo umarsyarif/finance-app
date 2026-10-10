@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, Plus } from 'lucide-react';
+import { Camera, Loader2, Plus } from 'lucide-react';
 import { isAxiosError, isCancel } from 'axios';
 import { Button } from '../ui/button';
 import { DateTimePicker } from '../ui/datetime-picker';
@@ -141,10 +141,10 @@ export function TransactionForm({
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <div role="group" aria-label="Type" className="flex gap-2">
-          <ChoiceChip selected={type === 'EXPENSE'} onClick={() => switchType('EXPENSE')}>Expense</ChoiceChip>
-          <ChoiceChip selected={type === 'INCOME'} onClick={() => switchType('INCOME')}>Income</ChoiceChip>
+          <ChoiceChip className="px-3" selected={type === 'EXPENSE'} onClick={() => switchType('EXPENSE')}>Expense</ChoiceChip>
+          <ChoiceChip className="px-3" selected={type === 'INCOME'} onClick={() => switchType('INCOME')}>Income</ChoiceChip>
           {!transaction && (
-            <ChoiceChip selected={type === 'TRANSFER'} onClick={() => switchType('TRANSFER')}>Transfer</ChoiceChip>
+            <ChoiceChip className="px-3" selected={type === 'TRANSFER'} onClick={() => switchType('TRANSFER')}>Transfer</ChoiceChip>
           )}
         </div>
         {!transaction && type !== 'TRANSFER' && (
@@ -159,8 +159,9 @@ export function TransactionForm({
               disabled={scanning}
               onChange={(e) => scanPhoto(e.target.files?.[0])}
             />
-            <ChoiceChip className="ml-auto" disabled={scanning} onClick={() => fileInput.current?.click()}>
-              <span className="flex items-center gap-1.5"><Camera className="size-4" /> {scanning ? 'Reading…' : 'Scan'}</span>
+            {/* Icon-only so Expense / Income / Transfer / Scan fit on one line at phone width */}
+            <ChoiceChip aria-label="Scan" className="ml-auto flex size-11 items-center justify-center px-0" disabled={scanning} onClick={() => fileInput.current?.click()}>
+              {scanning ? <Loader2 className="size-5 animate-spin" /> : <Camera className="size-5" />}
             </ChoiceChip>
           </>
         )}
