@@ -7,6 +7,7 @@ const sql = `
   , w AS (DELETE FROM wallets WHERE "userId" IN (SELECT id FROM u))
   , c AS (DELETE FROM categories WHERE "userId" IN (SELECT id FROM u))
   SELECT 1;
+  DELETE FROM transfers WHERE "userId" IN (SELECT id FROM users WHERE email LIKE 'e2e-%@example.test');
   DELETE FROM users WHERE email LIKE 'e2e-%@example.test';`;
 
 export default function teardown() {

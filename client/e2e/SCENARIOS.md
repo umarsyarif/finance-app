@@ -5,7 +5,7 @@ scenario is driven through the UI for the feature under test; the API is only
 used to set up preconditions and to verify what was persisted.
 
 Files: `auth.e2e.ts`, `dashboard.e2e.ts`, `transactions.e2e.ts`,
-`wallets.e2e.ts`, `stats.e2e.ts`, `settings.e2e.ts`, `capture.e2e.ts`, plus the earlier
+`wallets.e2e.ts`, `stats.e2e.ts`, `settings.e2e.ts`, `capture.e2e.ts`, `transfers.e2e.ts`, plus the earlier
 regression suite `app.e2e.ts`.
 
 ## Auth (`auth.e2e.ts`)
@@ -99,3 +99,12 @@ regression suite `app.e2e.ts`.
 | C4 | Editing a transaction has no Scan photo option | No "Scan photo" control in the Edit transaction dialog |
 | C5 | An income draft switches the type | Income type and the draft's category (Salary) are selected |
 | C6 | A non-image file is rejected before any request | "This image format isn't supported. Try a JPEG or PNG screenshot." shown; no request reaches `/api/capture/photo` |
+
+## Transfers (`transfers.e2e.ts`)
+| ID | Scenario | Expected |
+|---|---|---|
+| TR1 | KRW → IDR through the sheet | Both balances update; each wallet lists its side; stats unchanged |
+| TR2 | Same-currency transfer | Only one amount field; both balances update |
+| TR3 | Edit from the details sheet | Both sides show the new amounts; balances follow |
+| TR4 | Delete from the details sheet | Both rows gone; balances restored |
+| TR5 | Income/Expense filter chips | Transfer rows hidden; shown under All |

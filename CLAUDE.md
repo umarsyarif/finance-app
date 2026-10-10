@@ -100,6 +100,7 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 - `Wallet` → has `balance`, `currency` (KRW or IDR), `isMain`, `displayOrder`; holds many `Transaction`s
 - `Transaction` → belongs to one `Wallet` and one `Category`; has `amount`, `date`, `description`
 - `Category` → `userId` is nullable (null = global/default category); has `type: INCOME | EXPENSE`
+- `Transfer` → links exactly two `Transaction` rows (out on the source wallet, in on the destination) via `transferId`; they use the hidden global categories `transfer-out`/`transfer-in` (`isTransfer`), are edited only through `/api/transfers`, and are excluded from stats
 
 ### Infrastructure
 - Traefik reverse proxy routes `finance.umeh.me` → prod frontend, `finance-api.umeh.me` → backend
