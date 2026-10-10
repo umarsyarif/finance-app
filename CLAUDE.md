@@ -67,6 +67,7 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 - `routes/` — route definitions, apply `deserializeUser` + `requireUser` middleware for protected endpoints, and `validate(schema)` for request validation
 - `controllers/` — parse request, delegate to service, return JSON response
 - `services/` — all Prisma queries live here; no DB access in controllers
+- `services/ai.service.ts`: the only Gemini caller (`@google/genai`, JSON-schema output, 20s timeout, untrusted input kept out of the system instruction); `services/capture.service.ts`: deterministic rules turning the AI's labels into a transaction draft (wallet/currency, "Other" category, date window). `POST /api/capture/text` (iOS Shortcut, personal API token via `middleware/requireApiToken.ts`) saves; `POST /api/capture/photo` (session) returns a draft only. `GEMINI_API_KEY` unset → 503. See `docs/shortcut-setup.md`.
 - `schemas/` — Zod schemas for input validation (used by the `validate` middleware)
 - `middleware/deserializeUser.ts` — extracts `access_token` cookie (or Bearer header), verifies JWT via RS256, checks Redis session, attaches user to `res.locals.user`
 - `middleware/prismaMiddleware.ts` — shared PrismaClient, balance-adjustment helpers, and a `Decimal.toJSON` override so money fields serialize as JSON numbers
@@ -118,3 +119,4 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 - Schema changes need a migration (`npx prisma migrate dev`); never change `schema.prisma` without one
 - Categories with `userId = null` are global and are returned to every user alongside their own
 - Backend tests use Jest + Supertest (`.spec.ts` files in `backend/tests/`); frontend tests use Vitest + Testing Library (files in `client/src/test/`)
+- Never call real Gemini in tests: integration tests mock `extractTransaction` (`jest.mock('../src/services/ai.service', …)`) and the Playwright backend runs with `GEMINI_API_KEY=''`. For a manual check use `npm run try-capture -- "<text>"`.

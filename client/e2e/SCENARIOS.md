@@ -5,7 +5,7 @@ scenario is driven through the UI for the feature under test; the API is only
 used to set up preconditions and to verify what was persisted.
 
 Files: `auth.e2e.ts`, `dashboard.e2e.ts`, `transactions.e2e.ts`,
-`wallets.e2e.ts`, `stats.e2e.ts`, `settings.e2e.ts`, plus the earlier
+`wallets.e2e.ts`, `stats.e2e.ts`, `settings.e2e.ts`, `capture.e2e.ts`, plus the earlier
 regression suite `app.e2e.ts`.
 
 ## Auth (`auth.e2e.ts`)
@@ -87,3 +87,15 @@ regression suite `app.e2e.ts`.
 
 ## Cross-cutting checks (every scenario)
 - No uncaught page errors (`pageerror`) during the scenario.
+
+## AI capture (`capture.e2e.ts`)
+| ID | Scenario | Expected |
+|---|---|---|
+| C1 | Generate, use and revoke the Shortcut token | Token starts with `ft_`; capture endpoint answers 503 (no Gemini key in e2e); after Revoke, "No token yet" and the endpoint answers 401 |
+| C1b | Regenerating replaces the token | Old token gets 401; new token gets 503 (accepted, no Gemini key) |
+| C1c | Token status fails to load | "Couldn't load token status" shown; no Generate button and no "No token yet" |
+| C2 | A scanned photo fills the form | "Reading photo…" with Save disabled; then amount, description, category and wallet are filled and the hint "Filled from photo. Check before saving." shows; upload is JPEG; no transaction saved until Save |
+| C3 | A failed scan shows the reason | Server message (e.g. "Couldn't find an amount") shown; form stays editable |
+| C4 | Editing a transaction has no Scan photo option | No "Scan photo" control in the Edit transaction dialog |
+| C5 | An income draft switches the type | Income type and the draft's category (Salary) are selected |
+| C6 | A non-image file is rejected before any request | "This image format isn't supported. Try a JPEG or PNG screenshot." shown; no request reaches `/api/capture/photo` |
