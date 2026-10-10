@@ -8,6 +8,7 @@ const wallets = [
   { id: 'w-krw-main', name: 'KRW Main', currency: 'KRW', isMain: true },
   { id: 'w-krw-card', name: 'Shinhan Card', currency: 'KRW', isMain: false },
   { id: 'w-idr', name: 'Rupiah', currency: 'IDR', isMain: false },
+  { id: 'w-idr-main', name: 'Jago Main', currency: 'IDR', isMain: true },
 ];
 const categories: DraftCategory[] = [
   { id: 'c-food', name: 'Food', type: 'EXPENSE' },
@@ -54,15 +55,20 @@ describe('resolveDraft: wallet', () => {
     expect(draft.walletId).toBe('w-krw-main');
   });
 
-  it('picks a wallet in the capture currency when the main wallet differs', async () => {
+  it("picks the capture currency's main wallet, not just the first wallet in that currency", async () => {
     const draft = await resolveDraft(extraction({ currency: 'IDR', amount: 25000 }), ctx());
-    expect(draft.walletId).toBe('w-idr');
+    expect(draft.walletId).toBe('w-idr-main');
     expect(draft.currency).toBe('IDR');
   });
 
-  it('uses the main wallet when the currency is unknown', async () => {
-    const draft = await resolveDraft(extraction({ currency: null }), ctx());
-    expect(draft.walletId).toBe('w-krw-main');
+  it('falls back to the first wallet of the currency when it has no main', async () => {
+    const noMain = wallets.filter((w) => w.id !== 'w-idr-main');
+    const draft = await resolveDraft(extraction({ currency: 'IDR', amount: 25000 }), { ...ctx(), wallets: noMain });
+    expect(draft.walletId).toBe('w-idr');
+  });
+
+  it('rejects a capture whose currency cannot be read', async () => {
+    await expect(resolveDraft(extraction({ currency: null }), ctx())).rejects.toThrow("Couldn't tell the currency");
   });
 
   it('refuses a currency with no wallet', async () => {
@@ -141,9 +147,8 @@ describe('resolveDraft: untrusted AI fields', () => {
     expect(other).not.toHaveBeenCalled();
   });
 
-  it('treats a junk currency as unknown and uses the main wallet', async () => {
-    const draft = await resolveDraft(extraction({ currency: 'US$ approx' }), ctx());
-    expect(draft.walletId).toBe('w-krw-main');
+  it('treats a junk currency as unknown and rejects it', async () => {
+    await expect(resolveDraft(extraction({ currency: 'US$ approx' }), ctx())).rejects.toThrow("Couldn't tell the currency");
   });
 
   it('uses the named wallet when the currency is null', async () => {
@@ -182,6 +187,6 @@ describe('resolveDraft: untrusted AI fields', () => {
 describe('summarize: IDR', () => {
   it('uses Rp with no forced decimals', async () => {
     const draft = await resolveDraft(extraction({ currency: 'IDR', amount: 25000 }), ctx());
-    expect(summarize(draft)).toBe('Added -Rp 25,000 Starbucks · Food · Rupiah');
+    expect(summarize(draft)).toBe('Added -Rp 25,000 Starbucks · Food · Jago Main');
   });
 });

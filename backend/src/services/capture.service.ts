@@ -47,12 +47,11 @@ function pickWallet(x: AiExtraction, wallets: DraftWallet[]): DraftWallet {
   const named = wallets.find((w) => same(x.walletName, w.name));
   if (named && (!currency || named.currency === currency)) return named;
 
-  const main = wallets.find((w) => w.isMain) ?? wallets[0];
-  if (!currency) return main;
-  if (main.currency === currency) return main;
-  const sameCurrency = wallets.find((w) => w.currency === currency);
-  if (!sameCurrency) throw new CaptureError(`No ${currency} wallet`);
-  return sameCurrency;
+  // One main wallet per currency; without a readable currency we can't tell which one
+  if (!currency) throw new CaptureError("Couldn't tell the currency");
+  const inCurrency = wallets.filter((w) => w.currency === currency);
+  if (inCurrency.length === 0) throw new CaptureError(`No ${currency} wallet`);
+  return inCurrency.find((w) => w.isMain) ?? inCurrency[0];
 }
 
 // Local date-times (no offset) are read in the server timezone (process.env.TZ)

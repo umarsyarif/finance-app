@@ -67,7 +67,7 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 - `routes/` — route definitions, apply `deserializeUser` + `requireUser` middleware for protected endpoints, and `validate(schema)` for request validation
 - `controllers/` — parse request, delegate to service, return JSON response
 - `services/` — all Prisma queries live here; no DB access in controllers
-- `services/ai.service.ts`: the only Gemini caller (`@google/genai`, JSON-schema output, 20s timeout, untrusted input kept out of the system instruction); `services/capture.service.ts`: deterministic rules turning the AI's labels into a transaction draft (wallet/currency, "Other" category, date window). `POST /api/capture/text` (iOS Shortcut, personal API token via `middleware/requireApiToken.ts`) saves; `POST /api/capture/photo` (session) returns a draft only. `GEMINI_API_KEY` unset → 503. See `docs/shortcut-setup.md`.
+- `services/ai.service.ts`: the only Gemini caller (`@google/genai`, JSON-schema output, 20s timeout, untrusted input kept out of the system instruction); `services/capture.service.ts`: deterministic rules turning the AI's labels into a transaction draft (a wallet named in the text, else the main wallet of the detected currency; no readable currency → 422; "Other" category; date window). `POST /api/capture/text` (iOS Shortcut, personal API token via `middleware/requireApiToken.ts`) saves; `POST /api/capture/photo` (session) returns a draft only. `GEMINI_API_KEY` unset → 503. See `docs/shortcut-setup.md`.
 - `schemas/` — Zod schemas for input validation (used by the `validate` middleware)
 - `middleware/deserializeUser.ts` — extracts `access_token` cookie (or Bearer header), verifies JWT via RS256, checks Redis session, attaches user to `res.locals.user`
 - `middleware/prismaMiddleware.ts` — shared PrismaClient, balance-adjustment helpers, and a `Decimal.toJSON` override so money fields serialize as JSON numbers
@@ -97,7 +97,7 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 
 ### Data Model (Prisma)
 - `User` → has many `Wallet`s and `Category`s
-- `Wallet` → has `balance`, `currency` (KRW or IDR), `isMain`, `displayOrder`, optional `description` (≤60 chars, shown on wallet cards as "<description> · KRW"); holds many `Transaction`s
+- `Wallet` → has `balance`, `currency` (KRW or IDR), `isMain` (exactly one main wallet per currency, kept by `normalizeMainWallets` in `wallet.service.ts` after every create/update/delete/set-main), `displayOrder`, optional `description` (≤60 chars, shown on wallet cards as "<description> · KRW"); holds many `Transaction`s
 - `Transaction` → belongs to one `Wallet` and one `Category`; has `amount`, `date`, `description`
 - `Category` → `userId` is nullable (null = global/default category); has `type: INCOME | EXPENSE`; optional `icon` (a Lucide name from the curated list in `client/src/components/finance/category-icon.tsx`; the server only checks the kebab-case format; no icon → first letter)
 - `Transfer` → links exactly two `Transaction` rows (out on the source wallet, in on the destination) via `transferId`; they use the hidden global categories `transfer-out`/`transfer-in` (`isTransfer`), are edited only through `/api/transfers`, and are excluded from stats
