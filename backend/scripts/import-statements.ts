@@ -12,7 +12,9 @@
  *
  * Usage (dry run prints a summary, writes nothing):
  *   npm run import-statements -- --toss-tsv=/path/to/toss.tsv
- * Add --commit to actually write.
+ * Add --commit to actually write. Add --new-only on a DB that already has a prior run's Jago/NH/Toss
+ * data committed — writes only the BSI and Emergency Fund wallets/transfers, since this script has no
+ * idempotency check and a second full run would duplicate everything.
  */
 require('dotenv').config();
 process.env.TZ = process.env.TZ || 'Asia/Seoul';
@@ -30,6 +32,14 @@ const DATA_DIR = path.resolve(__dirname, '../../data');
 const DAILY_PDF = path.join(DATA_DIR, 'Jago_Daily Expenses_History_10102026.pdf');
 const MAIN_PDF = path.join(DATA_DIR, 'Jago_Main Pocket_History_10102026.pdf');
 const NH_PDFS = ['nh 2024.pdf', 'nh 2025.pdf', 'nh 2026.pdf'].map((f) => path.join(DATA_DIR, f));
+const BSI_PDFS = [
+  'bsi_estatment-2026-10-11 02:07:59.pdf',
+  'bsi_estatment-2026-10-11 02:08:20.pdf',
+  'bsi_estatment-2026-10-11 02:08:32.pdf',
+  'bsi_estatment-2026-10-11 02:08:48.pdf',
+  'bsi_estatment-2026-10-11 02:09:06.pdf',
+  'bsi_estatment-2026-10-11 02:09:21.pdf',
+].map((f) => path.join(DATA_DIR, f));
 
 const args = process.argv.slice(2);
 const flag = (name: string, def?: string) => {
@@ -37,6 +47,11 @@ const flag = (name: string, def?: string) => {
   return hit ? hit.slice(name.length + 3) : def;
 };
 const COMMIT = args.includes('--commit');
+// For a target DB that already has the Jago/NH/Toss import from an earlier run of this script:
+// parses everything as usual (BSI<->Main Pocket and Toss<->Emergency Fund matching both need the
+// full mainRows/tossRows), but only commits the two new sources, so nothing already there gets
+// duplicated (this script has no idempotency check — a second full run WILL double-count).
+const NEW_ONLY = args.includes('--new-only');
 const EMAIL = flag('email', 'umarsyarif1607@gmail.com')!;
 const TOSS_TSV = flag('toss-tsv');
 
@@ -49,6 +64,7 @@ type JagoRow = {
   amount: number; // signed, IDR
   balance: number; // the statement's own running balance after this row, for the sanity check below
   isPocketMovement: boolean;
+  block: string; // full raw block text (Notes/bank-detail lines live here, not in `source`)
   used: boolean; // consumed as one half of a transfer pair
 };
 
@@ -136,6 +152,7 @@ function parseJago(pdfPath: string): { rows: JagoRow[]; skipped: string[] } {
       amount,
       balance,
       isPocketMovement: block.some((l) => l.includes('Movement between Pockets')),
+      block: block.join('\n'),
       used: false,
     });
   }
@@ -144,7 +161,7 @@ function parseJago(pdfPath: string): { rows: JagoRow[]; skipped: string[] } {
 
 // Sanity check: the statement's own running balance should equal prevBalance + amount for every
 // row. A mismatch means parsing dropped or corrupted a transaction (page-break glitches etc).
-function checkInvariant(rows: JagoRow[], label: string) {
+function checkInvariant(rows: { date: string; time: string; amount: number; balance: number }[], label: string) {
   let prev = 0;
   let mismatches = 0;
   for (const r of rows) {
@@ -162,7 +179,7 @@ type PlainTxn = { walletName: string; date: string; amount: number; description:
 type TransferPair = { date: string; fromWallet: string; toWallet: string; amountSent: number; amountReceived?: number };
 
 function walletCurrency(name: string) {
-  return name === 'Toss Bank' || name === 'NH Bank' ? 'KRW' : 'IDR';
+  return ['Toss Bank', 'NH Bank', 'Emergency Fund'].includes(name) ? 'KRW' : 'IDR';
 }
 
 // pdftotext -layout garbles these two Daily Expenses rows beyond recovery (the page footer's text
@@ -274,6 +291,51 @@ function parseToss(tsvPath: string): TossRow[] {
   return rows;
 }
 
+// ---------- BSI (Bank Syariah Indonesia) PDF parsing ----------
+
+type BsiRow = { date: string; time: string; amount: number; balance: number; desc: string; used: boolean };
+
+const MONTHS_ID: Record<string, string> = {
+  Jan: '01', Feb: '02', Mar: '03', Apr: '04', Mei: '05', Jun: '06',
+  Jul: '07', Agu: '08', Sep: '09', Okt: '10', Nov: '11', Des: '12',
+};
+
+// Each row is a date line (name/ref + trailing Debit/Kredit/Saldo), then an "HH:MM  Dana Masuk|Keluar
+// | <description>" line, sometimes wrapping onto a 3rd line. The per-file trailing summary block
+// ("Saldo Awal/Mutasi.../Saldo Akhir") never starts with a date, so it's naturally excluded — except
+// the last transaction's block swallows it as trailing lines, filtered out below.
+function parseBSI(pdfPath: string): BsiRow[] {
+  const text = execFileSync('pdftotext', ['-layout', pdfPath, '-'], { maxBuffer: 1024 * 1024 * 64 }).toString('utf8');
+  const lines = text.split('\n');
+  const DATE_RE = /^(\d{2}) ([A-Za-z]{3}) (\d{4})\s+(.*)$/;
+  const TRAIL3_RE = /([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s*$/;
+  const SUMMARY_RE = /Saldo Awal|Mutasi Debit|Mutasi Kredit|Saldo Akhir/;
+  const dateLineIndices: number[] = [];
+  lines.forEach((l, i) => {
+    if (DATE_RE.test(l)) dateLineIndices.push(i);
+  });
+
+  const rows: BsiRow[] = [];
+  for (let k = 0; k < dateLineIndices.length; k++) {
+    const i = dateLineIndices[k];
+    const m = DATE_RE.exec(lines[i])!;
+    const [, dd, mon, yyyy, rest] = m;
+    const month = MONTHS_ID[mon];
+    if (!month) continue;
+    const tm = TRAIL3_RE.exec(rest);
+    if (!tm) continue;
+    const debit = idn(tm[1]);
+    const kredit = idn(tm[2]);
+    const balance = idn(tm[3]);
+    const blockEnd = k + 1 < dateLineIndices.length ? dateLineIndices[k + 1] : lines.length;
+    const descLines = lines.slice(i + 1, blockEnd).map((l) => l.trim()).filter((l) => l && !SUMMARY_RE.test(l));
+    const time = (descLines[0] ?? '').slice(0, 5) || '12:00';
+    const desc = descLines.map((l, j) => (j === 0 ? l.slice(5).trim() : l)).join(' ').replace(/\s{2,}/g, ' ').trim();
+    rows.push({ date: `${yyyy}-${month}-${dd}`, time, amount: kredit - debit, balance, desc, used: false });
+  }
+  return rows;
+}
+
 // ---------- NH <-> Toss / NH <-> Main Pocket transfer matching ----------
 
 // Both sides are KST, so treating date+time as naive-UTC for the diff is fine — only the relative
@@ -356,6 +418,45 @@ function matchNhMainPocket(nhRows: NhRow[], mainRows: JagoRow[]): TransferPair[]
   return transfers;
 }
 
+// Both sides name each other explicitly (BSI rows say "BANK JAGO"; Main Pocket rows carry "Bank
+// Syariah Indonesia" + the BSI account number "1040607467" in their Notes lines, now in `block`),
+// so this is a real deterministic match, not forensic — same date+time+amount, opposite sign.
+function matchBsiMainPocket(bsiRows: BsiRow[], mainRows: JagoRow[]): TransferPair[] {
+  const transfers: TransferPair[] = [];
+  for (const b of bsiRows) {
+    if (b.used || !/BANK JAGO/i.test(b.desc)) continue;
+    const match = mainRows.find(
+      (r) =>
+        !r.used &&
+        r.block.includes('Bank Syariah Indonesia') &&
+        r.block.includes('1040607467') &&
+        r.date === b.date &&
+        r.time === b.time &&
+        Math.abs(Math.abs(r.amount) - Math.abs(b.amount)) < 1
+    );
+    if (!match) continue;
+    b.used = true;
+    match.used = true;
+    const [fromWallet, toWallet] = b.amount > 0 ? ['Main Pocket', 'Bank BSI'] : ['Bank BSI', 'Main Pocket'];
+    transfers.push({ date: `${b.date}T${b.time}:00+07:00`, fromWallet, toWallet, amountSent: Math.abs(b.amount) });
+  }
+  return transfers;
+}
+
+// Toss's own "Emergency Fund" pocket shows up as self-transfers in the main account statement
+// (institution "토스뱅크" = itself, not an external bank) — each row is a complete transfer event on
+// its own, no second file to cross-reference.
+function matchTossEmergencyFund(tossRows: TossRow[]): TransferPair[] {
+  const transfers: TransferPair[] = [];
+  for (const t of tossRows) {
+    if (t.used || t.desc !== 'Emergency Fund' || t.inst !== '토스뱅크') continue;
+    t.used = true;
+    const [fromWallet, toWallet] = t.amount < 0 ? ['Toss Bank', 'Emergency Fund'] : ['Emergency Fund', 'Toss Bank'];
+    transfers.push({ date: `${t.date}T${t.time}+09:00`, fromWallet, toWallet, amountSent: Math.abs(t.amount) });
+  }
+  return transfers;
+}
+
 // ---------- main ----------
 
 async function ensureWallet(userId: string, name: string, currency: string, cache: Map<string, { id: string }>) {
@@ -383,14 +484,17 @@ async function main() {
 
   const tossRows = TOSS_TSV ? parseToss(TOSS_TSV) : [];
   const nhRows = NH_PDFS.flatMap((p) => parseNH(p));
+  const bsiRows = BSI_PDFS.flatMap((p) => parseBSI(p));
 
-  // NH<->Main Pocket matching must run before buildJagoPlan reads mainRows, so the 39 matched rows
-  // are already flagged `used` and don't also get imported as plain "FLIPTECH/UMAR SYARIF" income.
+  // Matching against mainRows must run before buildJagoPlan reads it, so matched rows are already
+  // flagged `used` and don't also get imported as plain "FLIPTECH/UMAR SYARIF" income.
   const nhTossTransfers = matchNhToss(nhRows, tossRows);
   const nhMainTransfers = matchNhMainPocket(nhRows, mainRows);
+  const bsiMainTransfers = matchBsiMainPocket(bsiRows, mainRows);
+  const tossEmergencyTransfers = matchTossEmergencyFund(tossRows);
 
   const { transfers: jagoTransfers, plain: jagoPlain, skippedInterest: jagoInterest } = buildJagoPlan(dailyRows, mainRows);
-  const allTransfers = [...jagoTransfers, ...nhTossTransfers, ...nhMainTransfers];
+  const allTransfers = [...jagoTransfers, ...nhTossTransfers, ...nhMainTransfers, ...bsiMainTransfers, ...tossEmergencyTransfers];
 
   const tossPlain: PlainTxn[] = tossRows
     .filter((r) => !r.used)
@@ -402,7 +506,11 @@ async function main() {
     .map((r) => ({ walletName: 'NH Bank', date: `${r.date}T${r.time}+09:00`, amount: r.amount, description: `${r.content} ${r.record}`.trim() }));
   const nhInterest = nhRows.filter((r) => isInterestNH(r.content)).length;
 
-  const allPlain = [...jagoPlain, ...DAILY_MANUAL_ROWS, ...tossPlain, ...nhPlain];
+  const bsiPlain: PlainTxn[] = bsiRows
+    .filter((r) => !r.used)
+    .map((r) => ({ walletName: 'Bank BSI', date: `${r.date}T${r.time}:00+07:00`, amount: r.amount, description: r.desc }));
+
+  const allPlain = [...jagoPlain, ...DAILY_MANUAL_ROWS, ...tossPlain, ...nhPlain, ...bsiPlain];
   const income = allPlain.filter((t) => t.amount > 0);
   const expense = allPlain.filter((t) => t.amount < 0);
 
@@ -419,6 +527,9 @@ async function main() {
   console.log('NH Bank rows:', nhPlain.length, '| interest rows (included):', nhInterest);
   console.log('Transfer pairs (NH <-> Toss):', nhTossTransfers.length);
   console.log('Transfer pairs (NH <-> Main Pocket):', nhMainTransfers.length, '/', NH_MAIN_POCKET_TRANSFERS.length, 'expected');
+  console.log('BSI rows:', bsiPlain.length + bsiMainTransfers.length, '(balance-invariant mismatches:', checkInvariant(bsiRows, 'BSI'), ')');
+  console.log('Transfer pairs (BSI <-> Main Pocket):', bsiMainTransfers.length);
+  console.log('Transfer pairs (Toss <-> Emergency Fund):', tossEmergencyTransfers.length);
   console.log('Plain transactions to import:', allPlain.length, '-> income:', income.length, 'expense:', expense.length);
   console.log(COMMIT ? '\n--commit set: writing to DB...' : '\nDry run only, nothing written. Pass --commit to apply.');
 
@@ -429,7 +540,11 @@ async function main() {
   const walletCache = new Map<string, { id: string }>();
   const categoryCache = new Map<string, { id: string }>();
 
-  for (const t of allTransfers) {
+  const transfersToWrite = NEW_ONLY ? [...bsiMainTransfers, ...tossEmergencyTransfers] : allTransfers;
+  const plainToWrite = NEW_ONLY ? bsiPlain : allPlain;
+  if (NEW_ONLY) console.log(`\n--new-only: writing ${transfersToWrite.length} transfers + ${plainToWrite.length} plain txns (BSI + Emergency Fund only)`);
+
+  for (const t of transfersToWrite) {
     const from = await ensureWallet(user.id, t.fromWallet, walletCurrency(t.fromWallet), walletCache);
     const to = await ensureWallet(user.id, t.toWallet, walletCurrency(t.toWallet), walletCache);
     await createTransfer(user.id, {
@@ -441,7 +556,7 @@ async function main() {
     });
   }
 
-  for (const t of allPlain) {
+  for (const t of plainToWrite) {
     const wallet = await ensureWallet(user.id, t.walletName, walletCurrency(t.walletName), walletCache);
     const type = t.amount > 0 ? 'INCOME' : 'EXPENSE';
     const category = await ensureOtherCategory(user.id, type, categoryCache);
