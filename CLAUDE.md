@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Personal Finance Tracker — a full-stack PWA with a Node.js/Express/Prisma backend and a React/Vite/Tailwind frontend. Supports transactions, wallets, categories, and stats, with cookie-based JWT auth (access + refresh tokens), Redis session storage, and WebAuthn-based biometric unlock. Email verification is disabled: registration creates a verified account and signs the user in.
+Personal Finance Tracker — a full-stack PWA with a Node.js/Express/Prisma backend and a React/Vite/Tailwind frontend. Supports transactions, wallets, categories, and stats, with cookie-based JWT auth (access + refresh tokens), Redis session storage, and a Face ID app lock (WebAuthn). Email verification is disabled: registration creates a verified account and signs the user in.
 
 ---
 
@@ -76,7 +76,7 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 - `utils/connectRedis.ts` — Redis client used for session storage (keyed by user ID)
 - `config/` — uses the `config` npm package; `default.ts` for base values, `production.ts` overrides, `custom-environment-variables.ts` maps env vars to config keys
 
-**Auth flow**: Login/register → sign accessToken (2h) + refreshToken (30 days) → both set as HttpOnly cookies (no tokens in the response body). With `rememberMe: false` the refresh cookie is a session cookie. On 401/403 the axios interceptor calls `/api/auth/refresh`, which re-sets the access cookie.
+**Auth flow**: Login/register → sign accessToken (2h) + refreshToken (30 days) → both set as HttpOnly cookies (no tokens in the response body). Sign-in always issues the 30-day session (refresh cookie). Face ID is an app lock (`contexts/app-lock.tsx`): a local WebAuthn check that hides the app on open and after 60 s in the background; it never signs anyone in. On 401/403 the axios interceptor calls `/api/auth/refresh`, which re-sets the access cookie.
 
 **Sessions**: Each login gets a session id (`sid`, carried in both JWTs); the user object is stored in Redis under `session:<userId>:<sid>`. `deserializeUser` checks that key on every protected request. Logout deletes only that device's session; password reset deletes all of the user's sessions.
 
@@ -84,12 +84,12 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 
 - `main.tsx` → `App.tsx` wraps providers (`ThemeProvider`, `AuthProvider`) → `Router.tsx` sets up routes
 - `Router.tsx` — protected routes nested under `<ProtectedRoutes>` which checks `useAuth().user`; auth pages (`/login`, `/register`) shown only when unauthenticated
-- `contexts/auth.context.tsx` — single source of auth state; handles login, register, logout, biometric unlock, and a 30-min inactivity logout that applies only when "Remember me" was not checked
+- `contexts/auth.context.tsx` — single source of auth state; handles login, register and logout (always the 30-day session; no inactivity logout; the Face ID lock lives in `contexts/app-lock.tsx`)
 - `lib/axios.ts` — Axios instance with `VITE_API_URL` base URL and `withCredentials`; response interceptor auto-refreshes on 401/403 and redirects to `/login` on refresh failure
 - `hooks/` — custom hooks manage all data fetching (useState + useEffect pattern, no React Query). Each hook exposes `{ data, loading, error, refetch }`. Offline caching is handled inside `useTransactions`/`useStats` via `useOffline`, keyed per query (cleared on logout); transactions created offline are queued (`queuePendingChange`) and replayed on reconnect.
-- `services/biometric.service.ts` — WebAuthn credential creation/assertion (client-side only, no server verification). Credentials stored in `localStorage`. It only unlocks an existing cookie session; it cannot sign in once the session has expired.
-- `services/secure-storage.service.ts` — prefixed localStorage/sessionStorage wrapper for client-side flags (last activity, remember-me, preferences); no tokens are stored client-side
-- `components/app-layout.tsx` — app shell: greeting header, bottom nav (Home, Transactions, center **+**, Wallets, Settings) and the global Add Transaction sheet. Pages read shared state via `useAppShell()`: `selectedWalletId` (Transactions' wallet; persisted) and `selectedCurrency` (Home's KRW/IDR; persisted), both resolved with `lib/selection.ts`, plus `dataVersion`, bumped after the sheet saves so pages refetch. Home is a per-currency overview (total, wallet cards, latest 5, month Summary, year chart); Transactions is a per-wallet ledger; `/stats` redirects to Home
+- `services/biometric.service.ts` — WebAuthn credential creation/assertion (client-side only, no server verification). Credentials stored in `localStorage`. Used by the app lock only: a local check that never signs anyone in.
+- `services/secure-storage.service.ts` — prefixed localStorage/sessionStorage wrapper for client-side flags (preferences); no tokens are stored client-side
+- `components/app-layout.tsx` — app shell: bottom nav (Home, Transactions, center **+**, Wallets, Profile; the greeting header renders only on Home) and the global Add Transaction sheet. Pages read shared state via `useAppShell()`: `selectedWalletId` (Transactions' wallet; persisted) and `selectedCurrency` (Home's KRW/IDR; persisted), both resolved with `lib/selection.ts`, plus `dataVersion`, bumped after the sheet saves so pages refetch. Home is a per-currency overview (total, wallet cards, latest 5, month Summary, year chart); Transactions is a per-wallet ledger; `/stats` redirects to Home
 - `components/finance/` — domain components (wallet cards, transaction rows/list, filter chips, month switcher, transaction/wallet/category forms, details sheet)
 - Visual design follows `DESIGN.md` (tokens in `src/index.css`: canvas/surface/ink, `lime`, `income`, `expense`; Plus Jakarta Sans). Reference mockups live in `docs/design/stitch/`
 - `components/ui/` — shadcn/ui component library files (do not hand-edit; use `npx shadcn@latest add <component>` to add new ones)
@@ -97,9 +97,10 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 
 ### Data Model (Prisma)
 - `User` → has many `Wallet`s and `Category`s
-- `Wallet` → has `balance`, `currency` (KRW or IDR), `isMain` (exactly one main wallet per currency, kept by `normalizeMainWallets` in `wallet.service.ts` after every create/update/delete/set-main), `displayOrder`, optional `description` (≤60 chars, shown on wallet cards as "<description> · KRW"); holds many `Transaction`s
+- `Wallet` → has `balance`, `currency` (KRW or IDR), `isMain` (exactly one main wallet per currency, kept by `normalizeMainWallets` in `wallet.service.ts` after every create/update/delete/set-main), `displayOrder`, optional `icon` and `description` (≤60 chars, shown on wallet cards as "<description> · KRW"); holds many `Transaction`s
 - `Transaction` → belongs to one `Wallet` and one `Category`; has `amount`, `date`, `description`
 - `Category` → `userId` is nullable (null = global/default category); has `type: INCOME | EXPENSE`; optional `icon` (a Lucide name from the curated list in `client/src/components/finance/category-icon.tsx`; the server only checks the kebab-case format; no icon → first letter)
+- `UserAvatar` → the profile photo (bytes, ≤200 KB), kept out of `users` because `deserializeUser` loads that row on every request; `User.avatarUpdatedAt` versions `/api/users/me/avatar`
 - `Transfer` → links exactly two `Transaction` rows (out on the source wallet, in on the destination) via `transferId`; they use the hidden global categories `transfer-out`/`transfer-in` (`isTransfer`), are edited only through `/api/transfers`, and are excluded from stats
 
 ### Infrastructure

@@ -3,8 +3,8 @@ import { test, expect, signUp, API, seedWallet, seedCategory, txCount, openAddSh
 
 test('C1 generate, use and revoke the Shortcut token', async ({ page }) => {
   await signUp(page, 'c1');
-  await page.goto('/settings');
-  await page.getByRole('radio', { name: 'Security' }).click();
+  await page.goto('/profile');
+  await page.getByRole('button', { name: /Shortcut token/ }).click();
   await expect(page.getByText('No token yet')).toBeVisible();
 
   await page.getByRole('button', { name: 'Generate token' }).click();
@@ -24,8 +24,8 @@ test('C1 generate, use and revoke the Shortcut token', async ({ page }) => {
 
 test('C1b regenerating replaces the token', async ({ page }) => {
   await signUp(page, 'c1b');
-  await page.goto('/settings');
-  await page.getByRole('radio', { name: 'Security' }).click();
+  await page.goto('/profile');
+  await page.getByRole('button', { name: /Shortcut token/ }).click();
   await page.getByRole('button', { name: 'Generate token' }).click();
   const a = (await page.getByTestId('new-api-token').textContent())!.trim();
 
@@ -43,8 +43,8 @@ test('C1c token status load failure is shown, not hidden as "No token yet"', asy
   await signUp(page, 'c1c');
   await page.route('**/api/users/me/api-token', (r) =>
     r.request().method() === 'GET' ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"status":"error","message":"x"}' }) : r.continue());
-  await page.goto('/settings');
-  await page.getByRole('radio', { name: 'Security' }).click();
+  await page.goto('/profile');
+  await page.getByRole('button', { name: /Shortcut token/ }).click();
   await expect(page.getByText("Couldn't load token status")).toBeVisible();
   await expect(page.getByRole('button', { name: 'Generate token' })).toHaveCount(0);
   await expect(page.getByText('No token yet')).toHaveCount(0);

@@ -127,17 +127,13 @@ test('back button after logout does not reveal the previous page\'s data', async
   await expect(page.getByText('private-row')).toBeHidden();
 });
 
-test('without "Remember me", closing the browser signs you out', async ({ page, browser }) => {
-  const email = await signUp(page, 'noremember');
+test('a new browser context reusing the stored cookies is still signed in', async ({ page, browser }) => {
+  await signUp(page, 'persist');
   await seedWallet(page);
-  await page.context().clearCookies();
-  await page.goto('/login');
-  await page.getByTestId('input-email').fill(email);
-  await page.getByTestId('input-password').fill('password123');
-  await page.getByTestId('submit-button').click();
+  await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
 
-  // Browser restart: session cookies (no expiry) are dropped, persistent ones survive
+  // Browser restart: only persistent cookies survive; sign-in always sets a 30-day session
   const state = await page.context().storageState();
   const restarted = await browser.newContext({
     ...test.info().project.use,
@@ -146,7 +142,8 @@ test('without "Remember me", closing the browser signs you out', async ({ page, 
   const again = await restarted.newPage();
   await again.goto('/');
 
-  await expect(again).toHaveURL(/\/login/);
+  await expect(again).toHaveURL(/\/$/);
+  await expect(again.getByRole('heading', { name: 'Summary' })).toBeVisible();
   await restarted.close();
 });
 

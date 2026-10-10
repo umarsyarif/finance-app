@@ -5,7 +5,7 @@ scenario is driven through the UI for the feature under test; the API is only
 used to set up preconditions and to verify what was persisted.
 
 Files: `auth.e2e.ts`, `dashboard.e2e.ts`, `transactions.e2e.ts`,
-`wallets.e2e.ts`, `home.e2e.ts`, `settings.e2e.ts`, `capture.e2e.ts`, `transfers.e2e.ts`, plus the earlier
+`wallets.e2e.ts`, `home.e2e.ts`, `settings.e2e.ts`, `profile.e2e.ts`, `capture.e2e.ts`, `transfers.e2e.ts`, plus the earlier
 regression suite `app.e2e.ts`.
 
 ## Auth (`auth.e2e.ts`)
@@ -34,7 +34,7 @@ regression suite `app.e2e.ts`.
 | D7 | Add from the + sheet while the 2nd wallet is shown on Transactions | Saved to that wallet; Transactions stays on it |
 | D8 | Long-press a wallet card on Transactions | That wallet becomes Main (tag moves, persists after reload) |
 | D9 | "See all transactions" link | Opens /transactions |
-| D10 | Bottom navigation (Home, Transactions, Wallets, Settings) | Each tab opens its page |
+| D10 | Bottom navigation (Home, Transactions, Wallets, Profile) | Each tab opens its page |
 | D11 | Long-press an IDR card while a KRW wallet is Main | Both stay Main: one Main wallet per currency |
 
 ## Transactions (`transactions.e2e.ts`)
@@ -84,14 +84,24 @@ regression suite `app.e2e.ts`.
 | H12 | New user with one wallet, no transactions | "No transactions yet" prompt and zeroes, no error |
 | H13 | Pull down at the top of Home after a transaction is added elsewhere | Latest shows it without a page reload |
 
-## Settings (`settings.e2e.ts`)
+## Profile (`profile.e2e.ts`)
 | ID | Scenario | Expected |
 |---|---|---|
-| G1 | Profile tab shows current name and email | Prefilled |
-| G2 | Change name and save | Persisted (header initials and reload show the new name) |
-| G3 | Change password form | Either works (old password stops working) or isn't offered |
+| P1 | Visit /settings | Redirects to /profile; card shows name and "Member since" |
+| P2 | Upload a photo, then remove it | Photo on Profile and the Home avatar; gone after Remove |
+| P3 | Edit profile, Change password, Shortcut token | Name saves; both sheets open |
+| P4 | Greeting and theme toggle off Home | Only Home shows the greeting and "Open profile" link |
+| P5 | Pick a wallet icon and red colour | Card tile filled red with an icon |
+| P6 | Sign out from Profile | Back on /login |
+
+## Settings (`settings.e2e.ts`, on /profile)
+| ID | Scenario | Expected |
+|---|---|---|
+| G1 | Edit profile sheet shows current name and email | Prefilled |
+| G2 | Change name and save on Profile | Card and Home initials show the new name |
+| G3 | Change password sheet | Works (old password stops working) |
 | G4 | Appearance: pick Dark | `dark` class on <html>, persists after reload |
-| G5 | All sections reachable on a phone-width screen | Each section opens |
+| G5 | All Profile sections on a phone-width screen | Each section visible |
 | G6 | 404 page while signed in | 404 content with a working "Back to Home" |
 
 ## Cross-cutting checks (every scenario)

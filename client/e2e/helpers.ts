@@ -69,11 +69,12 @@ export async function walletBalance(page: Page, walletId: string) {
 export const prevMonth = (page: Page) => page.getByRole('button', { name: 'Previous month' }).first().click();
 export const nextMonth = (page: Page) => page.getByRole('button', { name: 'Next month' }).first().click();
 
-export const avatarButton = (page: Page) => page.getByRole('button', { name: 'Account menu' });
+// Home header only
+export const avatarButton = (page: Page) => page.getByRole('link', { name: 'Open profile' });
 
 export async function logOutViaUi(page: Page) {
-  await avatarButton(page).click();
-  await page.getByRole('menuitem', { name: 'Log out' }).click();
+  await page.goto('/profile');
+  await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login/);
 }
 
