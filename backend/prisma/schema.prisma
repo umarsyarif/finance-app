@@ -18,6 +18,8 @@ model User {
   wallets    Wallet[]
   categories Category[]
   transfers  Transfer[]
+  avatar     UserAvatar?
+  avatarUpdatedAt DateTime?
 
   photo String? @default("default.png")
   verified Boolean? @default(false) 
@@ -53,6 +55,7 @@ model Wallet {
   balance      Decimal       @default(0.0) @db.Decimal(19,4)
   color        String        @default("#3B82F6") // Default blue color
   description  String?       @db.VarChar(60) // shown on the wallet card instead of the transaction count
+  icon         String? // Lucide icon name; the client falls back to "wallet"
   isMain       Boolean       @default(false)
   displayOrder Int           @default(0)
   createdAt    DateTime      @default(now())
@@ -117,4 +120,15 @@ model Transfer {
 enum CategoryType {
   INCOME
   EXPENSE
+}
+// Profile photo kept out of `users` (deserializeUser loads that row on every request)
+model UserAvatar {
+  userId    String   @id
+  image     Bytes
+  mimeType  String
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_avatars")
 }

@@ -126,3 +126,17 @@ export const findUserByApiToken = async (token: string) => {
     throw err;
   }
 };
+
+export const saveAvatar = (userId: string, image: Buffer, mimeType: string) =>
+  prisma.$transaction(async (tx) => {
+    await tx.userAvatar.upsert({ where: { userId }, create: { userId, image, mimeType }, update: { image, mimeType } });
+    return tx.user.update({ where: { id: userId }, data: { avatarUpdatedAt: new Date() } });
+  });
+
+export const findAvatar = (userId: string) => prisma.userAvatar.findUnique({ where: { userId } });
+
+export const removeAvatar = (userId: string) =>
+  prisma.$transaction([
+    prisma.userAvatar.deleteMany({ where: { userId } }),
+    prisma.user.update({ where: { id: userId }, data: { avatarUpdatedAt: null } }),
+  ]);

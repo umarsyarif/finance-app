@@ -1,7 +1,8 @@
 import express from 'express';
-import { changePasswordHandler, createApiTokenHandler, deleteApiTokenHandler, getApiTokenHandler, getMeHandler, updateMeHandler } from '../controllers/user.controller';
+import { changePasswordHandler, createApiTokenHandler, deleteApiTokenHandler, getApiTokenHandler, getMeHandler, updateMeHandler, putAvatarHandler, getAvatarHandler, deleteAvatarHandler } from '../controllers/user.controller';
 import { validate } from '../middleware/validate';
 import { changePasswordSchema, updateMeSchema } from '../schemas/user.schema';
+import { putAvatarSchema } from '../schemas/avatar.schema';
 import { deserializeUser } from '../middleware/deserializeUser';
 import { requireUser } from '../middleware/requireUser';
 
@@ -11,6 +12,9 @@ router.use(deserializeUser, requireUser);
 
 router.get('/me', getMeHandler);
 router.patch('/me', validate(updateMeSchema), updateMeHandler);
+router.put('/me/avatar', validate(putAvatarSchema), putAvatarHandler);
+router.get('/me/avatar', getAvatarHandler);
+router.delete('/me/avatar', deleteAvatarHandler);
 router.post('/me/password', validate(changePasswordSchema), changePasswordHandler);
 router.get('/me/api-token', getApiTokenHandler);
 router.post('/me/api-token', createApiTokenHandler);

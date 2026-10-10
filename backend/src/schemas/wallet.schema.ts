@@ -5,6 +5,8 @@ const balance = () => number().min(-MAX_AMOUNT).max(MAX_AMOUNT);
 // Shown on the wallet card; trimmed, and an empty string clears it
 const description = () => string().trim().max(60, 'Description must be at most 60 characters').transform((v) => v || null);
 
+const icon = () => string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Invalid icon').max(40).nullable();
+
 export const createWalletSchema = object({
   body: object({
     name: string({
@@ -16,6 +18,7 @@ export const createWalletSchema = object({
     balance: balance().default(0),
     color: string().regex(/^#[0-9A-F]{6}$/i, 'Color must be a valid hex color').default('#3B82F6'),
     description: description().optional(),
+    icon: icon().optional(),
   }),
 });
 
@@ -29,6 +32,7 @@ export const updateWalletSchema = object({
     balance: balance().optional(),
     color: string().regex(/^#[0-9A-F]{6}$/i, 'Color must be a valid hex color').optional(),
     description: description().optional(),
+    icon: icon().optional(),
   }),
 });
 

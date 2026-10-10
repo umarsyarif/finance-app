@@ -42,6 +42,8 @@ async function bootstrap() {
   app.use('/api/capture/photo', express.json({ limit: '7mb' }));
   // Shortcut OCR text: 8,000 chars can be ~24kb of Hangul (3 bytes each in UTF-8)
   app.use('/api/capture/text', express.json({ limit: '32kb' }));
+  // Profile photo: ≤200 KB image, base64 in JSON
+  app.use('/api/users/me/avatar', express.json({ limit: '300kb' }));
   app.use(express.json({ limit: '10kb' }));
 
   // 2. Cookie Parser
@@ -96,10 +98,13 @@ async function bootstrap() {
     // Body-parser failures (no logging: client errors)
     const parseType = (err as { type?: string }).type;
     if (parseType === 'entity.too.large') {
-      const isPhoto = req.originalUrl.split('?')[0] === '/api/capture/photo';
+      const path = req.originalUrl.split('?')[0];
       return res.status(413).json({
         status: 'fail',
-        message: isPhoto ? 'Request is too large (max 5 MB image)' : 'Request is too large',
+        message:
+          path === '/api/capture/photo' ? 'Request is too large (max 5 MB image)'
+          : path === '/api/users/me/avatar' ? 'Image is too large'
+          : 'Request is too large',
       });
     }
     if (parseType === 'entity.parse.failed') {

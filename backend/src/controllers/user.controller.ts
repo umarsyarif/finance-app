@@ -2,8 +2,9 @@ import { NextFunction, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { omit } from 'lodash';
 import { Prisma } from '@prisma/client';
+import { PutAvatarInput } from '../schemas/avatar.schema';
 import { ChangePasswordInput, UpdateMeInput } from '../schemas/user.schema';
-import { deleteAllSessions, excludedFields, findUniqueUser, getApiTokenStatus, issueApiToken, revokeApiToken, updateUser } from '../services/user.service';
+import { deleteAllSessions, excludedFields, findAvatar, findUniqueUser, getApiTokenStatus, removeAvatar, saveAvatar, issueApiToken, revokeApiToken, updateUser } from '../services/user.service';
 import AppError from '../utils/appError';
 
 export const getMeHandler = async (
@@ -101,6 +102,36 @@ export const deleteApiTokenHandler = async (req: Request, res: Response, next: N
     await revokeApiToken(res.locals.user.id);
     res.status(204).end();
   } catch (err: any) {
+    next(err);
+  }
+};
+
+export const putAvatarHandler = async (req: Request<{}, {}, PutAvatarInput>, res: Response, next: NextFunction) => {
+  try {
+    const user = await saveAvatar(res.locals.user.id, Buffer.from(req.body.image, 'base64'), req.body.mimeType);
+    res.status(200).json({ status: 'success', data: { user: omit(user, excludedFields) } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getAvatarHandler = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const avatar = await findAvatar(res.locals.user.id);
+    if (!avatar) return next(new AppError(404, 'No profile photo'));
+    // The URL carries ?v=<avatarUpdatedAt>, so a new photo gets a new URL
+    res.set('Cache-Control', 'private, max-age=31536000, immutable');
+    res.type(avatar.mimeType).send(Buffer.from(avatar.image));
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteAvatarHandler = async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    await removeAvatar(res.locals.user.id);
+    res.status(204).send();
+  } catch (err) {
     next(err);
   }
 };
