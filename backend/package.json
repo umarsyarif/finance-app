@@ -13,7 +13,10 @@
     "test": "cross-env NODE_ENV=development jest",
     "test:watch": "cross-env NODE_ENV=development jest --watch",
     "test:int": "cross-env NODE_ENV=development jest --testMatch '**/*.int.ts' --runInBand --forceExit",
-    "try-capture": "ts-node --transpile-only scripts/try-capture.ts"
+    "try-capture": "ts-node --transpile-only scripts/try-capture.ts",
+    "import-statements": "ts-node --transpile-only scripts/import-statements.ts",
+    "categorize-imports": "ts-node --transpile-only scripts/categorize-imports.ts",
+    "set-category-icons": "ts-node --transpile-only scripts/set-category-icons.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
