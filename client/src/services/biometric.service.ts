@@ -11,8 +11,8 @@ export function base64UrlToArrayBuffer(id: string): ArrayBuffer {
 }
 
 export class BiometricAuthService {
-  private readonly credentialKey = 'biometric_credential';
-  private readonly userIdKey = 'biometric_user_id';
+  private readonly credentialKey = 'app_lock_credential';
+  private readonly userIdKey = 'app_lock_user_id';
 
   /**
    * Check if biometric authentication is supported on this device
@@ -150,6 +150,9 @@ export class BiometricAuthService {
    * Check if biometric authentication is enabled for the current device
    */
   isEnabled(): boolean {
+    // Enrollments from the old Face ID sign-in must never act as a lock
+    localStorage.removeItem('biometric_credential');
+    localStorage.removeItem('biometric_user_id');
     return !!this.getStoredCredential();
   }
 

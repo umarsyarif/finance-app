@@ -41,21 +41,6 @@ export class SecureStorageService {
       return null;
     }
   }
-
-  setLastActivity(): void {
-    this.setItem('last_activity', Date.now().toString());
-  }
-
-  getLastActivity(): number | null {
-    const ts = this.getItem('last_activity');
-    return ts ? parseInt(ts, 10) : null;
-  }
-
-  isSessionExpired(maxInactiveMinutes = 30): boolean {
-    const lastActivity = this.getLastActivity();
-    if (!lastActivity) return false;
-    return (Date.now() - lastActivity) > maxInactiveMinutes * 60 * 1000;
-  }
 }
 
 export const secureStorage = new SecureStorageService();

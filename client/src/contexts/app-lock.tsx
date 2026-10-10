@@ -6,7 +6,7 @@ import { LockScreen } from '@/components/lock-screen';
 // Re-lock when the app comes back after this long in the background
 export const AWAY_LOCK_MS = 60_000;
 
-type AppLock = { locked: boolean; unlock: () => Promise<void>; error: string | null; pending: boolean };
+type AppLock = { locked: boolean; unlock: (auto?: boolean) => Promise<void>; error: string | null; pending: boolean };
 const AppLockContext = createContext<AppLock | null>(null);
 export const useAppLock = () => useContext(AppLockContext);
 
@@ -26,7 +26,7 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
 
-  const unlock = useCallback(async () => {
+  const unlock = useCallback(async (auto = false) => {
     // One Face ID prompt at a time: a second concurrent credentials.get would fail
     if (inFlight.current) return;
     inFlight.current = true;
@@ -35,7 +35,8 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
     try {
       const result = await biometricService.authenticate();
       if (result.success) setLocked(false);
-      else setError(result.error ?? "Face ID didn't work");
+      // The prompt fired on show has no user gesture: a cancel/not-allowed there isn't worth an error line
+      else if (!(auto && /not allowed|cancel/i.test(result.error ?? ''))) setError(result.error ?? "Face ID didn't work");
     } finally {
       inFlight.current = false;
       setPending(false);

@@ -24,15 +24,25 @@ describe('AppLockProvider', () => {
   });
 
   it('hides the app until Face ID succeeds', async () => {
-    authenticate.mockResolvedValueOnce({ success: false, error: 'cancelled' }).mockResolvedValueOnce({ success: true });
+    authenticate.mockResolvedValueOnce({ success: false, error: 'boom' }).mockResolvedValueOnce({ success: true });
     renderApp();
     expect(screen.queryByText('secret')).not.toBeInTheDocument();
     expect(screen.getByText('Unlock with Face ID')).toBeInTheDocument();
     await waitFor(() => expect(authenticate).toHaveBeenCalledTimes(1));
     expect(screen.queryByText('secret')).not.toBeInTheDocument();
-    await screen.findByText('cancelled');
+    await screen.findByText('boom');
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
     await screen.findByText('secret');
+  });
+
+  it('shows no error when the automatic prompt is cancelled, but does for a tapped retry', async () => {
+    authenticate.mockResolvedValue({ success: false, error: 'Biometric authentication was cancelled or not allowed' });
+    renderApp();
+    await waitFor(() => expect(authenticate).toHaveBeenCalledTimes(1));
+    await screen.findByRole('button', { name: 'Try again' });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await screen.findByRole('alert');
   });
 
   it('does not lock when the lock is off, or when nobody is signed in', () => {

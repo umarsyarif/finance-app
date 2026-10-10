@@ -61,4 +61,12 @@ describe('Profile photo', () => {
     await waitFor(() => expect(refreshUser).toHaveBeenCalled());
     expect(axios.delete).toHaveBeenCalledWith('/api/users/me/avatar');
   });
+
+  it('falls back to initials when the photo fails to load', () => {
+    avatarUpdatedAt = '2026-10-11T00:00:00.000Z';
+    const { container } = renderProfile();
+    fireEvent.error(container.querySelector('img')!);
+    expect(container.querySelector('img')).toBeNull();
+    expect(screen.getByText('U')).toBeInTheDocument();
+  });
 });

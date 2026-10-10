@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import axios from '@/lib/axios';
 
@@ -12,9 +13,10 @@ const initials = (name = '') => name.split(' ').map((p) => p[0]).join('').toUppe
 // Profile photo, or the user's initials on lime when there is none
 export function UserAvatar({ user, className }: { user: AvatarUser | null; className?: string }) {
   const src = user && avatarUrl(user);
+  const [failed, setFailed] = useState<string | null>(null);
   return (
     <span className={cn('flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-lime-soft text-sm font-semibold text-foreground', className)}>
-      {src ? <img src={`${axios.defaults.baseURL ?? ''}${src}`} alt="" className="size-full object-cover" /> : initials(user?.name)}
+      {src && failed !== src ? <img src={`${axios.defaults.baseURL ?? ''}${src}`} alt="" onError={() => setFailed(src)} className="size-full object-cover" /> : initials(user?.name)}
     </span>
   );
 }

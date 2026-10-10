@@ -28,22 +28,42 @@ describe('Face ID lock switch', () => {
     auth.biometricSupported = true;
   });
 
-  it('rolls back an enrollment whose first unlock fails', async () => {
+  it('keeps the lock on when enabling works, without a verify step', async () => {
     auth.enableBiometric.mockResolvedValue(true);
-    authenticate.mockResolvedValue({ success: false });
     renderProfile();
     fireEvent.click(screen.getByRole('switch', { name: 'Face ID lock' }));
-    await waitFor(() => expect(auth.disableBiometric).toHaveBeenCalled());
-    expect(toast.error).toHaveBeenCalledWith("Couldn't turn on Face ID lock");
+    await waitFor(() => expect(auth.enableBiometric).toHaveBeenCalled());
+    expect(authenticate).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it('keeps the lock when the first unlock works', async () => {
-    auth.enableBiometric.mockResolvedValue(true);
-    authenticate.mockResolvedValue({ success: true });
+  it('toasts when enabling fails', async () => {
+    auth.enableBiometric.mockResolvedValue(false);
     renderProfile();
     fireEvent.click(screen.getByRole('switch', { name: 'Face ID lock' }));
-    await waitFor(() => expect(authenticate).toHaveBeenCalled());
-    expect(auth.disableBiometric).not.toHaveBeenCalled();
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Couldn't turn on Face ID lock"));
+    expect(authenticate).not.toHaveBeenCalled();
+  });
+
+  it('disables the switch while enabling is in flight', async () => {
+    let done!: (v: boolean) => void;
+    auth.enableBiometric.mockReturnValue(new Promise<boolean>((r) => { done = r; }));
+    renderProfile();
+    const sw = screen.getByRole('switch', { name: 'Face ID lock' });
+    fireEvent.click(sw);
+    await waitFor(() => expect(sw).toBeDisabled());
+    done(true);
+    await waitFor(() => expect(sw).toBeEnabled());
+  });
+
+  it('reopens Edit profile with the saved values, not stale edits', async () => {
+    renderProfile();
+    fireEvent.click(screen.getByRole('button', { name: /edit profile/i }));
+    fireEvent.change(await screen.findByLabelText('Full Name'), { target: { value: 'Typed' } });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByLabelText('Full Name')).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /edit profile/i }));
+    expect(await screen.findByLabelText('Full Name')).toHaveValue('Umar');
   });
 
   it('still shows the switch on an unsupported device while the lock is on', () => {

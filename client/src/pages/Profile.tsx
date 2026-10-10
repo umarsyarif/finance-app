@@ -17,7 +17,6 @@ import { useWallets } from '@/hooks/use-wallets';
 import { currenciesOf } from '@/lib/selection';
 import axios from '@/lib/axios';
 import { squareAvatar } from '@/lib/image';
-import { biometricService } from '@/services/biometric.service';
 
 const apiMessage = (err: unknown) => (err instanceof AxiosError ? err.response?.data?.message : undefined);
 const field = 'h-[52px] rounded-[20px] bg-card px-[18px]';
@@ -48,6 +47,7 @@ export default function Profile() {
   const [sheet, setSheet] = useState<SheetName>(null);
   const [profileData, setProfileData] = useState({ name: user?.name ?? '', email: user?.email ?? '' });
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', newPasswordConfirm: '' });
+  const [lockPending, setLockPending] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -65,11 +65,16 @@ export default function Profile() {
     }
   };
   const toggleLock = async (on: boolean) => {
+    setLockPending(true);
+    try {
+      await applyLock(on);
+    } finally {
+      setLockPending(false);
+    }
+  };
+  const applyLock = async (on: boolean) => {
     if (!on) return disableBiometric();
-    // A broken enrollment must never become an active lock: prove one unlock works first
-    if ((await enableBiometric()) && (await biometricService.authenticate()).success) return;
-    disableBiometric();
-    toast.error("Couldn't turn on Face ID lock");
+    if (!(await enableBiometric())) toast.error("Couldn't turn on Face ID lock");
   };
   const removePhoto = async () => {
     try {
@@ -136,7 +141,7 @@ export default function Profile() {
               {memberSince && <p className="text-xs text-muted-foreground">Member since {memberSince}</p>}
             </div>
           </div>
-          <PillButton className="w-full justify-center" onClick={() => setSheet('profile')}><Pencil /> Edit profile</PillButton>
+          <PillButton className="w-full justify-center" onClick={() => { setProfileData({ name: user?.name ?? '', email: user?.email ?? '' }); setSheet('profile'); }}><Pencil /> Edit profile</PillButton>
           {user?.avatarUpdatedAt && <button type="button" onClick={removePhoto} className="mx-auto flex items-center gap-1.5 text-sm text-muted-foreground"><Trash2 className="size-4" /> Remove photo</button>}
         </section>
 
@@ -163,7 +168,7 @@ export default function Profile() {
                 <span className="block text-[15px] font-semibold">Face ID lock</span>
                 <span className="block text-xs text-muted-foreground">Require Face ID when opening the app</span>
               </span>
-              <Switch aria-label="Face ID lock" checked={biometricEnabled} onCheckedChange={toggleLock} />
+              <Switch aria-label="Face ID lock" checked={biometricEnabled} disabled={lockPending} onCheckedChange={toggleLock} />
             </div>
           )}
           <Row icon={KeyRound} title="Change password" subtitle="Signs out your other devices" onClick={() => setSheet('password')} />
