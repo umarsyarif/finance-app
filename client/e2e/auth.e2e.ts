@@ -66,11 +66,11 @@ test('A6 login then reload keeps you signed in', async ({ page }) => {
   await page.getByTestId('input-email').fill(email);
   await page.getByTestId('input-password').fill(PASSWORD);
   await page.getByTestId('submit-button').click();
-  await expect(page.getByRole('heading', { name: 'This month' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
 
   await page.reload();
 
-  await expect(page.getByRole('heading', { name: 'This month' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
 });
 
 test('A7 protected page while signed out redirects to login', async ({ page }) => {

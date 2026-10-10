@@ -5,10 +5,10 @@ import {
   card, row, openAddSheet, fillTransaction, saveButton,
 } from './helpers';
 
-// The wallet card currently selected on the dashboard
+// The wallet card currently selected on Transactions
 const selectedWallet = (page: Page) => page.locator('article[aria-current="true"] h3');
 
-test('D1 add income raises balance and income, shows in Recent', async ({ page }) => {
+test('D1 add income raises balance and income, shows in Latest', async ({ page }) => {
   await signUp(page, 'd1');
   const wallet = await seedWallet(page, 'KRW', 100000);
   await seedCategory(page, 'INCOME', 'Salary');
@@ -18,13 +18,13 @@ test('D1 add income raises balance and income, shows in Recent', async ({ page }
   await fillTransaction(sheet, { type: 'Income', description: 'Paycheck', amount: '50000', category: 'Salary' });
   await saveButton(sheet).click();
 
-  await expect(page.getByText('₩150,000')).toBeVisible();
+  await expect(page.getByText('₩150,000').first()).toBeVisible();
   await expect(page.getByText('+₩50,000').first()).toBeVisible();
   await expect(row(page, 'Paycheck')).toBeVisible();
   expect(await walletBalance(page, wallet)).toBe(150000);
 });
 
-test('D2 add expense lowers balance and raises expense, shows in Recent', async ({ page }) => {
+test('D2 add expense lowers balance and raises expense, shows in Latest', async ({ page }) => {
   await signUp(page, 'd2');
   const wallet = await seedWallet(page, 'KRW', 100000);
   await seedCategory(page, 'EXPENSE', 'Food');
@@ -34,7 +34,7 @@ test('D2 add expense lowers balance and raises expense, shows in Recent', async 
   await fillTransaction(sheet, { description: 'Bibimbap', amount: '12000', category: 'Food' });
   await saveButton(sheet).click();
 
-  await expect(page.getByText('₩88,000')).toBeVisible();
+  await expect(page.getByText('₩88,000').first()).toBeVisible();
   await expect(page.getByText('-₩12,000').first()).toBeVisible();
   await expect(row(page, 'Bibimbap')).toBeVisible();
   expect(await walletBalance(page, wallet)).toBe(88000);
@@ -101,14 +101,14 @@ test('D5 a category created inline is selected and used', async ({ page }) => {
   expect(data.transactions[0].category.name).toBe('Snacks');
 });
 
-test('D6 swiping to another wallet switches its balance and Recent list', async ({ page }) => {
+test('D6 swiping to another wallet on Transactions switches its list', async ({ page }) => {
   await signUp(page, 'd6');
   const alpha = await seedWallet(page, 'KRW', 1000, 'Alpha');
   const beta = await seedWallet(page, 'KRW', 2000, 'Beta', false);
   const cat = await seedCategory(page, 'EXPENSE');
   await seedTx(page, alpha, cat, 'alpha-row', thisMonth(2));
   await seedTx(page, beta, cat, 'beta-row', thisMonth(2));
-  await page.goto('/');
+  await page.goto('/transactions');
   await expect(selectedWallet(page)).toHaveText('Alpha');
   await expect(row(page, 'alpha-row')).toBeVisible();
 
@@ -119,12 +119,12 @@ test('D6 swiping to another wallet switches its balance and Recent list', async 
   await expect(row(page, 'alpha-row')).toBeHidden();
 });
 
-test('D7 adding from the 2nd wallet saves there and stays on it', async ({ page }) => {
+test('D7 adding from the 2nd wallet on Transactions saves there and stays on it', async ({ page }) => {
   await signUp(page, 'd7');
   const alpha = await seedWallet(page, 'KRW', 1000, 'Alpha');
   const beta = await seedWallet(page, 'KRW', 2000, 'Beta', false);
   await seedCategory(page, 'EXPENSE', 'Food');
-  await page.goto('/');
+  await page.goto('/transactions');
   await card(page, 'Beta').scrollIntoViewIfNeeded();
   await expect(selectedWallet(page)).toHaveText('Beta');
 
@@ -142,7 +142,7 @@ test('D8 long-pressing a wallet card makes it Main', async ({ page }) => {
   await signUp(page, 'd8');
   await seedWallet(page, 'KRW', 1000, 'Alpha');
   const beta = await seedWallet(page, 'KRW', 2000, 'Beta', false);
-  await page.goto('/');
+  await page.goto('/transactions');
   const betaCard = card(page, 'Beta');
   await betaCard.scrollIntoViewIfNeeded();
 
@@ -172,12 +172,12 @@ test('D10 bottom navigation opens each page', async ({ page }) => {
 
   await nav('Transactions').click();
   await expect(page).toHaveURL(/\/transactions$/);
-  await nav('Stats').click();
-  await expect(page).toHaveURL(/\/stats$/);
-  await expect(page.getByRole('heading', { name: 'Stats' })).toBeVisible();
   await nav('Wallets').click();
   await expect(page).toHaveURL(/\/wallets$/);
   await expect(page.getByRole('heading', { name: 'Wallets' })).toBeVisible();
+  await nav('Settings').click();
+  await expect(page).toHaveURL(/\/settings$/);
   await nav('Home').click();
   await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible();
 });

@@ -12,12 +12,12 @@ test('stays signed in after the access token cookie expires', async ({ page, con
   await signUp(page, 'refresh');
   await seedWallet(page);
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'This month' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
 
   await context.clearCookies({ name: 'access_token' }); // what the browser does after 2h
   await page.reload();
 
-  await expect(page.getByRole('heading', { name: 'This month' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
   await expect(page).not.toHaveURL(/\/login/);
 });
 
@@ -135,7 +135,7 @@ test('without "Remember me", closing the browser signs you out', async ({ page, 
   await page.getByTestId('input-email').fill(email);
   await page.getByTestId('input-password').fill('password123');
   await page.getByTestId('submit-button').click();
-  await expect(page.getByRole('heading', { name: 'This month' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
 
   // Browser restart: session cookies (no expiry) are dropped, persistent ones survive
   const state = await page.context().storageState();
@@ -150,14 +150,14 @@ test('without "Remember me", closing the browser signs you out', async ({ page, 
   await restarted.close();
 });
 
-test('stats for a rupiah-only user are shown in rupiah', async ({ page }) => {
+test('Home for a rupiah-only user are shown in rupiah', async ({ page }) => {
   await signUp(page, 'idr');
   const wallet = await seedWallet(page, 'IDR', 500000);
   const cat = await seedCategory(page, 'EXPENSE');
   await seedTx(page, wallet, cat, 'nasi', new Date().toISOString(), 25000);
-  await page.goto('/stats');
+  await page.goto('/');
 
-  await expect(page.getByRole('region', { name: 'Monthly summary' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Summary' })).toBeVisible();
   await expect(page.getByText(/25,000/).first()).toBeVisible();
   await expect(page.locator('body')).not.toContainText('₩');
 });

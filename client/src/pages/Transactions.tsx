@@ -17,7 +17,7 @@ export function MonthlyTransactionsView() {
   return (
     <>
       <PageTitle eyebrow="Monthly ledger" title="Transactions" />
-      <WalletCards selectedWalletId={walletId} onSelect={setSelectedWalletId} month={currentDate} refreshKey={dataVersion} />
+      <WalletCards selectedWalletId={walletId ?? selectedWalletId} onSelect={setSelectedWalletId} month={currentDate} refreshKey={dataVersion} />
       {walletId && (
         <div className="mt-6">
           <TransactionsList

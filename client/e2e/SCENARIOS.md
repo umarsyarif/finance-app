@@ -5,7 +5,7 @@ scenario is driven through the UI for the feature under test; the API is only
 used to set up preconditions and to verify what was persisted.
 
 Files: `auth.e2e.ts`, `dashboard.e2e.ts`, `transactions.e2e.ts`,
-`wallets.e2e.ts`, `stats.e2e.ts`, `settings.e2e.ts`, `capture.e2e.ts`, `transfers.e2e.ts`, plus the earlier
+`wallets.e2e.ts`, `home.e2e.ts`, `settings.e2e.ts`, `capture.e2e.ts`, `transfers.e2e.ts`, plus the earlier
 regression suite `app.e2e.ts`.
 
 ## Auth (`auth.e2e.ts`)
@@ -25,16 +25,16 @@ regression suite `app.e2e.ts`.
 ## Dashboard (`dashboard.e2e.ts`)
 | ID | Scenario | Expected |
 |---|---|---|
-| D1 | Add income via the sheet | Balance and Income go up; row appears in Recent |
-| D2 | Add expense via the sheet | Balance goes down, Expense goes up; row in Recent |
+| D1 | Add income via the sheet | Balance and Income go up; row appears in Latest |
+| D2 | Add expense via the sheet | Balance goes down, Expense goes up; row in Latest |
 | D3 | Submit the sheet with no description / zero amount | Validation error, nothing created |
 | D4 | Amount above the server cap | Server message shown, nothing created |
 | D5 | Create a category inline from the sheet's category box | New category is selected and the transaction saves with it |
-| D6 | Swipe to another wallet card | Selected wallet, balance and Recent list follow it |
-| D7 | Add from the + sheet while the 2nd wallet is shown | Saved to that wallet; dashboard stays on it |
-| D8 | Long-press a wallet card | That wallet becomes Main (tag moves, persists after reload) |
+| D6 | Swipe to another wallet card on Transactions | Selected wallet and its list follow it |
+| D7 | Add from the + sheet while the 2nd wallet is shown on Transactions | Saved to that wallet; Transactions stays on it |
+| D8 | Long-press a wallet card on Transactions | That wallet becomes Main (tag moves, persists after reload) |
 | D9 | "See all transactions" link | Opens /transactions |
-| D10 | Bottom navigation | Each tab opens its page |
+| D10 | Bottom navigation (Home, Transactions, Wallets, Settings) | Each tab opens its page |
 
 ## Transactions (`transactions.e2e.ts`)
 | ID | Scenario | Expected |
@@ -64,16 +64,21 @@ regression suite `app.e2e.ts`.
 | W11 | Open "Add wallet" right after editing a wallet | Empty form, not the previous wallet's values |
 | W12 | Rename an IDR wallet | Currency stays IDR |
 
-## Stats (`stats.e2e.ts`)
+## Home (`home.e2e.ts`)
 | ID | Scenario | Expected |
 |---|---|---|
-| S1 | Summary for current month | Net, income, expense match seeded data |
-| S2 | Category breakdown | Expense categories with amounts and shares |
-| S3 | Previous month | Its own (empty) numbers |
-| S4 | Pick another wallet | Totals and currency follow that wallet |
-| S5 | Yearly chart | Income and expense bars drawn |
-| S6 | Add from the + sheet while on Stats | Numbers update without a reload (and the sheet defaults to a wallet) |
-| S7 | User with no transactions | Zeroes / empty state, no error |
+| H1 | KRW and IDR wallets; toggle KRW -> IDR | Total, cards, Latest and Summary switch to IDR; no KRW card or row |
+| H2 | Tap a Home card | Lands on /transactions with that wallet's rows only |
+| H3 | Swipe the Transactions cards to the 2nd wallet | List switches to the 2nd wallet's rows |
+| H4 | Home month switcher -> previous month | Summary shows the empty state for that month; Total and Latest unchanged |
+| H5 | Visit /stats | Ends on Home showing Summary |
+| H6 | Tap the IDR card, reload Transactions | Still on the IDR wallet's list |
+| H7 | Only KRW wallets | No Currency radiogroup |
+| H8 | Income transaction this month | Listed under Summary's Income bars with its amount |
+| H9 | Summary numbers | Income, Expense, Net and category share match the seeded month |
+| H10 | Yearly chart | Income and expense bars drawn |
+| H11 | Add from the + sheet while on Home | Summary and Latest update without a reload |
+| H12 | New user with one wallet, no transactions | "No transactions yet" prompt and zeroes, no error |
 
 ## Settings (`settings.e2e.ts`)
 | ID | Scenario | Expected |

@@ -1,6 +1,6 @@
 // Scenarios TR1–TR5 (see SCENARIOS.md)
 import { type Page } from '@playwright/test';
-import { test, expect, signUp, seedWallet, seedCategory, seedTx, walletBalance, api, openAddSheet, row, thisMonth } from './helpers';
+import { test, expect, signUp, seedWallet, seedCategory, seedTx, walletBalance, api, card, openAddSheet, row, thisMonth } from './helpers';
 
 const sheet = (page: Page) => page.getByRole('dialog').first();
 
@@ -87,12 +87,13 @@ test('TR4 delete a transfer from the details sheet', async ({ page }) => {
   const { krw, idr } = await seedTransfer(page);
   await page.goto('/transactions');
 
-  await row(page, 'Transfer from Won').click();
+  await row(page, 'Transfer to Rupiah').click();
   await page.getByRole('button', { name: 'Delete' }).click();
   await page.getByRole('dialog', { name: 'Delete transfer?' }).getByRole('button', { name: 'Delete' }).click();
 
-  await expect(row(page, 'Transfer from Won')).toHaveCount(0);
   await expect(row(page, 'Transfer to Rupiah')).toHaveCount(0);
+  await card(page, 'Rupiah').scrollIntoViewIfNeeded();
+  await expect(row(page, 'Transfer from Won')).toHaveCount(0);
   expect(await walletBalance(page, krw)).toBe(1_000_000);
   expect(await walletBalance(page, idr)).toBe(0);
 });
@@ -108,6 +109,7 @@ test('TR5 income/expense chips hide transfers', async ({ page }) => {
   await page.getByRole('radio', { name: /Expense/ }).click();
   await expect(row(page, 'Lunch')).toBeVisible();
   await expect(row(page, 'Transfer to Rupiah')).toHaveCount(0);
+  await card(page, 'Rupiah').scrollIntoViewIfNeeded();
   await page.getByRole('radio', { name: /Income/ }).click();
   await expect(row(page, 'Transfer from Won')).toHaveCount(0);
   await page.getByRole('radio', { name: /All/ }).click();
