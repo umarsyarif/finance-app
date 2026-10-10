@@ -12,6 +12,7 @@ import authRouter from './routes/auth.routes';
 import userRouter from './routes/user.routes';
 import transactionRouter from './routes/transaction.routes';
 import categoryRouter from './routes/category.routes';
+import transferRouter from './routes/transfer.routes';
 import walletRouter from './routes/wallet.routes';
 import statsRouter from './routes/stats.routes';
 import captureRouter from './routes/capture.routes';
@@ -62,6 +63,7 @@ async function bootstrap() {
   app.use('/api/users', userRouter);
   app.use('/api/transactions', transactionRouter);
   app.use('/api/categories', categoryRouter);
+  app.use('/api/transfers', transferRouter);
   app.use('/api/wallets', walletRouter);
   app.use('/api/stats', statsRouter);
   app.use('/api/capture', captureRouter);
