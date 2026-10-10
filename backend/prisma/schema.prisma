@@ -17,6 +17,7 @@ model User {
   
   wallets    Wallet[]
   categories Category[]
+  transfers  Transfer[]
 
   photo String? @default("default.png")
   verified Boolean? @default(false) 
@@ -68,6 +69,7 @@ model Category {
   name      String
   type      CategoryType
   color     String        @default("#10B981") // Default green color
+  isTransfer Boolean     @default(false) // built-in transfer-out / transfer-in, hidden from the API
   createdAt DateTime      @default(now())
 
   user         User?      @relation(fields: [userId], references: [id])
@@ -83,13 +85,31 @@ model Transaction {
   amount      Decimal     @db.Decimal(19,4)
   description String?
   date        DateTime
+  transferId  String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   wallet   Wallet     @relation(fields: [walletId], references: [id])
   category Category   @relation(fields: [categoryId], references: [id])
+  transfer Transfer?  @relation(fields: [transferId], references: [id])
 
+  @@index([transferId])
   @@map("transactions")
+}
+
+// Money moved between two of the user's wallets: exactly one out row and one in row
+model Transfer {
+  id           String        @id @default(uuid())
+  userId       String
+  date         DateTime
+  note         String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+
+  @@map("transfers")
 }
 
 enum CategoryType {

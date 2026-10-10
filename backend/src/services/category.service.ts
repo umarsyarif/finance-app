@@ -1,6 +1,9 @@
 import { Prisma } from '@prisma/client';
 import prisma from '../middleware/prismaMiddleware';
 
+// Transfer categories are internal (used only by transfer.service); no lookup here ever returns them
+const visible = <T extends object>(where: T) => ({ ...where, isTransfer: false });
+
 export const createCategory = async (input: Prisma.CategoryCreateInput) => {
   return (await prisma.category.create({
     data: input,
@@ -16,7 +19,7 @@ export const findCategory = async (
     throw new Error('Cannot use both select and include');
   }
 
-  const query: any = { where };
+  const query: any = { where: visible(where) };
   if (select) {
     query.select = select;
   } else if (include) {
@@ -35,7 +38,7 @@ export const findUniqueCategory = async (
     throw new Error('Cannot use both select and include');
   }
 
-  const query: any = { where };
+  const query: any = { where: visible(where) };
   if (select) {
     query.select = select;
   } else if (include) {
@@ -56,7 +59,7 @@ export const findCategories = async (
     throw new Error('Cannot use both select and include');
   }
 
-  const query: any = { where, orderBy: [{ type: 'asc' }, { name: 'asc' }] };
+  const query: any = { where: visible(where), orderBy: [{ type: 'asc' }, { name: 'asc' }] };
   if (select) {
     query.select = select;
   } else if (include) {
@@ -97,5 +100,5 @@ export const deleteCategory = async (where: Prisma.CategoryWhereUniqueInput) => 
 };
 
 export const countCategories = async (where: Partial<Prisma.CategoryWhereInput>) => {
-  return await prisma.category.count({ where });
+  return await prisma.category.count({ where: visible(where) });
 };
