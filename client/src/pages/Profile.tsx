@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronRight, KeyRound, LogOut, Pencil, Smartphone } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Camera, ChevronRight, KeyRound, LogOut, Pencil, Smartphone, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 import { ApiTokenSettings } from '@/components/api-token-settings';
@@ -16,6 +16,7 @@ import { useTheme } from '@/contexts/theme.context';
 import { useWallets } from '@/hooks/use-wallets';
 import { currenciesOf } from '@/lib/selection';
 import axios from '@/lib/axios';
+import { squareAvatar } from '@/lib/image';
 
 const apiMessage = (err: unknown) => (err instanceof AxiosError ? err.response?.data?.message : undefined);
 const field = 'h-[52px] rounded-[20px] bg-card px-[18px]';
@@ -47,6 +48,29 @@ export default function Profile() {
   const [profileData, setProfileData] = useState({ name: user?.name ?? '', email: user?.email ?? '' });
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', newPasswordConfirm: '' });
   const [saving, setSaving] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const uploadPhoto = async (file?: File) => {
+    if (!file) return;
+    try {
+      const payload = await squareAvatar(file);
+      await axios.put('/api/users/me/avatar', payload);
+      await refreshUser();
+      toast.success('Photo updated');
+    } catch {
+      toast.error("Couldn't update your photo");
+    } finally {
+      if (fileInput.current) fileInput.current.value = '';
+    }
+  };
+  const removePhoto = async () => {
+    try {
+      await axios.delete('/api/users/me/avatar');
+      await refreshUser();
+    } catch {
+      toast.error("Couldn't remove your photo");
+    }
+  };
 
   const mains = currenciesOf(wallets)
     .map((c) => wallets.find((w) => w.currency === c && w.isMain)?.name)
@@ -93,7 +117,11 @@ export default function Profile() {
       <div className="space-y-4">
         <section aria-label="Profile card" className="space-y-5 rounded-[24px] bg-card p-5 shadow-resting">
           <div className="flex items-center gap-4">
-            <UserAvatar user={user} className="size-[88px] text-2xl" />
+            <label className="relative cursor-pointer">
+              <input ref={fileInput} type="file" accept="image/*" aria-label="Change photo" className="sr-only" onChange={(e) => uploadPhoto(e.target.files?.[0])} />
+              <UserAvatar user={user} className="size-[88px] text-2xl" />
+              <span aria-hidden className="absolute -bottom-1 -right-1 flex size-8 items-center justify-center rounded-full bg-foreground text-background"><Camera className="size-4" /></span>
+            </label>
             <div className="min-w-0">
               <p className="truncate text-[19px] font-bold">{user?.name}</p>
               <p className="truncate text-sm text-muted-foreground">{user?.email}</p>
@@ -101,6 +129,7 @@ export default function Profile() {
             </div>
           </div>
           <PillButton className="w-full justify-center" onClick={() => setSheet('profile')}><Pencil /> Edit profile</PillButton>
+          {user?.avatarUpdatedAt && <button type="button" onClick={removePhoto} className="mx-auto flex items-center gap-1.5 text-sm text-muted-foreground"><Trash2 className="size-4" /> Remove photo</button>}
         </section>
 
         <section aria-label="Stats" className="grid grid-cols-3 gap-3 rounded-[24px] bg-card p-5 text-center shadow-resting">

@@ -34,3 +34,27 @@ export async function downscaleImage(file: File, maxSize = 1600): Promise<{ imag
     URL.revokeObjectURL(url);
   }
 }
+
+const AVATAR_SIZE = 256;
+
+// Profile photo: centre square, 256x256 JPEG (a few tens of KB), base64 without the data: prefix
+export async function squareAvatar(file: File): Promise<{ image: string; mimeType: 'image/jpeg' }> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImage(url);
+    const side = Math.min(img.naturalWidth, img.naturalHeight);
+    if (!side) throw new Error('Unsupported image');
+    const sx = (img.naturalWidth - side) / 2;
+    const sy = (img.naturalHeight - side) / 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = AVATAR_SIZE;
+    canvas.height = AVATAR_SIZE;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas is not supported');
+    ctx.drawImage(img, sx, sy, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    return { image: dataUrl.slice(dataUrl.indexOf(',') + 1), mimeType: 'image/jpeg' };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
