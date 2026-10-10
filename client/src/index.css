@@ -131,6 +131,8 @@
     @apply bg-background text-foreground font-sans antialiased;
     /* The app has its own pull-to-refresh (usePullToRefresh); don't also trigger the browser's */
     overscroll-behavior-y: contain;
+    /* No double-tap zoom (and no tap delay); pinch is blocked in lib/prevent-zoom.ts */
+    touch-action: manipulation;
   }
 }
 
