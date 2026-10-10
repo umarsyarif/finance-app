@@ -18,7 +18,6 @@ vi.mock('@/contexts/auth.context', () => ({
 vi.mock('@/contexts/theme.context', () => ({ useTheme: () => ({ theme: 'light', setTheme: vi.fn() }) }));
 vi.mock('@/services/secure-storage.service', () => ({ secureStorage: { getItem: () => null, setItem: vi.fn() } }));
 vi.mock('@/hooks/use-wallets', () => ({ useWallets: () => ({ wallets: [] }) }));
-vi.mock('@/components/biometric-settings', () => ({ BiometricSettings: () => null }));
 vi.mock('@/components/api-token-settings', () => ({ ApiTokenSettings: () => null }));
 vi.mock('@/lib/axios', () => ({ default: { defaults: { baseURL: '' }, put: vi.fn(), delete: vi.fn(), patch: vi.fn(), post: vi.fn() } }));
 vi.mock('@/lib/image', () => ({ squareAvatar: vi.fn() }));

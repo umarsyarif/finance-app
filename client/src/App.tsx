@@ -1,5 +1,6 @@
 import { ThemeProvider } from '@/contexts/theme.context';
 import { AuthProvider } from '@/contexts/auth.context';
+import { AppLockProvider } from '@/contexts/app-lock';
 import { PWAPrompt } from '@/components/pwa-prompt';
 import { Toaster } from 'sonner';
 import Router from './Router';
@@ -10,7 +11,9 @@ export default function App() {
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <BrowserRouter>
         <AuthProvider>
-          <Router />
+          <AppLockProvider>
+            <Router />
+          </AppLockProvider>
           <PWAPrompt />
           <Toaster position="top-center" richColors />
         </AuthProvider>

@@ -20,12 +20,11 @@ interface AuthContextType {
   isAuthenticated: boolean;
   biometricEnabled: boolean;
   biometricSupported: boolean;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, passwordConfirm: string) => Promise<void>;
   logout: () => Promise<void>;
   enableBiometric: () => Promise<boolean>;
   disableBiometric: () => void;
-  biometricLogin: () => Promise<{ success: boolean; error?: string }>;
   refreshUser: () => Promise<void>;
 }
 
@@ -49,7 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const response = await axios.get('/api/users/me');
         setUser(response.data.data.user);
-        secureStorage.setLastActivity();
       } catch {
         setUser(null);
       }
@@ -58,38 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initializeAuth();
   }, []); // Empty dependency array - run only once on mount
-
-  // Set up activity tracking and session monitoring
-  useEffect(() => {
-    // Set up activity tracking
-    const handleActivity = () => {
-      if (user) {
-        secureStorage.setLastActivity();
-      }
-    };
-
-    // Track user activity
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    events.forEach(event => {
-      document.addEventListener(event, handleActivity, true);
-    });
-
-    // Check for session expiration periodically
-    const sessionCheckInterval = setInterval(() => {
-      // Remembered sessions stay signed in; others expire after 30 min of inactivity
-      if (user && !secureStorage.getItem('remember_me') && secureStorage.isSessionExpired(30)) {
-        console.log('Session expired due to inactivity');
-        logout();
-      }
-    }, 60000); // Check every minute
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, handleActivity, true);
-      });
-      clearInterval(sessionCheckInterval);
-    };
-  }, [user]); // This effect can depend on user for activity tracking
 
   if (loading) {
     return (
@@ -100,17 +66,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  const login = async (email: string, password: string, rememberMe = false) => {
+  const login = async (email: string, password: string) => {
     try {
-      await axios.post('/api/auth/login', { email, password, rememberMe });
-      if (rememberMe) {
-        secureStorage.setItem('remember_me', 'true', true);
-      } else {
-        secureStorage.removeItem('remember_me');
-      }
+      // Sessions are always remembered (30-day refresh cookie); the Face ID lock guards the device
+      await axios.post('/api/auth/login', { email, password, rememberMe: true });
       const userResponse = await axios.get('/api/users/me');
       setUser(userResponse.data.data.user);
-      secureStorage.setLastActivity();
     } catch (error: unknown) {
       if (error instanceof AxiosError) {
         throw new Error(error.response?.data?.message || 'Login failed');
@@ -123,10 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Registration signs the user in (email verification is disabled)
       await axios.post('/api/auth/register', { name, email, password, passwordConfirm });
-      secureStorage.setItem('remember_me', 'true', true);
       const userResponse = await axios.get('/api/users/me');
       setUser(userResponse.data.data.user);
-      secureStorage.setLastActivity();
     } catch (error) {
       if (error instanceof AxiosError) {
         throw new Error(error.response?.data?.message || 'Registration failed');
@@ -167,35 +126,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setBiometricEnabled(false);
   };
 
-  const biometricLogin = async (): Promise<{ success: boolean; error?: string }> => {
-    if (!biometricEnabled) {
-      return { success: false, error: 'Biometric authentication is not enabled' };
-    }
-
-    try {
-      const result = await biometricService.authenticate();
-      if (result.success && result.userId) {
-        // Biometrics only unlock an existing server session; they cannot create one
-        try {
-          await refreshUser();
-        } catch {
-          return { success: false, error: 'Your session has expired. Please sign in with your password.' };
-        }
-        return { success: true };
-      }
-      return { success: false, error: result.error || 'Biometric authentication failed' };
-    } catch (error) {
-      console.error('Biometric login failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Biometric authentication failed';
-      return { success: false, error: errorMessage };
-    }
-  };
-
   const refreshUser = async (): Promise<void> => {
     try {
       const response = await axios.get('/api/users/me');
       setUser(response.data.data.user);
-      secureStorage.setLastActivity();
     } catch (error) {
       console.error('Failed to refresh user:', error);
       throw error;
@@ -214,7 +148,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         enableBiometric,
         disableBiometric,
-        biometricLogin,
         refreshUser,
       }}
     >

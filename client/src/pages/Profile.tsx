@@ -1,15 +1,15 @@
 import { useRef, useState } from 'react';
-import { Camera, ChevronRight, KeyRound, LogOut, Pencil, Smartphone, Trash2 } from 'lucide-react';
+import { Camera, ChevronRight, KeyRound, LogOut, Pencil, ScanFace, Smartphone, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 import { ApiTokenSettings } from '@/components/api-token-settings';
-import { BiometricSettings } from '@/components/biometric-settings';
 import { PageTitle, PillButton } from '@/components/page-header';
 import { FilterChips } from '@/components/finance/filter-chips';
 import { UserAvatar } from '@/components/user-avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/auth.context';
 import { useTheme } from '@/contexts/theme.context';
@@ -41,7 +41,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 export default function Profile() {
-  const { user, refreshUser, logout } = useAuth();
+  const { user, refreshUser, logout, biometricEnabled, biometricSupported, enableBiometric, disableBiometric } = useAuth();
   const { theme, setTheme } = useTheme();
   const { wallets } = useWallets();
   const [sheet, setSheet] = useState<SheetName>(null);
@@ -62,6 +62,10 @@ export default function Profile() {
     } finally {
       if (fileInput.current) fileInput.current.value = '';
     }
+  };
+  const toggleLock = async (on: boolean) => {
+    if (!on) return disableBiometric();
+    if (!(await enableBiometric())) toast.error("Couldn't turn on Face ID lock");
   };
   const removePhoto = async () => {
     try {
@@ -147,8 +151,16 @@ export default function Profile() {
 
         <SectionLabel>Security</SectionLabel>
         <section aria-label="Security" className="rounded-[24px] bg-card px-5 py-1 shadow-resting [&>*+*]:border-t [&>*+*]:border-border">
-          {/* Task 5 replaces this with the Face ID lock switch */}
-          <BiometricSettings />
+          {biometricSupported && (
+            <div className="flex items-center gap-3 py-3">
+              <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-muted"><ScanFace className="size-5" /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-semibold">Face ID lock</span>
+                <span className="block text-xs text-muted-foreground">Require Face ID when opening the app</span>
+              </span>
+              <Switch aria-label="Face ID lock" checked={biometricEnabled} onCheckedChange={toggleLock} />
+            </div>
+          )}
           <Row icon={KeyRound} title="Change password" subtitle="Signs out your other devices" onClick={() => setSheet('password')} />
           <Row icon={Smartphone} title="Shortcut token" subtitle="For the iOS capture Shortcut" onClick={() => setSheet('token')} />
         </section>
