@@ -84,7 +84,7 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
   useEffect(() => {
     if (transaction) return;
     const fallback = wallets.find(w => w.isMain) ?? wallets[0];
-    const walletId = defaultWalletId ?? fallback?.id;
+    const walletId = wallets.some(w => w.id === defaultWalletId) ? defaultWalletId : fallback?.id;
     if (walletId) {
       setFormData(prev => (prev.walletId ? prev : { ...prev, walletId }));
     }

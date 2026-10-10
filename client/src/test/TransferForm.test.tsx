@@ -38,6 +38,11 @@ describe('TransferForm', () => {
     }));
   });
 
+  it('ignores a stale default wallet and starts from the main wallet', () => {
+    render(<TransferForm defaultWalletId="deleted" />);
+    expect(screen.getByRole('combobox', { name: 'From wallet' })).toHaveTextContent('Won bank');
+  });
+
   it('different currency: received field and rate line', async () => {
     render(<TransferForm defaultWalletId="k1" />);
     await pick('To wallet', 'Rupiah');

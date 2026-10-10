@@ -46,7 +46,7 @@ export function TransferForm({ transaction, defaultWalletId, onSuccess }: Transf
   // New transfers start from the given wallet, else the main wallet, else the first one
   useEffect(() => {
     if (fromWalletId || wallets.length === 0) return;
-    setFrom(defaultWalletId ?? (wallets.find((w) => w.isMain) ?? wallets[0]).id);
+    setFrom(wallets.some((w) => w.id === defaultWalletId) ? defaultWalletId! : (wallets.find((w) => w.isMain) ?? wallets[0]).id);
   }, [defaultWalletId, fromWalletId, wallets]);
 
   const from = wallets.find((w) => w.id === fromWalletId);
