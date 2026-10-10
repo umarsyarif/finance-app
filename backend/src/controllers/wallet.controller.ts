@@ -28,13 +28,14 @@ export const createWalletHandler = async (
 ) => {
   try {
     const userId = res.locals.user.id;
-    const { name, currency, balance, color } = req.body;
+    const { name, currency, balance, color, description } = req.body;
 
     const wallet = await createWallet({
       name,
       currency,
       balance,
       color,
+      description,
       user: {
         connect: { id: userId },
       },
@@ -119,7 +120,7 @@ export const updateWalletHandler = async (
   try {
     const { walletId } = req.params;
     const userId = res.locals.user.id;
-    const { name, currency, balance, color } = req.body;
+    const { name, currency, balance, color, description } = req.body;
 
     // Check if wallet exists and belongs to user
     const existingWallet = await findWalletById(walletId);
@@ -144,6 +145,7 @@ export const updateWalletHandler = async (
     if (currency !== undefined) updateData.currency = currency;
     if (balance !== undefined) updateData.balance = balance;
     if (color !== undefined) updateData.color = color;
+    if (description !== undefined) updateData.description = description;
 
     const wallet = await updateWallet(walletId, updateData);
 

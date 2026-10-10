@@ -13,6 +13,7 @@ export interface CategoryBreakdown {
   categoryId: string;
   categoryName: string;
   categoryType: string;
+  icon: string | null;
   amount: number;
   percentage: number;
 }
@@ -180,6 +181,7 @@ export const getCategoryBreakdown = async (filters: StatsFilters): Promise<Categ
         categoryId: category.id,
         categoryName: category.name,
         categoryType: category.type,
+        icon: category.icon,
         amount,
         percentage,
       });

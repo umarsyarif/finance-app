@@ -25,7 +25,7 @@ export const createCategoryHandler = async (
 ) => {
   try {
     const userId = res.locals.user.id;
-    const { name, type, color } = req.body;
+    const { name, type, color, icon } = req.body;
 
     // Check if category with same name and type already exists for this user
     const existingCategory = await findCategory({
@@ -42,6 +42,7 @@ export const createCategoryHandler = async (
       name,
       type,
       color,
+      icon,
       user: {
         connect: {
           id: userId,
@@ -147,7 +148,7 @@ export const updateCategoryHandler = async (
   try {
     const userId = res.locals.user.id;
     const { categoryId } = req.params;
-    const { name, type, color } = req.body;
+    const { name, type, color, icon } = req.body;
 
     const category = await findUniqueCategory({
       id: categoryId,
@@ -190,6 +191,7 @@ export const updateCategoryHandler = async (
     if (name !== undefined) updateData.name = name;
     if (type !== undefined) updateData.type = type;
     if (color !== undefined) updateData.color = color;
+    if (icon !== undefined) updateData.icon = icon;
 
     const updatedCategory = await updateCategory(
       { id: categoryId },

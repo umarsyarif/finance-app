@@ -2,6 +2,8 @@ import { object, string, number, array, TypeOf } from 'zod';
 import { MAX_AMOUNT } from './transaction.schema';
 
 const balance = () => number().min(-MAX_AMOUNT).max(MAX_AMOUNT);
+// Shown on the wallet card; trimmed, and an empty string clears it
+const description = () => string().trim().max(60, 'Description must be at most 60 characters').transform((v) => v || null);
 
 export const createWalletSchema = object({
   body: object({
@@ -13,6 +15,7 @@ export const createWalletSchema = object({
     }),
     balance: balance().default(0),
     color: string().regex(/^#[0-9A-F]{6}$/i, 'Color must be a valid hex color').default('#3B82F6'),
+    description: description().optional(),
   }),
 });
 
@@ -25,6 +28,7 @@ export const updateWalletSchema = object({
     currency: string().optional(),
     balance: balance().optional(),
     color: string().regex(/^#[0-9A-F]{6}$/i, 'Color must be a valid hex color').optional(),
+    description: description().optional(),
   }),
 });
 

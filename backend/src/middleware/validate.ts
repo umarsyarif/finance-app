@@ -5,11 +5,13 @@ export const validate =
   (schema: AnyZodObject) =>
   (req: Request, res: Response, next: NextFunction) => {
     try {
-      schema.parse({
+      const parsed = schema.parse({
         params: req.params,
         query: req.query,
         body: req.body,
       });
+      // Keep the schema's trims/defaults/transforms; unknown keys stay as sent
+      if (parsed.body && typeof parsed.body === 'object') req.body = { ...req.body, ...parsed.body };
 
       next();
     } catch (error) {

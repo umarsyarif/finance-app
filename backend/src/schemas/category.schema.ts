@@ -1,6 +1,9 @@
 import { MAX_PAGE_SIZE } from './transaction.schema';
 import { object, string, TypeOf, z } from 'zod';
 
+// A Lucide icon name (e.g. "shopping-cart"); null clears it. The client keeps the curated list.
+const icon = () => string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Invalid icon').max(40).nullable();
+
 enum CategoryTypeEnum {
   INCOME = 'INCOME',
   EXPENSE = 'EXPENSE',
@@ -15,6 +18,7 @@ export const createCategorySchema = object({
       required_error: 'Category type is required',
     }),
     color: string().regex(/^#[0-9A-F]{6}$/i, 'Color must be a valid hex color').default('#10B981'),
+    icon: icon().optional(),
   }),
 });
 
@@ -26,6 +30,7 @@ export const updateCategorySchema = object({
     name: string().min(1, 'Category name cannot be empty').optional(),
     type: z.nativeEnum(CategoryTypeEnum).optional(),
     color: string().regex(/^#[0-9A-F]{6}$/i, 'Color must be a valid hex color').optional(),
+    icon: icon().optional(),
   }),
 });
 
