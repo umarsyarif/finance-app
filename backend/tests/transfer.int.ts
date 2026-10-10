@@ -226,3 +226,65 @@ describe('transfers API', () => {
     expect((await request(app).post('/api/transfers').send({})).status).toBe(401);
   });
 });
+
+describe('transfer rows elsewhere', () => {
+  let u: Agent;
+  let krw: string;
+  let idr: string;
+  let transfer: { id: string; from: { transactionId: string }; to: { transactionId: string } };
+  const range = 'startDate=2026-09-30T15:00:00.000Z&endDate=2026-10-31T14:59:59.999Z';
+
+  beforeAll(async () => {
+    u = await newUser('rows');
+    krw = await wallet(u, 'KRW', 500_000, 'Won');
+    idr = await wallet(u, 'IDR', 0, 'Rupiah');
+    transfer = (await u.post('/api/transfers').send({
+      fromWalletId: krw, toWalletId: idr, amountSent: 100_000, amountReceived: 1_150_000, date: when,
+    })).body.data.transfer;
+  });
+
+  it('list rows carry the transfer with both sides', async () => {
+    const res = await u.get(`/api/transactions?walletId=${krw}&${range}`);
+    const row = res.body.data.transactions.find((t: { id: string }) => t.id === transfer.from.transactionId);
+    expect(row.transferId).toBe(transfer.id);
+    expect(row.transfer.transactions).toHaveLength(2);
+    const other = row.transfer.transactions.find((t: { id: string }) => t.id !== row.id);
+    expect(other.wallet).toMatchObject({ id: idr, name: 'Rupiah', currency: 'IDR' });
+    expect(other.amount).toBe(1_150_000);
+  });
+
+  it('generic edit and delete of a transfer row are refused', async () => {
+    const patch = await u.patch(`/api/transactions/${transfer.from.transactionId}`).send({ amount: 1 });
+    expect(patch.status).toBe(409);
+    expect(patch.body.message).toBe('Edit this in the transfer');
+    const del = await u.delete(`/api/transactions/${transfer.to.transactionId}`);
+    expect(del.status).toBe(409);
+    expect(await balanceOf(u, krw)).toBe(400_000);
+    expect(await balanceOf(u, idr)).toBe(1_150_000);
+  });
+
+  it('stats ignore transfers', async () => {
+    const cat = (await u.post('/api/categories').send({ name: 'Food', type: 'EXPENSE' })).body.data.category.id;
+    await u.post('/api/transactions').send({ walletId: krw, categoryId: cat, amount: 7_000, date: when });
+
+    const summary = await u.get(`/api/stats/monthly-summary?walletIds=${krw}&${range}`);
+    expect(summary.status).toBe(200);
+    expect(summary.body.data).toMatchObject({ income: 0, expense: 7_000 });
+
+    const idrSummary = await u.get(`/api/stats/monthly-summary?walletIds=${idr}&${range}`);
+    expect(idrSummary.body.data).toMatchObject({ income: 0, expense: 0 });
+
+    const breakdown = await u.get(`/api/stats/category-breakdown?walletIds=${krw}&${range}`);
+    expect(JSON.stringify(breakdown.body.data)).not.toContain('Transfer');
+
+    const trend = await u.get(`/api/stats/trend?walletIds=${krw}&year=2026&tz=Asia/Seoul`);
+    const oct = trend.body.data.find((m: { month: string }) => m.month === 'Oct');
+    expect(oct).toMatchObject({ income: 0, expense: 7_000 });
+  });
+
+  it('a wallet with a transfer cannot be deleted or change currency', async () => {
+    expect((await u.delete(`/api/wallets/${idr}`)).status).toBeGreaterThanOrEqual(400);
+    expect((await u.patch(`/api/wallets/${idr}`).send({ currency: 'KRW' })).status).toBeGreaterThanOrEqual(400);
+    expect((await u.get(`/api/wallets/${idr}`)).body.data.wallet.currency).toBe('IDR');
+  });
+});

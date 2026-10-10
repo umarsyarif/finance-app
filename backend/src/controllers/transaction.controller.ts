@@ -197,6 +197,9 @@ export const updateTransactionHandler = async (
     if (!existingTransaction) {
       return next(new AppError(404, 'Transaction not found'));
     }
+    if (existingTransaction.transferId) {
+      return next(new AppError(409, 'Edit this in the transfer'));
+    }
 
     if (walletId && walletId !== existingTransaction.walletId) {
       const wallet = await findWalletById(walletId);
@@ -253,6 +256,9 @@ export const deleteTransactionHandler = async (
     });
     if (!existingTransaction) {
       return next(new AppError(404, 'Transaction not found'));
+    }
+    if (existingTransaction.transferId) {
+      return next(new AppError(409, 'Edit this in the transfer'));
     }
 
     await deleteTransaction({ id: transactionId });

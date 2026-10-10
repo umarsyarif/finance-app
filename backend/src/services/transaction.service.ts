@@ -2,6 +2,19 @@ import prisma, { applyBalanceOnCreate, applyBalanceOnDelete, applyBalanceOnUpdat
 import { Prisma } from '@prisma/client';
 import AppError from '../utils/appError';
 
+// Transfer rows carry both sides so the client can label them without another request
+const rowInclude = {
+  category: true,
+  wallet: true,
+  transfer: {
+    select: {
+      id: true,
+      note: true,
+      transactions: { select: { id: true, amount: true, wallet: { select: { id: true, name: true, currency: true } } } },
+    },
+  },
+} as const;
+
 export const createTransaction = async (input: Prisma.TransactionCreateInput) => {
   return await prisma.$transaction(async (tx) => {
     const transaction = await tx.transaction.create({
@@ -61,7 +74,7 @@ export const deleteTransaction = async (where: Prisma.TransactionWhereUniqueInpu
 export const findUniqueTransaction = async (where: Prisma.TransactionWhereInput) => {
   return await prisma.transaction.findFirst({
     where,
-    include: { category: true, wallet: true },
+    include: rowInclude,
   });
 };
 
@@ -76,7 +89,7 @@ export const findTransactions = async (
     orderBy,
     skip,
     take,
-    include: { category: true, wallet: true },
+    include: rowInclude,
   });
 };
 

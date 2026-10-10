@@ -43,6 +43,7 @@ export const getMonthlySummary = async (filters: StatsFilters): Promise<MonthlyS
     wallet: {
       userId,
     },
+    transferId: null, // transfers move money between own wallets; not income or expense
   };
 
   // Add date filters
@@ -117,6 +118,7 @@ export const getCategoryBreakdown = async (filters: StatsFilters): Promise<Categ
     wallet: {
       userId,
     },
+    transferId: null, // transfers move money between own wallets; not income or expense
     category: {
       type: 'EXPENSE', // Only show expense categories in breakdown
     },
@@ -197,6 +199,7 @@ export const getTrendData = async (filters: StatsFilters): Promise<TrendData[]> 
 
   const whereClause: Prisma.TransactionWhereInput = {
     wallet: { userId },
+    transferId: null, // transfers move money between own wallets; not income or expense
     date: { gte: startOfYear, lte: endOfYear },
   };
   if (walletIds && walletIds.length > 0) whereClause.walletId = { in: walletIds };
