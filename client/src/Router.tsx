@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import { MonthlyTransactionsView } from './pages/Transactions';
 import { Wallets } from './pages/Wallets';
-import Stats from './pages/Stats';
 import Settings from './pages/Settings';
 import { useAuth } from '@/contexts/auth.context';
 
@@ -27,7 +26,7 @@ export default function Router() {
                 <Route path="" element={<Dashboard />} />
                 <Route path="transactions" element={<MonthlyTransactionsView />} />
                 <Route path="wallets" element={<Wallets />} />
-                <Route path="stats" element={<Stats />} />
+                <Route path="stats" element={<Navigate to="/" replace />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="*" element={<NotMatch />} />
             </Route>

@@ -1,81 +1,110 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { WalletCards } from '@/components/finance/wallet-cards';
-import { FilterChips } from '@/components/finance/filter-chips';
-import { RowsCard, TransactionRow, typeCounts, typeOptions, type Transaction, type TypeFilter } from '@/components/finance/transactions-list';
+import { RowsCard, TransactionRow, type Transaction } from '@/components/finance/transactions-list';
 import { TransactionDetailsModal } from '@/components/finance/transaction-details-modal';
+import { MonthSwitcher } from '@/components/finance/month-switcher';
+import { CurrencyToggle } from '@/components/finance/currency-toggle';
+import { CurrencySummary } from '@/components/finance/currency-summary';
+import { YearChart } from '@/components/finance/year-chart';
 import { PageTitle, PillButton } from '@/components/page-header';
 import { useAppShell } from '@/components/app-layout';
+import { useWallets } from '@/hooks/use-wallets';
 import { useTransactions } from '@/hooks/use-transactions';
+import { useStats } from '@/hooks/use-stats';
+import { currenciesOf, resolveCurrency } from '@/lib/selection';
+import { formatAmount } from '@/lib/format-utils';
+import { formatDateForDateInput, getStartOfMonth, getEndOfMonth } from '@/lib/date-utils';
 
-const RECENT = 5;
+const LATEST = 5;
 
+// Home: one currency at a time (toggle), its wallets, newest activity, and the chosen month's summary
 export default function Dashboard() {
-    const navigate = useNavigate();
-    const { selectedWalletId, setSelectedWalletId, dataVersion, notifyDataChanged } = useAppShell();
-    const [type, setType] = useState<TypeFilter>('ALL');
-    const [selected, setSelected] = useState<Transaction | null>(null);
-    const now = new Date();
+  const navigate = useNavigate();
+  const { selectedWalletId, setSelectedWalletId, selectedCurrency, setSelectedCurrency, dataVersion, notifyDataChanged } = useAppShell();
+  const { wallets, refetch } = useWallets();
+  const [month, setMonth] = useState(() => new Date());
+  const [selected, setSelected] = useState<Transaction | null>(null);
 
-    // This month's transactions for the wallet in view; the list shows the most recent few
-    const { transactions, loading } = useTransactions({
-        walletId: selectedWalletId,
-        month: now.getMonth() + 1,
-        year: now.getFullYear(),
-        limit: 100,
-        refreshKey: dataVersion,
-    });
-    const visible = (type === 'ALL' ? transactions : transactions.filter((t) => t.type === type && !t.transferId)).slice(0, RECENT);
-    const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  useEffect(() => {
+    if (dataVersion) refetch();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataVersion]);
 
-    const changed = () => {
-        setSelected(null);
-        notifyDataChanged();
-    };
+  const currency = resolveCurrency(wallets, selectedCurrency);
+  const inCurrency = wallets.filter((w) => w.currency === currency);
+  const walletIds = inCurrency.map((w) => w.id);
+  const ready = walletIds.length > 0;
+  const total = inCurrency.reduce((sum, w) => sum + Number(w.balance), 0);
 
-    return (
-        <>
-            <PageTitle
-                eyebrow="Overview"
-                title="This month"
-                action={<span className="inline-flex h-11 items-center rounded-full bg-card px-[18px] text-[15px] font-semibold shadow-resting">{monthLabel}</span>}
-            />
+  const { transactions: latest, loading: latestLoading } = useTransactions({ walletIds, limit: LATEST, refreshKey: dataVersion, enabled: ready });
 
-            <WalletCards selectedWalletId={selectedWalletId} onSelect={setSelectedWalletId} refreshKey={dataVersion} />
+  const y = month.getFullYear();
+  const m = month.getMonth() + 1;
+  const filters = useMemo(() => ({
+    startDate: formatDateForDateInput(getStartOfMonth(y, m)),
+    endDate: formatDateForDateInput(getEndOfMonth(y, m)),
+    walletIds,
+    refreshKey: dataVersion,
+    enabled: ready,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [y, m, walletIds.join(','), dataVersion, ready]);
+  const { monthlySummary, categoryBreakdown, incomeBreakdown, trendData } = useStats(filters);
+  const monthLabel = month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-            {selectedWalletId && (
-                <section className="mt-8 space-y-4">
-                    <FilterChips label="Transaction type" options={typeOptions(typeCounts(transactions))} value={type} onChange={setType} />
-                    <div className="space-y-2">
-                        <h2 className="px-1 text-[19px] font-bold">Recent activity</h2>
-                        {loading ? (
-                            <div className="h-40 animate-pulse rounded-[24px] bg-card" />
-                        ) : visible.length === 0 ? (
-                            <p className="rounded-[24px] bg-card p-6 text-center text-muted-foreground shadow-resting">
-                                No transactions this month. Tap + to add one.
-                            </p>
-                        ) : (
-                            <RowsCard>
-                                {visible.map((t) => <TransactionRow key={t.id} transaction={t} showDate onClick={() => setSelected(t)} />)}
-                            </RowsCard>
-                        )}
-                    </div>
-                    <PillButton className="w-full justify-center" onClick={() => navigate('/transactions')}>
-                        See all transactions <ArrowRight />
-                    </PillButton>
-                </section>
+  const openWallet = (walletId: string) => {
+    setSelectedWalletId(walletId);
+    navigate('/transactions');
+  };
+  const changed = () => {
+    setSelected(null);
+    notifyDataChanged();
+  };
+
+  return (
+    <>
+      <PageTitle eyebrow="Overview" title="Home" />
+
+      {wallets.length === 0 || !currency ? (
+        <WalletCards onOpen={openWallet} refreshKey={dataVersion} />
+      ) : (
+        <div className="space-y-6">
+          <CurrencyToggle currencies={currenciesOf(wallets)} value={currency} onChange={setSelectedCurrency} />
+
+          <section aria-label="Total" className="rounded-[24px] bg-card p-5 shadow-resting">
+            <p className="text-xs text-muted-foreground">Total</p>
+            <p className="text-2xl font-bold tabular-nums">{formatAmount(total, null, currency)}</p>
+            <p className="text-xs text-muted-foreground">{inCurrency.length} {inCurrency.length === 1 ? 'wallet' : 'wallets'}</p>
+          </section>
+
+          <WalletCards walletIds={walletIds} selectedWalletId={selectedWalletId} onOpen={openWallet} refreshKey={dataVersion} />
+
+          <section className="space-y-2">
+            <h2 className="px-1 text-[19px] font-bold">Latest</h2>
+            {latestLoading ? (
+              <div className="h-40 animate-pulse rounded-[24px] bg-card" />
+            ) : latest.length === 0 ? (
+              <p className="rounded-[24px] bg-card p-6 text-center text-muted-foreground shadow-resting">No transactions yet. Tap + to add one.</p>
+            ) : (
+              <RowsCard>
+                {latest.map((t) => <TransactionRow key={t.id} transaction={t} showDate onClick={() => setSelected(t)} />)}
+              </RowsCard>
             )}
+            <PillButton className="w-full justify-center" onClick={() => navigate('/transactions')}>
+              See all transactions <ArrowRight />
+            </PillButton>
+          </section>
 
-            {selected && (
-                <TransactionDetailsModal
-                    transaction={selected}
-                    isOpen={!!selected}
-                    onClose={() => setSelected(null)}
-                    onUpdate={changed}
-                    onDelete={changed}
-                />
-            )}
-        </>
-    );
+          <MonthSwitcher date={month} onChange={setMonth} />
+          <CurrencySummary currency={currency} monthLabel={monthLabel} summary={monthlySummary} expenses={categoryBreakdown} incomes={incomeBreakdown} />
+          <YearChart year={y} data={trendData} currency={currency} highlightMonth={m} />
+        </div>
+      )}
+
+      {selected && (
+        <TransactionDetailsModal transaction={selected} isOpen={!!selected} onClose={() => setSelected(null)} onUpdate={changed} onDelete={changed} />
+      )}
+    </>
+  );
 }
