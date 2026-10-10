@@ -26,7 +26,7 @@ export default function Dashboard() {
         limit: 100,
         refreshKey: dataVersion,
     });
-    const visible = (type === 'ALL' ? transactions : transactions.filter((t) => t.type === type)).slice(0, RECENT);
+    const visible = (type === 'ALL' ? transactions : transactions.filter((t) => t.type === type && !t.transferId)).slice(0, RECENT);
     const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     const changed = () => {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { ArrowLeftRight, Search } from 'lucide-react';
 import { TransactionDetailsModal } from './transaction-details-modal';
 import { FilterChips } from './filter-chips';
 import { MonthSwitcher } from './month-switcher';
@@ -26,7 +26,16 @@ export interface Transaction {
     id: string;
     name: string;
   };
+  transferId?: string | null;
+  transfer?: {
+    id: string;
+    note: string | null;
+    transactions: { id: string; amount: number; wallet: { id: string; name: string; currency: string } }[];
+  } | null;
 }
+
+// The other side of a transfer row (undefined for ordinary rows)
+export const counterpart = (t: Transaction) => t.transfer?.transactions.find((x) => x.id !== t.id);
 
 export type TypeFilter = 'ALL' | 'INCOME' | 'EXPENSE';
 
@@ -40,6 +49,7 @@ export function TransactionRow({ transaction, onClick, showDate = false }: {
   showDate?: boolean;
 }) {
   const income = transaction.type === 'INCOME';
+  const isTransfer = Boolean(transaction.transferId);
   const when = showDate ? `${shortDate(transaction.date)}, ${time(transaction.date)}` : time(transaction.date);
   return (
     <button
@@ -48,13 +58,13 @@ export function TransactionRow({ transaction, onClick, showDate = false }: {
       className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
     >
       <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-muted text-base font-semibold">
-        {transaction.category?.name?.charAt(0).toUpperCase() ?? '?'}
+        {isTransfer ? <ArrowLeftRight className="size-5" /> : transaction.category?.name?.charAt(0).toUpperCase() ?? '?'}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[15px] font-semibold">{transaction.description}</span>
-        <span className="block truncate text-xs text-muted-foreground">{transaction.category?.name} · {when}</span>
+        <span className="block truncate text-xs text-muted-foreground">{isTransfer ? 'Transfer' : transaction.category?.name} · {when}</span>
       </span>
-      <span className={cn('shrink-0 text-[15px] font-bold tabular-nums', income ? 'text-income' : 'text-expense')}>
+      <span className={cn('shrink-0 text-[15px] font-bold tabular-nums', isTransfer ? 'text-foreground' : income ? 'text-income' : 'text-expense')}>
         {formatAmount(transaction.amount, transaction.type, transaction.wallet?.currency)}
       </span>
     </button>
@@ -71,8 +81,9 @@ export function RowsCard({ children, className }: { children: React.ReactNode; c
 }
 
 export function typeCounts(transactions: Transaction[]) {
-  const income = transactions.filter((t) => t.type === 'INCOME').length;
-  return { ALL: transactions.length, INCOME: income, EXPENSE: transactions.length - income };
+  const plain = transactions.filter((t) => !t.transferId);
+  const income = plain.filter((t) => t.type === 'INCOME').length;
+  return { ALL: transactions.length, INCOME: income, EXPENSE: plain.length - income };
 }
 
 export const typeOptions = (counts: Record<TypeFilter, number>) => [
@@ -104,7 +115,7 @@ export function TransactionsList({ month, year, currentDate, onMonthChange, limi
       ? transactions.filter((t) => `${t.description} ${t.category?.name ?? ''}`.toLowerCase().includes(q))
       : transactions;
   }, [transactions, query]);
-  const visible = type === 'ALL' ? searched : searched.filter((t) => t.type === type);
+  const visible = type === 'ALL' ? searched : searched.filter((t) => t.type === type && !t.transferId);
 
   // Group by local calendar day, newest first (API order)
   const days = useMemo(() => {

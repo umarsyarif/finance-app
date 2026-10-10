@@ -55,6 +55,7 @@ export function WalletCards({ selectedWalletId, onSelect, refreshKey }: WalletCa
           const { data } = await axios.get('/api/transactions', { params: { ...params, walletId: wallet.id } });
           const totals: MonthStats = { income: 0, expense: 0 };
           for (const t of data.data.transactions) {
+            if (t.transferId) continue; // transfers are neither income nor expense
             if (t.category.type === 'INCOME') totals.income += t.amount;
             else totals.expense += t.amount;
           }

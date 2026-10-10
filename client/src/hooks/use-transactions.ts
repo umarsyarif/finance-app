@@ -28,6 +28,8 @@ interface ApiTransaction {
     type: 'INCOME' | 'EXPENSE';
     createdAt: string;
   };
+  transferId: string | null;
+  transfer: Transaction['transfer'];
 }
 
 interface UseTransactionsOptions {
@@ -112,6 +114,8 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
           id: apiTransaction.category.id,
           name: apiTransaction.category.name,
         },
+        transferId: apiTransaction.transferId,
+        transfer: apiTransaction.transfer,
       }));
 
       setTransactions((prev) => (append ? [...prev, ...transformedTransactions] : transformedTransactions));

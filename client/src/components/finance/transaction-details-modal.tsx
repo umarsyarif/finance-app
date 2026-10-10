@@ -5,11 +5,11 @@ import { isAxiosError } from 'axios';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { EditTransactionSheet } from './edit-transaction-sheet';
 import { ConfirmationModal } from '../ui/confirmation-modal';
-import { RowsCard, type Transaction } from './transactions-list';
+import { RowsCard, counterpart, type Transaction } from './transactions-list';
 import { PillButton } from '@/components/page-header';
 import axios from '@/lib/axios';
 import { cn } from '@/lib/utils';
-import { formatAmount, formatDate } from '../../lib/format-utils';
+import { formatAmount, formatCurrency, formatDate } from '../../lib/format-utils';
 
 interface TransactionDetailsModalProps {
   transaction: Transaction | null;
@@ -27,11 +27,16 @@ export function TransactionDetailsModal({ transaction, isOpen, onClose, onUpdate
 
   if (!transaction) return null;
   const income = transaction.type === 'INCOME';
+  const other = counterpart(transaction);
+  const isTransfer = Boolean(transaction.transferId);
+  const outgoing = transaction.type === 'EXPENSE';
+  const from = outgoing ? { name: transaction.wallet?.name, amount: transaction.amount, currency: transaction.wallet?.currency } : { name: other?.wallet.name, amount: other?.amount ?? 0, currency: other?.wallet.currency };
+  const to = outgoing ? { name: other?.wallet.name, amount: other?.amount ?? 0, currency: other?.wallet.currency } : { name: transaction.wallet?.name, amount: transaction.amount, currency: transaction.wallet?.currency };
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await axios.delete(`/api/transactions/${transaction.id}`);
+      await axios.delete(isTransfer ? `/api/transfers/${transaction.transferId}` : `/api/transactions/${transaction.id}`);
       setIsDeleteModalOpen(false);
       onDelete();
     } catch (error) {
@@ -59,16 +64,27 @@ export function TransactionDetailsModal({ transaction, isOpen, onClose, onUpdate
           </SheetHeader>
           <div className="space-y-6">
             <div>
-              <p className={cn('text-2xl font-bold tabular-nums', income ? 'text-income' : 'text-expense')}>
+              <p className={cn('text-2xl font-bold tabular-nums', isTransfer ? 'text-foreground' : income ? 'text-income' : 'text-expense')}>
                 {formatAmount(transaction.amount, transaction.type, transaction.wallet?.currency)}
               </p>
               <p className="text-[19px] font-bold">{transaction.description}</p>
             </div>
             <RowsCard className="bg-background shadow-none">
-              {detail('Type', income ? 'Income' : 'Expense')}
-              {detail('Category', transaction.category?.name)}
-              {detail('Wallet', transaction.wallet?.name)}
-              {detail('Date', formatDate(transaction.date))}
+              {isTransfer ? (
+                <>
+                  {detail('Type', 'Transfer')}
+                  {detail('From', `${from.name} · ${formatCurrency(from.amount, from.currency)}`)}
+                  {detail('To', `${to.name} · ${formatCurrency(to.amount, to.currency)}`)}
+                  {detail('Date', formatDate(transaction.date))}
+                </>
+              ) : (
+                <>
+                  {detail('Type', income ? 'Income' : 'Expense')}
+                  {detail('Category', transaction.category?.name)}
+                  {detail('Wallet', transaction.wallet?.name)}
+                  {detail('Date', formatDate(transaction.date))}
+                </>
+              )}
             </RowsCard>
             <div className="grid grid-cols-2 gap-3">
               <PillButton className="justify-center" onClick={() => setIsEditSheetOpen(true)}>
@@ -96,8 +112,8 @@ export function TransactionDetailsModal({ transaction, isOpen, onClose, onUpdate
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
-        title="Delete transaction?"
-        description={`"${transaction.description}" will be removed and the wallet balance updated.`}
+        title={isTransfer ? 'Delete transfer?' : 'Delete transaction?'}
+        description={isTransfer ? 'Both sides will be removed and both wallet balances updated.' : `"${transaction.description}" will be removed and the wallet balance updated.`}
         confirmText="Delete"
         cancelText="Cancel"
         isLoading={isDeleting}
