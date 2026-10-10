@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUpRight, Wallet as WalletIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useWallets } from '@/hooks/use-wallets';
@@ -12,15 +12,28 @@ type MonthStats = { income: number; expense: number };
 
 interface WalletCardsProps {
   selectedWalletId?: string;
-  onSelect: (walletId: string) => void;
+  onSelect?: (walletId: string) => void; // swipe selects (Transactions). Omitted on Home: swiping only browses.
+  onOpen?: (walletId: string) => void; // tap a card (Home). Omitted: cards are not tappable.
+  walletIds?: string[]; // show only these wallets
+  month?: Date; // in/out period; defaults to the current month
   refreshKey?: number;
 }
 
 const LONG_PRESS_MS = 500;
 
 // Horizontal snap row of wallet cards (DESIGN.md "Wallet Card"); the card in view is the selected wallet
-export function WalletCards({ selectedWalletId, onSelect, refreshKey }: WalletCardsProps) {
-  const { wallets, loading, error, refetch, setMainWallet } = useWallets();
+export function WalletCards({ selectedWalletId, onSelect, onOpen, walletIds, month, refreshKey }: WalletCardsProps) {
+  const { wallets: allWallets, loading, error, refetch, setMainWallet } = useWallets();
+  const wallets = useMemo(
+    () => (walletIds ? allWallets.filter((w) => walletIds.includes(w.id)) : allWallets),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allWallets, walletIds?.join(',')]
+  );
+  const period = month ?? new Date();
+  const periodKey = `${period.getFullYear()}-${period.getMonth()}`;
+  const today = new Date();
+  const isThisMonth = periodKey === `${today.getFullYear()}-${today.getMonth()}`;
+  const periodText = isThisMonth ? 'this month' : `in ${period.toLocaleDateString('en-US', { month: 'long' })}`;
   const [stats, setStats] = useState<Record<string, MonthStats>>({});
   const scroller = useRef<HTMLDivElement>(null);
   const pressTimer = useRef<number>(undefined);
@@ -33,8 +46,9 @@ export function WalletCards({ selectedWalletId, onSelect, refreshKey }: WalletCa
   // Default selection: the main wallet (or the first one)
   useEffect(() => {
     if (wallets.length === 0) return;
-    const current = wallets.find((w) => w.id === selectedWalletId) ?? wallets.find((w) => w.isMain) ?? wallets[0];
-    if (current.id !== selectedWalletId) onSelect(current.id);
+    const current = wallets.find((w) => w.id === selectedWalletId) ?? (onSelect ? wallets.find((w) => w.isMain) ?? wallets[0] : undefined);
+    if (!current) return;
+    if (onSelect && current.id !== selectedWalletId) onSelect(current.id);
     const index = wallets.indexOf(current);
     const el = scroller.current?.children[index] as HTMLElement | undefined;
     if (el && scroller.current) scroller.current.scrollLeft = el.offsetLeft - scroller.current.offsetLeft - 24;
@@ -43,10 +57,9 @@ export function WalletCards({ selectedWalletId, onSelect, refreshKey }: WalletCa
 
   // This month's income and expense per wallet
   useEffect(() => {
-    const now = new Date();
     const params = {
-      startDate: getStartOfMonth(now.getFullYear(), now.getMonth() + 1).toISOString(),
-      endDate: getEndOfMonth(now.getFullYear(), now.getMonth() + 1).toISOString(),
+      startDate: getStartOfMonth(period.getFullYear(), period.getMonth() + 1).toISOString(),
+      endDate: getEndOfMonth(period.getFullYear(), period.getMonth() + 1).toISOString(),
       limit: 1000,
     };
     Promise.all(
@@ -65,11 +78,12 @@ export function WalletCards({ selectedWalletId, onSelect, refreshKey }: WalletCa
         }
       })
     ).then((entries) => setStats(Object.fromEntries(entries)));
-  }, [wallets]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallets, periodKey]);
 
   const onScroll = () => {
     const el = scroller.current;
-    if (!el || el.children.length === 0) return;
+    if (!el || el.children.length === 0 || !onSelect) return;
     const step = (el.children[0] as HTMLElement).offsetWidth + 12;
     const wallet = wallets[Math.min(wallets.length - 1, Math.round(el.scrollLeft / step))];
     if (wallet && wallet.id !== selectedWalletId) onSelect(wallet.id);
@@ -79,8 +93,14 @@ export function WalletCards({ selectedWalletId, onSelect, refreshKey }: WalletCa
     if (wallets.find((w) => w.id === walletId)?.isMain) return;
     await setMainWallet(walletId);
   };
+  const longPressed = useRef(false);
   const startPress = (walletId: string) => {
-    pressTimer.current = window.setTimeout(() => makeMain(walletId), LONG_PRESS_MS);
+    longPressed.current = false;
+    pressTimer.current = window.setTimeout(() => { longPressed.current = true; makeMain(walletId); }, LONG_PRESS_MS);
+  };
+  const open = (walletId: string) => {
+    if (longPressed.current) { longPressed.current = false; return; }
+    onOpen?.(walletId);
   };
   const cancelPress = () => window.clearTimeout(pressTimer.current);
 
@@ -116,7 +136,7 @@ export function WalletCards({ selectedWalletId, onSelect, refreshKey }: WalletCa
         const over = pct !== null ? pct > 100 : s.expense > 0;
         const caption =
           pct !== null ? (over ? 'Spent more than earned' : `${pct}% of income spent`)
-          : s.expense > 0 ? 'No income this month' : 'No activity this month';
+          : s.expense > 0 ? 'No income ' + periodText : 'No activity ' + periodText;
         const count = wallet._count?.transactions ?? 0;
         return (
           <article
@@ -128,7 +148,13 @@ export function WalletCards({ selectedWalletId, onSelect, refreshKey }: WalletCa
             onPointerLeave={cancelPress}
             onPointerCancel={cancelPress}
             onDoubleClick={() => makeMain(wallet.id)}
-            className="w-[calc(100%-24px)] shrink-0 snap-start select-none space-y-4 rounded-[24px] bg-card p-5 shadow-resting"
+            {...(onOpen && {
+              role: 'button',
+              tabIndex: 0,
+              onClick: () => open(wallet.id),
+              onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(wallet.id); } },
+            })}
+            className={cn('w-[calc(100%-24px)] shrink-0 snap-start select-none space-y-4 rounded-[24px] bg-card p-5 shadow-resting', onOpen && 'cursor-pointer')}
           >
             <div className="flex items-center gap-3">
               <span
@@ -150,6 +176,8 @@ export function WalletCards({ selectedWalletId, onSelect, refreshKey }: WalletCa
               <Link
                 to="/wallets"
                 aria-label={`Manage ${wallet.name}`}
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
                 className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted hover:bg-border focus-visible:outline-2 focus-visible:outline-ring"
               >
                 <ArrowUpRight className="size-[18px]" />
@@ -164,7 +192,7 @@ export function WalletCards({ selectedWalletId, onSelect, refreshKey }: WalletCa
             <div className="space-y-2">
               <div
                 role="progressbar"
-                aria-label="Share of this month's income spent"
+                aria-label={`Share of income spent ${periodText}`}
                 aria-valuenow={pct ?? 0}
                 aria-valuemin={0}
                 aria-valuemax={100}
