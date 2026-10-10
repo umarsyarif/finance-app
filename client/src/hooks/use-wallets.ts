@@ -7,6 +7,7 @@ interface Wallet {
   balance: number;
   currency: string;
   color: string;
+  icon?: string | null;
   description?: string | null;
   isMain: boolean;
   displayOrder: number;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUpRight, Wallet as WalletIcon } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useWallets } from '@/hooks/use-wallets';
 import axios from '@/lib/axios';
@@ -7,6 +7,7 @@ import { getStartOfMonth, getEndOfMonth } from '@/lib/date-utils';
 import { formatAmount, walletCaption } from '@/lib/format-utils';
 import { cn } from '@/lib/utils';
 import { PillButton } from '@/components/page-header';
+import { WalletTile } from '@/components/finance/wallet-icon';
 
 type MonthStats = { income: number; expense: number };
 
@@ -158,13 +159,7 @@ export function WalletCards({ selectedWalletId, onSelect, onOpen, walletIds, mon
             className={cn('w-[calc(100%-24px)] shrink-0 snap-start select-none space-y-4 rounded-[24px] bg-card p-5 shadow-resting', onOpen && 'cursor-pointer')}
           >
             <div className="flex items-center gap-3">
-              <span
-                aria-hidden
-                className="flex size-12 shrink-0 items-center justify-center rounded-[14px]"
-                style={{ backgroundColor: `${wallet.color}26`, color: wallet.color }}
-              >
-                <WalletIcon className="size-6" />
-              </span>
+              <WalletTile icon={wallet.icon} color={wallet.color} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h3 className="truncate text-[19px] font-bold">{wallet.name}</h3>

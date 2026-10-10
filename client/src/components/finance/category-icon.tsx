@@ -47,10 +47,10 @@ export function CategoryIcon({ icon, name, className }: { icon?: string | null; 
 }
 
 // Grid of the curated icons; tapping the selected one clears it
-export function IconPicker({ value, onChange }: { value: string | null; onChange: (icon: string | null) => void }) {
+export function IconPicker({ value, onChange, icons = CATEGORY_ICONS }: { value: string | null; onChange: (icon: string | null) => void; icons?: Record<string, LucideIcon> }) {
   return (
     <div role="radiogroup" aria-label="Icon" className="grid grid-cols-6 gap-2">
-      {Object.entries(CATEGORY_ICONS).map(([name, Icon]) => {
+      {Object.entries(icons).map(([name, Icon]) => {
         const selected = value === name;
         return (
           <button

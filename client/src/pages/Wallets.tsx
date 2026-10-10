@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pencil, Plus, Trash2, Wallet as WalletIcon } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { isAxiosError } from 'axios';
 import { PageTitle, PillButton } from '@/components/page-header';
@@ -10,6 +10,7 @@ import { CategoryForm } from '@/components/finance/category-form';
 import { FilterChips } from '@/components/finance/filter-chips';
 import { RowsCard } from '@/components/finance/transactions-list';
 import { formatAmount, walletCaption } from '@/lib/format-utils';
+import { WalletTile } from '@/components/finance/wallet-icon';
 import { CategoryIcon } from '@/components/finance/category-icon';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
@@ -127,9 +128,7 @@ export function Wallets() {
             {wallets.map((wallet) => (
               <article key={wallet.id} aria-label={wallet.name} className="space-y-4 rounded-[24px] bg-card p-5 shadow-resting">
                 <div className="flex items-center gap-3">
-                  <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-[14px]" style={{ backgroundColor: `${wallet.color}26`, color: wallet.color }}>
-                    <WalletIcon className="size-6" />
-                  </span>
+                  <WalletTile icon={wallet.icon} color={wallet.color} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="truncate text-[19px] font-bold">{wallet.name}</h3>

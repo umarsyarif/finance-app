@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { IconPicker } from '@/components/finance/category-icon';
+import { WALLET_ICONS } from '@/components/finance/wallet-icon';
 import {
   Select,
   SelectContent,
@@ -19,6 +21,7 @@ interface Wallet {
   balance: number;
   currency: string;
   color: string;
+  icon?: string | null;
   description?: string | null;
 }
 
@@ -51,6 +54,7 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
     currency: 'KRW',
     balance: 0,
     color: '#3B82F6',
+    icon: null as string | null,
     description: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,6 +67,7 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
         currency: wallet.currency,
         balance: wallet.balance,
         color: wallet.color,
+        icon: wallet.icon ?? null,
         description: wallet.description ?? '',
       });
       setCustomColor(wallet.color);
@@ -163,6 +168,11 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
           required
           className="h-[52px] rounded-[20px] bg-card px-[18px]"
         />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Icon</Label>
+        <IconPicker value={formData.icon} onChange={(icon) => setFormData((p) => ({ ...p, icon }))} icons={WALLET_ICONS} />
       </div>
 
       <div className="space-y-2">
