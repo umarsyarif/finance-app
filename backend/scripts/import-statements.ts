@@ -300,6 +300,21 @@ const MONTHS_ID: Record<string, string> = {
   Jul: '07', Agu: '08', Sep: '09', Okt: '10', Nov: '11', Des: '12',
 };
 
+// The statement's own "balance brought forward" — money that existed in the account before our
+// earliest imported row and would otherwise just be missing from the wallet. Only the earliest BSI
+// file's value is the true pre-import opening balance; later months' is just last month's closing
+// balance, already accounted for by the transactions in between.
+function parseBSIOpeningBalance(pdfPath: string): { date: string; amount: number } | undefined {
+  const text = execFileSync('pdftotext', ['-layout', pdfPath, '-'], { maxBuffer: 1024 * 1024 * 64 }).toString('utf8');
+  const balMatch = /SALDO BULAN LALU[\s\S]*?Rp\s*([\d.,]+)/.exec(text);
+  const periodMatch = /PERIODE LAPORAN\s*:\s*(\d{2}) ([A-Za-z]{3}) - \d{2} [A-Za-z]{3} (\d{4})/.exec(text);
+  if (!balMatch || !periodMatch) return undefined;
+  const [, dd, mon, yyyy] = periodMatch;
+  const month = MONTHS_ID[mon];
+  if (!month) return undefined;
+  return { date: `${yyyy}-${month}-${dd}`, amount: idn(balMatch[1]) };
+}
+
 // Each row is a date line (name/ref + trailing Debit/Kredit/Saldo), then an "HH:MM  Dana Masuk|Keluar
 // | <description>" line, sometimes wrapping onto a 3rd line. The per-file trailing summary block
 // ("Saldo Awal/Mutasi.../Saldo Akhir") never starts with a date, so it's naturally excluded — except
@@ -540,6 +555,11 @@ async function main() {
   const bsiPlain: PlainTxn[] = bsiRows
     .filter((r) => !r.used)
     .map((r) => ({ walletName: 'Bank BSI', date: `${r.date}T${r.time}:00+07:00`, amount: r.amount, description: r.desc }));
+
+  const bsiOpening = parseBSIOpeningBalance(BSI_PDFS[0]);
+  if (bsiOpening) {
+    bsiPlain.unshift({ walletName: 'Bank BSI', date: `${bsiOpening.date}T00:00:00+07:00`, amount: bsiOpening.amount, description: 'Opening Balance (Saldo Bulan Lalu)' });
+  }
 
   const allPlain = [...jagoPlain, ...DAILY_MANUAL_ROWS, ...tossPlain, ...nhPlain, ...bsiPlain];
   const income = allPlain.filter((t) => t.amount > 0);
