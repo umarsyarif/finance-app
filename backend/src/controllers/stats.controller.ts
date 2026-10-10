@@ -67,7 +67,7 @@ export const getCategoryBreakdownHandler = async (
   next: NextFunction
 ) => {
   try {
-    const { startDate, endDate, walletIds, year, month } = req.query;
+    const { startDate, endDate, walletIds, year, month, type } = req.query;
     const userId = res.locals.user.id;
 
     const filters: StatsFilters = {
@@ -77,6 +77,7 @@ export const getCategoryBreakdownHandler = async (
       walletIds: walletIds ? walletIds.split(',').map(id => id.trim()) : undefined,
       year: year ? parseInt(year) : undefined,
       month: month ? parseInt(month) : undefined,
+      type,
     };
 
     const breakdown = await getCategoryBreakdown(filters);

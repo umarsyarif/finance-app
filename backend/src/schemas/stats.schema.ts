@@ -1,4 +1,4 @@
-import { object, string, number, date, TypeOf } from 'zod';
+import { object, string, number, date, TypeOf, z } from 'zod';
 
 export const getStatsSchema = object({
   query: object({
@@ -39,6 +39,7 @@ export const getStatsSchema = object({
       }
       return true;
     }, 'Invalid month (must be 1-12)'),
+    type: z.enum(['INCOME', 'EXPENSE']).optional(),
     tz: string().optional().refine((val) => {
       if (!val) return true;
       try {

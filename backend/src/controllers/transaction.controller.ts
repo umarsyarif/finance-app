@@ -125,7 +125,7 @@ export const getTransactionsHandler = async (
   next: NextFunction
 ) => {
   try {
-    const { walletId, categoryId, startDate, endDate, month, year, page = 1, limit = 10 } = req.query;
+    const { walletId, walletIds, categoryId, startDate, endDate, month, year, page = 1, limit = 10 } = req.query;
     const userId = res.locals.user.id;
     
     const pageNum = Number(page);
@@ -138,6 +138,7 @@ export const getTransactionsHandler = async (
       }
     };
     if (walletId) where.walletId = walletId;
+    if (walletIds) where.walletId = { in: walletIds.split(',').map((id) => id.trim()) };
     if (categoryId) where.categoryId = categoryId;
     
     if (startDate && endDate) {

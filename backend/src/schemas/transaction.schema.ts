@@ -55,6 +55,10 @@ export const deleteTransactionSchema = object({
 export const getTransactionsSchema = object({
   query: object({
     walletId: string().optional(),
+    // Comma-separated; Home's "Latest" spans every wallet of one currency
+    walletIds: string().optional().refine((val) => !val || val.split(',').every((id) => id.trim().length > 0), {
+      message: 'Invalid wallet IDs format',
+    }),
     categoryId: string().optional(),
     // Exact instants from the client's own timezone; preferred over month/year
     startDate: string().datetime({ offset: true }).optional(),

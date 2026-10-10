@@ -33,6 +33,7 @@ export interface StatsFilters {
   year?: number;
   month?: number;
   tz?: string;
+  type?: 'INCOME' | 'EXPENSE';
 }
 
 export const getMonthlySummary = async (filters: StatsFilters): Promise<MonthlySummary | null> => {
@@ -111,7 +112,7 @@ export const getMonthlySummary = async (filters: StatsFilters): Promise<MonthlyS
 };
 
 export const getCategoryBreakdown = async (filters: StatsFilters): Promise<CategoryBreakdown[]> => {
-  const { userId, startDate, endDate, walletIds, year, month } = filters;
+  const { userId, startDate, endDate, walletIds, year, month, type } = filters;
 
   // Build where clause
   const whereClause: Prisma.TransactionWhereInput = {
@@ -120,7 +121,7 @@ export const getCategoryBreakdown = async (filters: StatsFilters): Promise<Categ
     },
     transferId: null, // transfers move money between own wallets; not income or expense
     category: {
-      type: 'EXPENSE', // Only show expense categories in breakdown
+      type: type ?? 'EXPENSE', // breakdown is per type; expenses unless asked otherwise
     },
   };
 
