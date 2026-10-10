@@ -25,7 +25,7 @@ import path from 'path';
 import prisma from '../src/middleware/prismaMiddleware';
 import { createWallet, findWallets } from '../src/services/wallet.service';
 import { findCategory, createCategory } from '../src/services/category.service';
-import { createTransaction } from '../src/services/transaction.service';
+import { createTransaction, deleteTransaction } from '../src/services/transaction.service';
 import { createTransfer } from '../src/services/transfer.service';
 
 const DATA_DIR = path.resolve(__dirname, '../../data');
@@ -418,11 +418,19 @@ function matchNhMainPocket(nhRows: NhRow[], mainRows: JagoRow[]): TransferPair[]
   return transfers;
 }
 
+// `used` only keeps a row out of THIS run's own plain-list build — it says nothing about a plain
+// transaction a PRIOR run already committed to the DB for that same row (e.g. prod already has
+// Jago/NH/Toss imported). `supersededPlain` is exactly the PlainTxn shape that prior run's code
+// would have produced for the now-transferred side, so --new-only can find and delete it before
+// inserting the transfer (see main()). The newly-added side (BSI, Emergency Fund) never had a prior
+// plain transaction, so it isn't included here.
+
 // Both sides name each other explicitly (BSI rows say "BANK JAGO"; Main Pocket rows carry "Bank
 // Syariah Indonesia" + the BSI account number "1040607467" in their Notes lines, now in `block`),
 // so this is a real deterministic match, not forensic — same date+time+amount, opposite sign.
-function matchBsiMainPocket(bsiRows: BsiRow[], mainRows: JagoRow[]): TransferPair[] {
+function matchBsiMainPocket(bsiRows: BsiRow[], mainRows: JagoRow[]): { transfers: TransferPair[]; supersededPlain: PlainTxn[] } {
   const transfers: TransferPair[] = [];
+  const supersededPlain: PlainTxn[] = [];
   for (const b of bsiRows) {
     if (b.used || !/BANK JAGO/i.test(b.desc)) continue;
     const match = mainRows.find(
@@ -439,22 +447,25 @@ function matchBsiMainPocket(bsiRows: BsiRow[], mainRows: JagoRow[]): TransferPai
     match.used = true;
     const [fromWallet, toWallet] = b.amount > 0 ? ['Main Pocket', 'Bank BSI'] : ['Bank BSI', 'Main Pocket'];
     transfers.push({ date: `${b.date}T${b.time}:00+07:00`, fromWallet, toWallet, amountSent: Math.abs(b.amount) });
+    supersededPlain.push({ walletName: 'Main Pocket', date: `${match.date}T${match.time}:00+07:00`, amount: match.amount, description: match.source });
   }
-  return transfers;
+  return { transfers, supersededPlain };
 }
 
 // Toss's own "Emergency Fund" pocket shows up as self-transfers in the main account statement
 // (institution "토스뱅크" = itself, not an external bank) — each row is a complete transfer event on
 // its own, no second file to cross-reference.
-function matchTossEmergencyFund(tossRows: TossRow[]): TransferPair[] {
+function matchTossEmergencyFund(tossRows: TossRow[]): { transfers: TransferPair[]; supersededPlain: PlainTxn[] } {
   const transfers: TransferPair[] = [];
+  const supersededPlain: PlainTxn[] = [];
   for (const t of tossRows) {
     if (t.used || t.desc !== 'Emergency Fund' || t.inst !== '토스뱅크') continue;
     t.used = true;
     const [fromWallet, toWallet] = t.amount < 0 ? ['Toss Bank', 'Emergency Fund'] : ['Emergency Fund', 'Toss Bank'];
     transfers.push({ date: `${t.date}T${t.time}+09:00`, fromWallet, toWallet, amountSent: Math.abs(t.amount) });
+    supersededPlain.push({ walletName: 'Toss Bank', date: `${t.date}T${t.time}+09:00`, amount: t.amount, description: t.desc || t.type });
   }
-  return transfers;
+  return { transfers, supersededPlain };
 }
 
 // ---------- main ----------
@@ -475,6 +486,26 @@ async function ensureOtherCategory(userId: string, type: 'INCOME' | 'EXPENSE', c
   return category;
 }
 
+// --new-only, against a DB a prior run already populated: find the specific plain transaction that
+// prior run committed for a now-transferred row, and delete it (via the service, so the balance
+// reversal is correct) before the new Transfer gets inserted. Matches on wallet + exact date + exact
+// amount + exact description — if that's not unique, something's off, so it refuses to guess.
+async function deleteSupersededPlain(userId: string, items: PlainTxn[], walletCache: Map<string, { id: string }>) {
+  for (const p of items) {
+    const wallet = await ensureWallet(userId, p.walletName, walletCurrency(p.walletName), walletCache);
+    const matches = await prisma.transaction.findMany({
+      where: { walletId: wallet.id, date: new Date(p.date), amount: Math.abs(p.amount), description: p.description },
+      select: { id: true },
+    });
+    if (matches.length !== 1) {
+      console.log(`  WARNING: expected exactly 1 superseded transaction for ${p.walletName} ${p.date} ${p.amount} "${p.description}", found ${matches.length} — skipping, not guessing`);
+      continue;
+    }
+    await deleteTransaction({ id: matches[0].id });
+    console.log(`  deleted superseded: ${p.walletName} ${p.date} ${p.amount}`);
+  }
+}
+
 async function main() {
   const user = await prisma.user.findUnique({ where: { email: EMAIL } });
   if (!user) throw new Error(`No user with email ${EMAIL}`);
@@ -490,8 +521,8 @@ async function main() {
   // flagged `used` and don't also get imported as plain "FLIPTECH/UMAR SYARIF" income.
   const nhTossTransfers = matchNhToss(nhRows, tossRows);
   const nhMainTransfers = matchNhMainPocket(nhRows, mainRows);
-  const bsiMainTransfers = matchBsiMainPocket(bsiRows, mainRows);
-  const tossEmergencyTransfers = matchTossEmergencyFund(tossRows);
+  const { transfers: bsiMainTransfers, supersededPlain: bsiSuperseded } = matchBsiMainPocket(bsiRows, mainRows);
+  const { transfers: tossEmergencyTransfers, supersededPlain: emergencySuperseded } = matchTossEmergencyFund(tossRows);
 
   const { transfers: jagoTransfers, plain: jagoPlain, skippedInterest: jagoInterest } = buildJagoPlan(dailyRows, mainRows);
   const allTransfers = [...jagoTransfers, ...nhTossTransfers, ...nhMainTransfers, ...bsiMainTransfers, ...tossEmergencyTransfers];
@@ -542,7 +573,13 @@ async function main() {
 
   const transfersToWrite = NEW_ONLY ? [...bsiMainTransfers, ...tossEmergencyTransfers] : allTransfers;
   const plainToWrite = NEW_ONLY ? bsiPlain : allPlain;
-  if (NEW_ONLY) console.log(`\n--new-only: writing ${transfersToWrite.length} transfers + ${plainToWrite.length} plain txns (BSI + Emergency Fund only)`);
+
+  if (NEW_ONLY) {
+    const superseded = [...bsiSuperseded, ...emergencySuperseded];
+    console.log(`\n--new-only: deleting ${superseded.length} plain transactions a prior run already committed for these rows...`);
+    await deleteSupersededPlain(user.id, superseded, walletCache);
+    console.log(`--new-only: writing ${transfersToWrite.length} transfers + ${plainToWrite.length} plain txns (BSI + Emergency Fund only)`);
+  }
 
   for (const t of transfersToWrite) {
     const from = await ensureWallet(user.id, t.fromWallet, walletCurrency(t.fromWallet), walletCache);
