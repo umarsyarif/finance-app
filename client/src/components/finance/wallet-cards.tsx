@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useWallets } from '@/hooks/use-wallets';
 import axios from '@/lib/axios';
 import { getStartOfMonth, getEndOfMonth } from '@/lib/date-utils';
-import { formatAmount } from '@/lib/format-utils';
+import { formatAmount, walletCaption } from '@/lib/format-utils';
 import { cn } from '@/lib/utils';
 import { PillButton } from '@/components/page-header';
 
@@ -139,7 +139,6 @@ export function WalletCards({ selectedWalletId, onSelect, onOpen, walletIds, mon
         const caption =
           pct !== null ? (over ? 'Spent more than earned' : `${pct}% of income spent`)
           : s.expense > 0 ? 'No income ' + periodText : 'No activity ' + periodText;
-        const count = wallet._count?.transactions ?? 0;
         return (
           <article
             key={wallet.id}
@@ -172,7 +171,7 @@ export function WalletCards({ selectedWalletId, onSelect, onOpen, walletIds, mon
                   {wallet.isMain && <span className="rounded-full bg-lime-soft px-2 py-0.5 text-xs font-semibold">Main</span>}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {count} {count === 1 ? 'transaction' : 'transactions'} · {wallet.currency}
+                  {walletCaption(wallet)}
                 </p>
               </div>
               <Link

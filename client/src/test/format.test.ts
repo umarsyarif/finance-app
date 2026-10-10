@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatAmount } from '@/lib/format-utils';
+import { formatAmount, walletCaption } from '@/lib/format-utils';
 import { typeCounts, type Transaction } from '@/components/finance/transactions-list';
 
 describe('formatAmount', () => {
@@ -23,5 +23,15 @@ describe('typeCounts', () => {
   it('counts all, income and expense', () => {
     const tx = (type: 'INCOME' | 'EXPENSE') => ({ type }) as Transaction;
     expect(typeCounts([tx('INCOME'), tx('EXPENSE'), tx('EXPENSE')])).toEqual({ ALL: 3, INCOME: 1, EXPENSE: 2 });
+  });
+});
+
+describe('walletCaption', () => {
+  it('shows the description and currency', () => {
+    expect(walletCaption({ description: 'Shinhan debit', currency: 'KRW' })).toBe('Shinhan debit · KRW');
+  });
+  it('shows only the currency without a description', () => {
+    expect(walletCaption({ description: null, currency: 'IDR' })).toBe('IDR');
+    expect(walletCaption({ currency: 'KRW' })).toBe('KRW');
   });
 });

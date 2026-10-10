@@ -9,6 +9,7 @@ import { useTransactionForm } from '../../hooks/use-transaction-form';
 import type { TransactionDraft } from '../../hooks/use-transaction-form';
 import { downscaleImage } from '@/lib/image';
 import { Transaction } from './transactions-list';
+import { CategoryIcon } from './category-icon';
 import { TransferForm } from './transfer-form';
 import { cn } from '@/lib/utils';
 import axios from '@/lib/axios';
@@ -218,7 +219,10 @@ export function TransactionForm({
               selected={formData.categoryId === category.id}
               onClick={() => updateField('categoryId', category.id)}
             >
-              {category.name}
+              <span className="flex items-center gap-1.5">
+                {category.icon && <CategoryIcon icon={category.icon} className="size-4" />}
+                {category.name}
+              </span>
             </ChoiceChip>
           ))}
           {newCategory === null && (

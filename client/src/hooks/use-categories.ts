@@ -6,6 +6,7 @@ interface Category {
   name: string;
   type: 'INCOME' | 'EXPENSE';
   color: string;
+  icon?: string | null;
 }
 
 interface UseCategoriesReturn {

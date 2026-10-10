@@ -63,6 +63,8 @@ regression suite `app.e2e.ts`.
 | W10 | Delete unused category | Card gone |
 | W11 | Open "Add wallet" right after editing a wallet | Empty form, not the previous wallet's values |
 | W12 | Rename an IDR wallet | Currency stays IDR |
+| W13 | Pick an icon for a category | Saved; shown on the Categories tab and on its transaction rows instead of the letter |
+| W14 | Give a wallet a description | Cards show "<description> · KRW" instead of the transaction count |
 
 ## Home (`home.e2e.ts`)
 | ID | Scenario | Expected |

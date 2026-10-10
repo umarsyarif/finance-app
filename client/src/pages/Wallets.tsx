@@ -9,7 +9,8 @@ import { WalletForm } from '@/components/finance/wallet-form';
 import { CategoryForm } from '@/components/finance/category-form';
 import { FilterChips } from '@/components/finance/filter-chips';
 import { RowsCard } from '@/components/finance/transactions-list';
-import { formatAmount } from '@/lib/format-utils';
+import { formatAmount, walletCaption } from '@/lib/format-utils';
+import { CategoryIcon } from '@/components/finance/category-icon';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { useAppShell } from '@/components/app-layout';
@@ -132,7 +133,7 @@ export function Wallets() {
                       {wallet.isMain && <span className="rounded-full bg-lime-soft px-2 py-0.5 text-xs font-semibold">Main</span>}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {wallet._count?.transactions ?? 0} {wallet._count?.transactions === 1 ? 'transaction' : 'transactions'} · {wallet.currency}
+                      {walletCaption(wallet)}
                     </p>
                   </div>
                   <IconButton label={`Edit ${wallet.name}`} onClick={() => setWalletSheet({ wallet })}><Pencil /></IconButton>
@@ -149,7 +150,9 @@ export function Wallets() {
         <RowsCard>
           {categories.map((category) => (
             <div key={category.id} aria-label={category.name} className="flex items-center gap-3 py-3">
-              <span aria-hidden className="size-10 shrink-0 rounded-[14px]" style={{ backgroundColor: `${category.color}40` }} />
+              <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-muted text-base font-semibold">
+                <CategoryIcon icon={category.icon} name={category.name} />
+              </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[15px] font-semibold">{category.name}</p>
                 <p className="text-xs text-muted-foreground">{category.type === 'INCOME' ? 'Income' : 'Expense'}</p>

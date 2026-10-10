@@ -7,6 +7,7 @@ import { PillButton } from '@/components/page-header';
 import { cn } from '@/lib/utils';
 import { useTransactions } from '@/hooks/use-transactions';
 import { formatAmount } from '@/lib/format-utils';
+import { CategoryIcon } from './category-icon';
 
 export interface Transaction {
   id: string;
@@ -25,6 +26,7 @@ export interface Transaction {
   category?: {
     id: string;
     name: string;
+    icon?: string | null;
   };
   transferId?: string | null;
   transfer?: {
@@ -58,7 +60,7 @@ export function TransactionRow({ transaction, onClick, showDate = false }: {
       className="flex w-full items-center gap-3 py-3 text-left transition-colors hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
     >
       <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-muted text-base font-semibold">
-        {isTransfer ? <ArrowLeftRight className="size-5" /> : transaction.category?.name?.charAt(0).toUpperCase() ?? '?'}
+        {isTransfer ? <ArrowLeftRight className="size-5" /> : <CategoryIcon icon={transaction.category?.icon} name={transaction.category?.name} />}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[15px] font-semibold">{transaction.description}</span>

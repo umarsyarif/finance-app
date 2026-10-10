@@ -182,3 +182,39 @@ test('W12 renaming an IDR wallet keeps its currency', async ({ page }) => {
   await expect(card(page, 'Jakarta Daily')).toContainText('IDR');
   expect((await api(page, 'get', `/api/wallets/${wallet}`)).data.wallet.currency).toBe('IDR');
 });
+
+test('W13 a category icon shows in the form and on its transactions', async ({ page }) => {
+  await signUp(page, 'w13');
+  const wallet = await seedWallet(page, 'KRW', 10000, 'Won');
+  const cat = await seedCategory(page, 'EXPENSE', 'Coffee');
+  await seedTx(page, wallet, cat, 'latte', thisMonth(2), 4500);
+  await openCategories(page);
+
+  await page.getByRole('button', { name: 'Edit Coffee' }).click();
+  await sheet(page).getByRole('radio', { name: 'coffee' }).click();
+  await sheet(page).getByRole('button', { name: 'Save changes' }).click();
+  await expect(sheet(page)).toBeHidden();
+
+  expect((await api(page, 'get', `/api/categories/${cat}`)).data.category.icon).toBe('coffee');
+  await expect(card(page, 'Coffee').locator('svg').first()).toBeVisible();
+
+  await page.goto('/transactions');
+  const latte = page.getByRole('button', { name: /latte/ });
+  await expect(latte.locator('svg').first()).toBeVisible();
+  await expect(latte).not.toContainText(/^C/);
+});
+
+test('W14 a wallet description replaces the transaction count on its card', async ({ page }) => {
+  await signUp(page, 'w14');
+  await seedWallet(page, 'KRW', 5000, 'Won');
+  await page.goto('/wallets');
+
+  await page.getByRole('button', { name: 'Edit Won' }).click();
+  await sheet(page).getByLabel('Description').fill('Shinhan debit card');
+  await sheet(page).getByRole('button', { name: 'Save changes' }).click();
+
+  await expect(card(page, 'Won')).toContainText('Shinhan debit card · KRW');
+  await expect(card(page, 'Won')).not.toContainText('transactions');
+  await page.goto('/transactions');
+  await expect(page.locator('article[aria-label="Won"]')).toContainText('Shinhan debit card · KRW');
+});

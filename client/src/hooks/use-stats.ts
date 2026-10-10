@@ -13,6 +13,7 @@ export interface MonthlySummary {
 export interface CategoryBreakdown {
   categoryId: string;
   categoryName: string;
+  icon?: string | null;
   amount: number;
   percentage: number;
   type: 'INCOME' | 'EXPENSE';

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 
 import axios from '@/lib/axios';
+import { IconPicker } from './category-icon';
 import { toast } from 'sonner';
 
 interface Category {
@@ -18,6 +19,7 @@ interface Category {
   name: string;
   type: 'INCOME' | 'EXPENSE';
   color: string;
+  icon?: string | null;
 }
 
 interface CategoryFormProps {
@@ -43,6 +45,7 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
     name: '',
     type: 'EXPENSE' as 'INCOME' | 'EXPENSE',
     color: '#3B82F6',
+    icon: null as string | null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customColor, setCustomColor] = useState('');
@@ -53,6 +56,7 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
         name: category.name,
         type: category.type,
         color: category.color,
+        icon: category.icon ?? null,
       });
       setCustomColor(category.color);
     }
@@ -122,6 +126,11 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
             <SelectItem value="EXPENSE">Expense</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Icon</Label>
+        <IconPicker value={formData.icon} onChange={(icon) => setFormData(prev => ({ ...prev, icon }))} />
       </div>
 
       <div className="space-y-2">

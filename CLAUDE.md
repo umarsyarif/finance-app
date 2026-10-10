@@ -97,9 +97,9 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 
 ### Data Model (Prisma)
 - `User` → has many `Wallet`s and `Category`s
-- `Wallet` → has `balance`, `currency` (KRW or IDR), `isMain`, `displayOrder`; holds many `Transaction`s
+- `Wallet` → has `balance`, `currency` (KRW or IDR), `isMain`, `displayOrder`, optional `description` (≤60 chars, shown on wallet cards as "<description> · KRW"); holds many `Transaction`s
 - `Transaction` → belongs to one `Wallet` and one `Category`; has `amount`, `date`, `description`
-- `Category` → `userId` is nullable (null = global/default category); has `type: INCOME | EXPENSE`
+- `Category` → `userId` is nullable (null = global/default category); has `type: INCOME | EXPENSE`; optional `icon` (a Lucide name from the curated list in `client/src/components/finance/category-icon.tsx`; the server only checks the kebab-case format; no icon → first letter)
 - `Transfer` → links exactly two `Transaction` rows (out on the source wallet, in on the destination) via `transferId`; they use the hidden global categories `transfer-out`/`transfer-in` (`isTransfer`), are edited only through `/api/transfers`, and are excluded from stats
 
 ### Infrastructure

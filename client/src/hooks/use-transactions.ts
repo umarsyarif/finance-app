@@ -26,6 +26,7 @@ interface ApiTransaction {
     userId: string;
     name: string;
     type: 'INCOME' | 'EXPENSE';
+    icon?: string | null;
     createdAt: string;
   };
   transferId: string | null;
@@ -121,6 +122,7 @@ export function useTransactions(options: UseTransactionsOptions = {}): UseTransa
         category: {
           id: apiTransaction.category.id,
           name: apiTransaction.category.name,
+          icon: apiTransaction.category.icon,
         },
         transferId: apiTransaction.transferId,
         transfer: apiTransaction.transfer,

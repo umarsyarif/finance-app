@@ -7,6 +7,7 @@ interface Wallet {
   balance: number;
   currency: string;
   color: string;
+  description?: string | null;
   isMain: boolean;
   displayOrder: number;
   _count?: { transactions: number };

@@ -1,4 +1,5 @@
 import { RowsCard } from './transactions-list';
+import { CategoryIcon } from './category-icon';
 import type { CategoryBreakdown, MonthlySummary } from '@/hooks/use-stats';
 import { formatAmount } from '@/lib/format-utils';
 import { cn } from '@/lib/utils';
@@ -13,7 +14,10 @@ function CategoryBars({ title, entries, type, currency }: { title: string; entri
           <div key={entry.categoryId} className="space-y-2 py-3">
             <div className="flex items-baseline justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-[15px] font-semibold">{entry.categoryName}</p>
+                <p className="flex items-center gap-1.5 truncate text-[15px] font-semibold">
+                  {entry.icon && <CategoryIcon icon={entry.icon} className="size-4 shrink-0 text-muted-foreground" />}
+                  {entry.categoryName}
+                </p>
                 <p className="text-xs text-muted-foreground">{Math.round(entry.percentage)}% of {type === 'INCOME' ? 'income' : 'spending'}</p>
               </div>
               <p className={cn('shrink-0 text-[15px] font-bold tabular-nums', type === 'INCOME' ? 'text-income' : 'text-expense')}>

@@ -93,3 +93,7 @@ export const formatAmount = (amount: number, type: string | null = null, currenc
  * Formats an amount as currency without a forced sign
  */
 export const formatCurrency = (amount: number, currency: string = 'KRW'): string => money(currency).format(amount);
+
+// Wallet card subtitle: "Shinhan debit · KRW", or just "KRW" without a description
+export const walletCaption = (wallet: { description?: string | null; currency: string }): string =>
+  [wallet.description, wallet.currency].filter(Boolean).join(' · ');

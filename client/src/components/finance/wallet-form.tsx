@@ -19,6 +19,7 @@ interface Wallet {
   balance: number;
   currency: string;
   color: string;
+  description?: string | null;
 }
 
 interface WalletFormProps {
@@ -50,6 +51,7 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
     currency: 'KRW',
     balance: 0,
     color: '#3B82F6',
+    description: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customColor, setCustomColor] = useState('');
@@ -61,6 +63,7 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
         currency: wallet.currency,
         balance: wallet.balance,
         color: wallet.color,
+        description: wallet.description ?? '',
       });
       setCustomColor(wallet.color);
     }
@@ -133,6 +136,19 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Input
+          id="description"
+          type="text"
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          placeholder="e.g. Shinhan debit card"
+          maxLength={60}
+          className="h-[52px] rounded-[20px] bg-card px-[18px]"
+        />
       </div>
 
       <div className="space-y-2">
