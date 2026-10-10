@@ -51,6 +51,8 @@ export async function squareAvatar(file: File): Promise<{ image: string; mimeTyp
     canvas.height = AVATAR_SIZE;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas is not supported');
+    ctx.fillStyle = '#ffffff'; // flatten transparency for JPEG
+    ctx.fillRect(0, 0, AVATAR_SIZE, AVATAR_SIZE);
     ctx.drawImage(img, sx, sy, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     return { image: dataUrl.slice(dataUrl.indexOf(',') + 1), mimeType: 'image/jpeg' };
