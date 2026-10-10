@@ -57,6 +57,7 @@ export function WalletCards({ selectedWalletId, onSelect, onOpen, walletIds, mon
 
   // This month's income and expense per wallet
   useEffect(() => {
+    let ignore = false;
     const params = {
       startDate: getStartOfMonth(period.getFullYear(), period.getMonth() + 1).toISOString(),
       endDate: getEndOfMonth(period.getFullYear(), period.getMonth() + 1).toISOString(),
@@ -77,7 +78,8 @@ export function WalletCards({ selectedWalletId, onSelect, onOpen, walletIds, mon
           return [wallet.id, { income: 0, expense: 0 }] as const;
         }
       })
-    ).then((entries) => setStats(Object.fromEntries(entries)));
+    ).then((entries) => { if (!ignore) setStats(Object.fromEntries(entries)); });
+    return () => { ignore = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wallets, periodKey]);
 
@@ -152,7 +154,7 @@ export function WalletCards({ selectedWalletId, onSelect, onOpen, walletIds, mon
               role: 'button',
               tabIndex: 0,
               onClick: () => open(wallet.id),
-              onKeyDown: (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(wallet.id); } },
+              onKeyDown: (e: React.KeyboardEvent) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(wallet.id); } },
             })}
             className={cn('w-[calc(100%-24px)] shrink-0 snap-start select-none space-y-4 rounded-[24px] bg-card p-5 shadow-resting', onOpen && 'cursor-pointer')}
           >

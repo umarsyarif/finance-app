@@ -55,6 +55,15 @@ describe('WalletCards', () => {
     vi.useRealTimers();
   });
 
+  it('Enter on Manage does not open; Enter on the card does', () => {
+    const onOpen = vi.fn();
+    renderCards({ onOpen });
+    fireEvent.keyDown(screen.getByLabelText('Manage Rupiah'), { key: 'Enter' });
+    expect(onOpen).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByLabelText('Rupiah', { selector: 'article' }), { key: 'Enter' });
+    expect(onOpen).toHaveBeenCalledWith('i1');
+  });
+
   it('fetches in/out for the given month', () => {
     renderCards({ month: new Date(2026, 8, 15) });
     const params = (axios.get as any).mock.calls[0][1].params;
