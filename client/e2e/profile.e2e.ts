@@ -4,11 +4,12 @@ import { test, expect, signUp, seedWallet, card } from './helpers';
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
 test('P1 /settings opens Profile with the profile card', async ({ page }) => {
-  await signUp(page, 'p1', 'Pat Lee');
+  const email = await signUp(page, 'p1', 'Pat Lee');
   await page.goto('/settings');
   await expect(page).toHaveURL(/\/profile$/);
   const profileCard = page.getByRole('region', { name: 'Profile card' });
   await expect(profileCard).toContainText('Pat Lee');
+  await expect(profileCard).toContainText(email);
   await expect(profileCard).toContainText('Member since');
 });
 
@@ -42,9 +43,11 @@ test('P4 greeting and theme toggle appear only on Home', async ({ page }) => {
   await signUp(page, 'p4');
   await page.goto('/');
   await expect(page.getByText(/Good (morning|afternoon|evening)/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Toggle theme' })).toBeVisible();
   for (const path of ['/transactions', '/wallets', '/profile']) {
     await page.goto(path);
     await expect(page.getByText(/Good (morning|afternoon|evening)/)).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Toggle theme' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Open profile' })).toHaveCount(0);
   }
 });
@@ -60,6 +63,7 @@ test('P5 a wallet icon and colour show as a filled tile', async ({ page }) => {
   const tile = card(page, 'Bank').locator('span[aria-hidden][style*="background-color"]').first();
   await expect(tile).toHaveCSS('background-color', 'rgb(239, 68, 68)');
   await expect(tile.locator('svg')).toBeVisible();
+  await expect(tile.locator('svg')).toHaveCSS('color', 'rgb(255, 255, 255)');
 });
 
 test('P6 Sign out from Profile lands on the sign-in page', async ({ page }) => {
