@@ -93,6 +93,7 @@ export const typeOptions = (counts: Record<TypeFilter, number>) => [
 ];
 
 interface TransactionsListProps {
+  walletId?: string;
   month: number;
   year: number;
   currentDate: Date;
@@ -103,8 +104,8 @@ interface TransactionsListProps {
 }
 
 // The Transactions page body: month switcher, search, type chips, rows grouped by day
-export function TransactionsList({ month, year, currentDate, onMonthChange, limit = 100, refreshKey, onTransactionChange }: TransactionsListProps) {
-  const { transactions, loading, error, refetch, loadMore, loadingMore, hasMore } = useTransactions({ limit, month, year, refreshKey });
+export function TransactionsList({ walletId, month, year, currentDate, onMonthChange, limit = 100, refreshKey, onTransactionChange }: TransactionsListProps) {
+  const { transactions, loading, error, refetch, loadMore, loadingMore, hasMore } = useTransactions({ limit, month, year, refreshKey, walletId });
   const [selected, setSelected] = useState<Transaction | null>(null);
   const [query, setQuery] = useState('');
   const [type, setType] = useState<TypeFilter>('ALL');
