@@ -6,27 +6,40 @@ import { LockScreen } from '@/components/lock-screen';
 // Re-lock when the app comes back after this long in the background
 export const AWAY_LOCK_MS = 60_000;
 
-type AppLock = { locked: boolean; unlock: () => Promise<void>; error: string | null };
+type AppLock = { locked: boolean; unlock: () => Promise<void>; error: string | null; pending: boolean };
 const AppLockContext = createContext<AppLock | null>(null);
 export const useAppLock = () => useContext(AppLockContext);
 
 // Face ID app lock: a local gate over an existing (30-day) session. It hides the app on cold start and
-// after time away. Not a server credential: it never signs anyone in.
+// after time away. Not a server credential: it never signs anyone in. It is per-device and intentionally
+// survives sign-out (single-user app); turn it off in Profile.
 export function AppLockProvider({ children }: { children: ReactNode }) {
-  const { user, biometricEnabled, logout } = useAuth();
-  const enabled = Boolean(user && biometricEnabled);
+  const { user, biometricEnabled, biometricSupported, logout } = useAuth();
+  // Unsupported device (Face ID/passcode turned off) never locks: it could never unlock
+  const enabled = Boolean(user && biometricEnabled && biometricSupported);
   // Lock only on a cold start with the lock on; signing in or turning the lock on mid-session doesn't lock
   const [locked, setLocked] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const inFlight = useRef(false);
   const hiddenAt = useRef<number | null>(null);
   const enabledRef = useRef(enabled);
   enabledRef.current = enabled;
 
   const unlock = useCallback(async () => {
+    // One Face ID prompt at a time: a second concurrent credentials.get would fail
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setPending(true);
     setError(null);
-    const result = await biometricService.authenticate();
-    if (result.success) setLocked(false);
-    else setError(result.error ?? "Face ID didn't work");
+    try {
+      const result = await biometricService.authenticate();
+      if (result.success) setLocked(false);
+      else setError(result.error ?? "Face ID didn't work");
+    } finally {
+      inFlight.current = false;
+      setPending(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -46,10 +59,10 @@ export function AppLockProvider({ children }: { children: ReactNode }) {
     if (!enabled) setLocked(false);
   }, [enabled]);
 
-  const value = { locked: locked && enabled, unlock, error };
+  const value = { locked: locked && enabled, unlock, error, pending };
   return (
     <AppLockContext.Provider value={value}>
-      {value.locked ? <LockScreen onUnlock={unlock} onUsePassword={logout} error={error} /> : children}
+      {value.locked ? <LockScreen onUnlock={unlock} onUsePassword={logout} error={error} pending={pending} /> : children}
     </AppLockContext.Provider>
   );
 }

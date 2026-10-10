@@ -17,6 +17,7 @@ import { useWallets } from '@/hooks/use-wallets';
 import { currenciesOf } from '@/lib/selection';
 import axios from '@/lib/axios';
 import { squareAvatar } from '@/lib/image';
+import { biometricService } from '@/services/biometric.service';
 
 const apiMessage = (err: unknown) => (err instanceof AxiosError ? err.response?.data?.message : undefined);
 const field = 'h-[52px] rounded-[20px] bg-card px-[18px]';
@@ -65,7 +66,10 @@ export default function Profile() {
   };
   const toggleLock = async (on: boolean) => {
     if (!on) return disableBiometric();
-    if (!(await enableBiometric())) toast.error("Couldn't turn on Face ID lock");
+    // A broken enrollment must never become an active lock: prove one unlock works first
+    if ((await enableBiometric()) && (await biometricService.authenticate()).success) return;
+    disableBiometric();
+    toast.error("Couldn't turn on Face ID lock");
   };
   const removePhoto = async () => {
     try {
@@ -151,7 +155,8 @@ export default function Profile() {
 
         <SectionLabel>Security</SectionLabel>
         <section aria-label="Security" className="rounded-[24px] bg-card px-5 py-1 shadow-resting [&>*+*]:border-t [&>*+*]:border-border">
-          {biometricSupported && (
+          {/* Shown while enabled too, so an unsupported device can still turn the lock off */}
+          {(biometricSupported || biometricEnabled) && (
             <div className="flex items-center gap-3 py-3">
               <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-[14px] bg-muted"><ScanFace className="size-5" /></span>
               <span className="min-w-0 flex-1">

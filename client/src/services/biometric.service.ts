@@ -4,6 +4,12 @@ export interface BiometricCredential {
   counter: number;
 }
 
+// credential.id is base64url (`-`, `_`, no padding); atob only takes standard base64
+export function base64UrlToArrayBuffer(id: string): ArrayBuffer {
+  const base64 = id.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(id.length / 4) * 4, '=');
+  return Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)).buffer;
+}
+
 export class BiometricAuthService {
   private readonly credentialKey = 'biometric_credential';
   private readonly userIdKey = 'biometric_user_id';
@@ -102,7 +108,7 @@ export class BiometricAuthService {
           challenge,
           allowCredentials: [
             {
-              id: this.base64ToArrayBuffer(credentialData.id),
+              id: base64UrlToArrayBuffer(credentialData.id),
               type: 'public-key',
             },
           ],
@@ -177,23 +183,6 @@ export class BiometricAuthService {
       binary += String.fromCharCode(bytes[i]);
     }
     return btoa(binary);
-  }
-
-  /**
-   * Convert base64 string to ArrayBuffer
-   */
-  private base64ToArrayBuffer(base64: string): ArrayBuffer {
-    try {
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      return bytes.buffer;
-    } catch (error) {
-      console.error('Invalid base64 string:', base64);
-      throw new Error('The string contains invalid characters.');
-    }
   }
 }
 
