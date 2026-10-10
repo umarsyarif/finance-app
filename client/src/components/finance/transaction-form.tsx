@@ -9,6 +9,7 @@ import { useTransactionForm } from '../../hooks/use-transaction-form';
 import type { TransactionDraft } from '../../hooks/use-transaction-form';
 import { downscaleImage } from '@/lib/image';
 import { Transaction } from './transactions-list';
+import { TransferForm } from './transfer-form';
 import { cn } from '@/lib/utils';
 import axios from '@/lib/axios';
 
@@ -47,7 +48,7 @@ export function TransactionForm({
   submitButtonText,
   defaultWalletId,
 }: TransactionFormProps) {
-  const [type, setType] = useState<TransactionType>(initialType ?? transaction?.type ?? 'EXPENSE');
+  const [type, setType] = useState<TransactionType | 'TRANSFER'>(initialType ?? transaction?.type ?? 'EXPENSE');
   const [newCategory, setNewCategory] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [scanning, setScanning] = useState(false);
@@ -71,11 +72,11 @@ export function TransactionForm({
     walletsError,
     categoriesError,
     refetchCategories,
-  } = useTransactionForm({ type, transaction, onSuccess, defaultWalletId });
+  } = useTransactionForm({ type: type === 'TRANSFER' ? undefined : type, transaction, onSuccess, defaultWalletId });
 
   const wallet = wallets.find((w) => w.id === formData.walletId);
 
-  const switchType = (next: TransactionType) => {
+  const switchType = (next: TransactionType | 'TRANSFER') => {
     setType(next);
     updateField('categoryId', '');
   };
@@ -83,6 +84,7 @@ export function TransactionForm({
   const createCategory = async () => {
     const name = newCategory?.trim();
     if (!name) return;
+    if (type === 'TRANSFER') return;
     const response = await axios.post('/api/categories', { name, type });
     await refetchCategories();
     updateField('categoryId', response.data.data.category.id);
@@ -136,13 +138,16 @@ export function TransactionForm({
   }
 
   return (
-    <form onSubmit={submitForm} className="space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center gap-2">
         <div role="group" aria-label="Type" className="flex gap-2">
           <ChoiceChip selected={type === 'EXPENSE'} onClick={() => switchType('EXPENSE')}>Expense</ChoiceChip>
           <ChoiceChip selected={type === 'INCOME'} onClick={() => switchType('INCOME')}>Income</ChoiceChip>
+          {!transaction && (
+            <ChoiceChip selected={type === 'TRANSFER'} onClick={() => switchType('TRANSFER')}>Transfer</ChoiceChip>
+          )}
         </div>
-        {!transaction && (
+        {!transaction && type !== 'TRANSFER' && (
           <>
             <input
               ref={fileInput}
@@ -161,6 +166,10 @@ export function TransactionForm({
         )}
       </div>
 
+      {type === 'TRANSFER' ? (
+        <TransferForm defaultWalletId={defaultWalletId} onSuccess={onSuccess} />
+      ) : (
+      <form onSubmit={submitForm} className="space-y-6">
       <div role="status" aria-live="polite">
         {scanning && <p className="text-sm text-muted-foreground">Reading photo…</p>}
         {scanned && <p className="rounded-[20px] bg-lime-soft px-4 py-3 text-sm font-semibold">Filled from photo. Check before saving.</p>}
@@ -265,6 +274,8 @@ export function TransactionForm({
       <Button type="submit" disabled={isSubmitting || scanning} className="h-[52px] w-full rounded-full text-[15px]">
         {isSubmitting ? 'Saving…' : submitButtonText ?? (type === 'INCOME' ? 'Save income' : 'Save expense')}
       </Button>
-    </form>
+      </form>
+      )}
+    </div>
   );
 }
