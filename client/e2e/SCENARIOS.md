@@ -35,6 +35,7 @@ regression suite `app.e2e.ts`.
 | D8 | Long-press a wallet card on Transactions | That wallet becomes Main (tag moves, persists after reload) |
 | D9 | "See all transactions" link | Opens /transactions |
 | D10 | Bottom navigation (Home, Transactions, Wallets, Settings) | Each tab opens its page |
+| D11 | Long-press an IDR card while a KRW wallet is Main | Both stay Main: one Main wallet per currency |
 
 ## Transactions (`transactions.e2e.ts`)
 | ID | Scenario | Expected |
@@ -81,6 +82,7 @@ regression suite `app.e2e.ts`.
 | H10 | Yearly chart | Income and expense bars drawn |
 | H11 | Add from the + sheet while on Home | Summary and Latest update without a reload |
 | H12 | New user with one wallet, no transactions | "No transactions yet" prompt and zeroes, no error |
+| H13 | Pull down at the top of Home after a transaction is added elsewhere | Latest shows it without a page reload |
 
 ## Settings (`settings.e2e.ts`)
 | ID | Scenario | Expected |

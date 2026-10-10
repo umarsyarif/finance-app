@@ -1,6 +1,6 @@
 // Scenarios H1–H12 (see SCENARIOS.md)
 import { type Page } from '@playwright/test';
-import { test, expect, signUp, seedWallet, seedCategory, seedTx, thisMonth, prevMonth, card, row, openAddSheet, fillTransaction, saveButton } from './helpers';
+import { test, expect, api, signUp, seedWallet, seedCategory, seedTx, thisMonth, prevMonth, card, row, openAddSheet, fillTransaction, saveButton } from './helpers';
 
 const total = (page: Page) => page.getByRole('region', { name: 'Total' });
 const summary = (page: Page) => page.locator('section', { has: page.getByRole('heading', { name: 'Summary' }) });
@@ -165,4 +165,33 @@ test('H12 a user with no transactions sees the empty state and zeroes', async ({
   await expect(page.getByText('No transactions yet. Tap + to add one.')).toBeVisible();
   await expect(summary(page)).toContainText('₩0');
   await expect(summary(page)).toContainText('No transactions in');
+});
+
+// A vertical touch drag from the very top of the page (the app's own pull-to-refresh gesture)
+async function pullDown(page: Page, distance = 220) {
+  await page.evaluate(async (d) => {
+    window.scrollTo(0, 0);
+    const at = (y: number) => [new Touch({ identifier: 1, target: document.body, clientX: 180, clientY: y })];
+    const fire = (type: string, y: number) =>
+      window.dispatchEvent(new TouchEvent(type, { touches: type === 'touchend' ? [] : at(y), bubbles: true }));
+    fire('touchstart', 100);
+    for (let y = 120; y <= 100 + d; y += 20) fire('touchmove', y);
+    fire('touchend', 100 + d);
+  }, distance);
+}
+
+test('H13 pulling down at the top refreshes Home without a reload', async ({ page }) => {
+  await signUp(page, 'h13');
+  const won = await seedWallet(page, 'KRW', 10000, 'Won');
+  const food = await seedCategory(page, 'EXPENSE', 'Food');
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Latest' })).toBeVisible();
+  await expect(row(page, 'late-lunch')).toHaveCount(0);
+
+  await seedTx(page, won, food, 'late-lunch', thisMonth(1), 9000);
+  await page.evaluate(() => { (window as unknown as { marker: number }).marker = 1; });
+  await pullDown(page);
+
+  await expect(row(page, 'late-lunch')).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { marker?: number }).marker)).toBe(1); // no page reload
 });

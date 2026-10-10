@@ -98,7 +98,7 @@ export const getWalletsHandler = async (
     const where: any = { userId };
     if (currency) where.currency = currency;
 
-    const wallets = await findWallets(where, { createdAt: 'desc' });
+    const wallets = await findWallets(where, [{ createdAt: 'desc' }]);
 
     res.status(200).json({
       status: 'success',

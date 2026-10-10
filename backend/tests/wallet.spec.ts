@@ -233,7 +233,7 @@ describe('Wallet Controller Tests', () => {
 
       expect(walletService.findWallets).toHaveBeenCalledWith(
         { userId: 'user123' },
-        { createdAt: 'desc' }
+        [{ createdAt: 'desc' }]
       );
       expect(statusMock).toHaveBeenCalledWith(200);
       expect(jsonMock).toHaveBeenCalledWith({
@@ -265,7 +265,7 @@ describe('Wallet Controller Tests', () => {
 
       expect(walletService.findWallets).toHaveBeenCalledWith(
         { userId: 'user123', currency: 'EUR' },
-        { createdAt: 'desc' }
+        [{ createdAt: 'desc' }]
       );
     });
   });

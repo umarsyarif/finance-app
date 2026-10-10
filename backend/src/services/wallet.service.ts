@@ -58,7 +58,8 @@ export const findWalletById = async (id: string) => {
 
 export const findWallets = async (
   where: Prisma.WalletWhereInput = {},
-  orderBy: Prisma.WalletOrderByWithRelationInput = { displayOrder: 'asc' }
+  // Ties in displayOrder (0 by default) fall back to creation order, so lists and "first wallet" are stable
+  orderBy: Prisma.WalletOrderByWithRelationInput[] = [{ displayOrder: 'asc' }, { createdAt: 'asc' }]
 ) => {
   return await prisma.wallet.findMany({
     where,
@@ -164,7 +165,7 @@ export const countWallets = async (
 export const findWalletsByUserId = async (userId: string) => {
   return await prisma.wallet.findMany({
     where: { userId },
-    orderBy: { displayOrder: 'asc' },
+    orderBy: [{ displayOrder: 'asc' }, { createdAt: 'asc' }],
     include: {
       _count: {
         select: {

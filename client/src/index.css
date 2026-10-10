@@ -129,6 +129,8 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    /* The app has its own pull-to-refresh (usePullToRefresh); don't also trigger the browser's */
+    overscroll-behavior-y: contain;
   }
 }
 

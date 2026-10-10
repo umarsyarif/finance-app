@@ -181,3 +181,24 @@ test('D10 bottom navigation opens each page', async ({ page }) => {
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible();
 });
+
+test('D11 each currency keeps its own Main wallet', async ({ page }) => {
+  await signUp(page, 'd11');
+  const won = await seedWallet(page, 'KRW', 1000, 'Won');
+  await seedWallet(page, 'IDR', 1000, 'Jago');
+  const pocket = await seedWallet(page, 'IDR', 2000, 'Pocket', false);
+  await page.goto('/transactions');
+  const pocketCard = card(page, 'Pocket');
+  await pocketCard.scrollIntoViewIfNeeded();
+
+  await pocketCard.dispatchEvent('pointerdown');
+  await page.waitForTimeout(700);
+  await pocketCard.dispatchEvent('pointerup');
+
+  await expect.poll(async () => (await api(page, 'get', `/api/wallets/${pocket}`)).data.wallet.isMain).toBe(true);
+  expect((await api(page, 'get', `/api/wallets/${won}`)).data.wallet.isMain).toBe(true);
+  await page.reload();
+  await expect(card(page, 'Won').getByText('Main', { exact: true })).toBeVisible();
+  await expect(card(page, 'Pocket').getByText('Main', { exact: true })).toBeVisible();
+  await expect(card(page, 'Jago').getByText('Main', { exact: true })).toHaveCount(0);
+});

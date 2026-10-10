@@ -60,7 +60,10 @@ export function Wallets() {
   const [deleteCategory, setDeleteCategory] = useState<Category | null>(null);
 
   useEffect(() => {
-    if (dataVersion) refetchWallets();
+    if (dataVersion) {
+      refetchWallets();
+      refetchCategories();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataVersion]);
 
