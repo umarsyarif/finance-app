@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import axios from '@/lib/axios';
 import { AxiosError } from 'axios';
 import { biometricService } from '@/services/biometric.service';
@@ -89,7 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]); // This effect can depend on user for activity tracking
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div role="status" className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background">
+        <Loader2 className="size-8 animate-spin text-lime" aria-hidden="true" />
+        <span className="text-sm font-medium text-muted-foreground">Loading your wallet…</span>
+      </div>
+    );
   }
 
   const login = async (email: string, password: string, rememberMe = false) => {

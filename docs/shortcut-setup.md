@@ -11,7 +11,7 @@ In the app: Settings → Security → Shortcut token → Generate token. Copy it
 1. **Take Screenshot**
 2. **Extract Text from Image** (input: Screenshot)
 3. **Get Contents of URL**
-   - URL: `https://finance-api.umeh.me/api/capture/text` (local: `http://localhost:8000/api/capture/text`)
+   - URL: `https://finance.umeh.me/api/capture/text` (local: `http://localhost:8000/api/capture/text`)
    - Method: POST
    - Headers: `Authorization` = `Bearer <your token>`
    - Request Body: JSON, field `text` (Text) = *Extracted Text*
