@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, Plus, ReceiptText, Settings, Wallet } from 'lucide-react';
+import { LayoutGrid, Plus, ReceiptText, UserRound, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tabs = [
@@ -7,7 +7,7 @@ const tabs = [
     { to: '/transactions', label: 'Transactions', icon: ReceiptText },
     null, // center slot: Add
     { to: '/wallets', label: 'Wallets', icon: Wallet },
-    { to: '/settings', label: 'Settings', icon: Settings },
+    { to: '/profile', label: 'Profile', icon: UserRound },
 ];
 
 // Bottom bar from DESIGN.md: four tabs around a raised Add button that is never a tab

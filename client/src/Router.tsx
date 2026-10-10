@@ -6,7 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import { MonthlyTransactionsView } from './pages/Transactions';
 import { Wallets } from './pages/Wallets';
-import Settings from './pages/Settings';
+import Profile from './pages/Profile';
 import { useAuth } from '@/contexts/auth.context';
 
 const ProtectedRoutes = ({ children }: { children: React.ReactNode }) => {
@@ -27,7 +27,8 @@ export default function Router() {
                 <Route path="transactions" element={<MonthlyTransactionsView />} />
                 <Route path="wallets" element={<Wallets />} />
                 <Route path="stats" element={<Navigate to="/" replace />} />
-                <Route path="settings" element={<Settings />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="settings" element={<Navigate to="/profile" replace />} />
                 <Route path="*" element={<NotMatch />} />
             </Route>
         </Routes>

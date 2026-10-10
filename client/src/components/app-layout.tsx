@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, useOutletContext } from 'react-router-dom';
+import { Outlet, useLocation, useOutletContext } from 'react-router-dom';
 import { AppHeader } from './app-header';
 import { AppFooter } from './app-footer';
 import { AddTransactionSheet } from './finance/add-transaction-sheet';
@@ -7,6 +7,7 @@ import { RefreshCw } from 'lucide-react';
 import { secureStorage } from '@/services/secure-storage.service';
 import { PULL_THRESHOLD, usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { checkForAppUpdate } from '@/lib/app-update';
+import { cn } from '@/lib/utils';
 
 export interface AppShellContext {
   // Wallet shown on Transactions (raw; resolve with resolveWalletId). The Add sheet defaults to it.
@@ -33,6 +34,7 @@ function usePersisted(key: string) {
 }
 
 export function AppLayout() {
+  const { pathname } = useLocation();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedWalletId, setSelectedWalletId] = usePersisted('selected_wallet');
   const [selectedCurrency, setSelectedCurrency] = usePersisted('selected_currency');
@@ -46,7 +48,7 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen flex flex-col w-full">
-      <AppHeader />
+      {pathname === '/' && <AppHeader />}
       {(pull > 0 || refreshing) && (
         <div
           role="status"
@@ -60,7 +62,7 @@ export function AppLayout() {
           />
         </div>
       )}
-      <main className="w-full max-w-[480px] mx-auto px-6 flex flex-grow flex-col pb-32">
+      <main className={cn('w-full max-w-[480px] mx-auto px-6 flex flex-grow flex-col pb-32', pathname !== '/' && 'pt-6')}>
         <Outlet
           context={{ selectedWalletId, setSelectedWalletId, selectedCurrency, setSelectedCurrency, dataVersion, notifyDataChanged } satisfies AppShellContext}
         />
