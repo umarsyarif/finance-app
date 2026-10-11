@@ -1,4 +1,4 @@
-import { test as base, expect, type Page } from '@playwright/test';
+import { test as base, expect, type Page, type Request } from '@playwright/test';
 
 export const API = 'http://localhost:8010';
 export const PASSWORD = 'password123';
@@ -109,3 +109,27 @@ export function thisMonth(day: number, hour = 12) {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), day, hour).toISOString();
 }
+
+// Mocked portfolio: the real GET /api/assets calls the internet (exchange rates, Binance)
+export type H = { assetClass: string; symbol: string; quantity: number; unit: string | null; value: number | null; cost: number | null; gain: number | null; gainPct: number | null; source: string };
+export const gold = (grams: number, value: number): H => ({ assetClass: 'GOLD', symbol: 'XAU', quantity: grams, unit: 'g', value, cost: null, gain: null, gainPct: null, source: 'manual' });
+export const btc: H = { assetClass: 'CRYPTO', symbol: 'BTC', quantity: 0.5, unit: null, value: 3000000, cost: null, gain: null, gainPct: null, source: 'binance' };
+export const portfolio = (currency: string, holdings: H[], connected = false) => ({
+  currency,
+  total: { value: holdings.reduce((s, h) => s + (h.value ?? 0), 0), cost: null, gain: null, gainPct: null },
+  holdings,
+  sources: { binance: { connected, lastSyncedAt: connected ? new Date().toISOString() : null, error: null } },
+  stale: false,
+});
+
+// Serves the current `state.body` for GET /api/assets only (not /api/assets/lots...) and records each request
+export async function mockPortfolio(page: Page, state: { body: (currency: string) => unknown }) {
+  const gets: Request[] = [];
+  await page.route((url) => url.pathname === '/api/assets', (route) => {
+    gets.push(route.request());
+    const currency = new URL(route.request().url()).searchParams.get('currency') ?? 'KRW';
+    return route.fulfill({ json: { status: 'success', data: state.body(currency) } });
+  });
+  return gets;
+}
+

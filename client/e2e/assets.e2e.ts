@@ -1,32 +1,8 @@
 // Scenarios AS1–AS5 (see SCENARIOS.md). GET /api/assets and the Binance PUT are mocked: the real ones call the internet.
-import type { Page, Request } from '@playwright/test';
-import { test, expect, signUp, seedWallet } from './helpers';
-
-type H = { assetClass: string; symbol: string; quantity: number; unit: string | null; value: number | null; cost: number | null; gain: number | null; gainPct: number | null; source: string };
-const gold = (grams: number, value: number): H => ({ assetClass: 'GOLD', symbol: 'XAU', quantity: grams, unit: 'g', value, cost: null, gain: null, gainPct: null, source: 'manual' });
-const btc: H = { assetClass: 'CRYPTO', symbol: 'BTC', quantity: 0.5, unit: null, value: 3000000, cost: null, gain: null, gainPct: null, source: 'binance' };
-const portfolio = (currency: string, holdings: H[], connected = false) => ({
-  currency,
-  total: { value: holdings.reduce((s, h) => s + (h.value ?? 0), 0), cost: null, gain: null, gainPct: null },
-  holdings,
-  sources: { binance: { connected, lastSyncedAt: connected ? new Date().toISOString() : null, error: null } },
-  stale: false,
-});
-
-// Serves the current `state.body` for GET /api/assets only (not /api/assets/lots...) and records each request
-async function mockPortfolio(page: Page, state: { body: (currency: string) => unknown }) {
-  const gets: Request[] = [];
-  await page.route((url) => url.pathname === '/api/assets', (route) => {
-    gets.push(route.request());
-    const currency = new URL(route.request().url()).searchParams.get('currency') ?? 'KRW';
-    return route.fulfill({ json: { status: 'success', data: state.body(currency) } });
-  });
-  return gets;
-}
+import { test, expect, signUp, seedWallet, gold, btc, portfolio, mockPortfolio } from './helpers';
 
 test('AS1 nav shows Assets; Profile opens Wallets & categories', async ({ page }) => {
   await signUp(page, 'as1');
-  await mockPortfolio(page, { body: (c) => portfolio(c, []) });
   await seedWallet(page, 'KRW', 1000, 'Bank');
   await page.goto('/');
   const nav = page.getByRole('navigation', { name: 'Main' });

@@ -2,7 +2,7 @@
 import { type Page } from '@playwright/test';
 import {
   test, expect, signUp, api, seedWallet, seedCategory, seedTx, txCount, walletBalance, thisMonth,
-  card, row, openAddSheet, fillTransaction, saveButton,
+  card, row, openAddSheet, fillTransaction, saveButton, mockPortfolio, portfolio,
 } from './helpers';
 
 // The wallet card currently selected on Transactions
@@ -167,6 +167,7 @@ test('D9 "See all transactions" opens the Transactions page', async ({ page }) =
 test('D10 bottom navigation opens each page', async ({ page }) => {
   await signUp(page, 'd10');
   await seedWallet(page);
+  await mockPortfolio(page, { body: (c) => portfolio(c, []) });
   await page.goto('/');
   const nav = (label: string) => page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: label });
 
