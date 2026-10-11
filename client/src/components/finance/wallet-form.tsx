@@ -23,6 +23,7 @@ interface Wallet {
   color: string;
   icon?: string | null;
   description?: string | null;
+  _count?: { transactions: number };
 }
 
 interface WalletFormProps {
@@ -49,6 +50,8 @@ const COLOR_PRESETS = [
 ];
 
 export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
+  // The balance follows the transactions once there are any (the API refuses a change too)
+  const balanceLocked = (wallet?._count?.transactions ?? 0) > 0;
   const [formData, setFormData] = useState({
     name: '',
     currency: 'KRW',
@@ -166,8 +169,10 @@ export function WalletForm({ wallet, onSuccess }: WalletFormProps) {
           onChange={(e) => setFormData(prev => ({ ...prev, balance: parseFloat(e.target.value) || 0 }))}
           placeholder="0.00"
           required
+          disabled={balanceLocked}
           className="h-[52px] rounded-[20px] bg-card px-[18px]"
         />
+        {balanceLocked && <p className="text-xs text-muted-foreground">Locked: this wallet has transactions.</p>}
       </div>
 
       <div className="space-y-2">

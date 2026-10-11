@@ -141,6 +141,15 @@ export const updateWalletHandler = async (
       }
     }
 
+    // The balance follows the wallet's transactions once it has any; a manual edit would desync them.
+    // The form resends the current balance, so only a changed value is refused.
+    if (balance !== undefined && Number(balance) !== Number(existingWallet.balance)) {
+      const txCount = await countTransactionsForWallet(walletId);
+      if (txCount > 0) {
+        return next(new AppError(400, `Can't change the balance of a wallet with ${txCount} transaction(s). Add an income or expense instead.`));
+      }
+    }
+
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (currency !== undefined) updateData.currency = currency;
