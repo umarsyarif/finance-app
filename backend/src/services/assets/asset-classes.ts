@@ -4,5 +4,5 @@ export const ASSET_CLASSES = {
   CRYPTO: { manual: false, unit: null, defaultSymbol: null },
 } as const;
 export type AssetClass = keyof typeof ASSET_CLASSES;
-export const isAssetClass = (c: string): c is AssetClass => c in ASSET_CLASSES;
+export const isAssetClass = (c: string): c is AssetClass => Object.prototype.hasOwnProperty.call(ASSET_CLASSES, c);
 export const isManualClass = (c: string) => isAssetClass(c) && ASSET_CLASSES[c].manual;

@@ -19,21 +19,19 @@ async function tickers(pairs: string[]): Promise<Record<string, number>> {
     if (!res.ok) throw Object.assign(new Error('ticker'), { status: res.status });
     return res.json() as Promise<{ symbol: string; price: string } | { symbol: string; price: string }[]>;
   };
-  const toMap = (rows: { symbol: string; price: string }[]) => Object.fromEntries(rows.map((r) => [r.symbol, Number(r.price)]));
+  const toMap = (rows: { symbol: string; price: string }[]) => Object.fromEntries(
+    rows.map((r) => [r.symbol, Number(r.price)]).filter(([, v]) => Number.isFinite(v)),
+  );
   try {
     const rows = await get(`symbols=${encodeURIComponent(JSON.stringify(pairs))}`);
     return toMap(Array.isArray(rows) ? rows : [rows]);
   } catch (err) {
-    // One unknown pair fails the whole batch (400): fall back to one request per pair
+    // One unknown pair fails the whole batch (400): fetch all tickers once and filter locally.
+    // Any other failure propagates so the caller serves stale data instead of caching null.
     if ((err as { status?: number }).status !== 400) throw err;
-    const out: Record<string, number> = {};
-    await Promise.all(pairs.map(async (p) => {
-      try {
-        const row = (await get(`symbol=${p}`)) as { symbol: string; price: string };
-        out[p] = Number(row.price);
-      } catch { /* no such pair */ }
-    }));
-    return out;
+    const all = await get('');
+    const wanted = new Set(pairs);
+    return toMap((Array.isArray(all) ? all : [all]).filter((r) => wanted.has(r.symbol)));
   }
 }
 
@@ -71,8 +69,9 @@ export async function usdRates() {
   if (fxCache && now - fxCache.at < FX_TTL) return { rates: fxCache.value, stale: false };
   try {
     const res = await fetch('https://open.er-api.com/v6/latest/USD', { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error('fx');
     const body = (await res.json()) as { result: string; rates: Record<string, number> };
-    if (body.result !== 'success') throw new Error('fx');
+    if (body.result !== 'success' || !Number.isFinite(body.rates?.KRW) || !Number.isFinite(body.rates?.IDR)) throw new Error('fx');
     fxCache = { at: now, value: { KRW: body.rates.KRW, IDR: body.rates.IDR } };
     return { rates: fxCache.value, stale: false };
   } catch {
