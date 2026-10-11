@@ -60,6 +60,12 @@ describe('Assets page', () => {
     expect(gain.className).toContain('text-expense');
   });
 
+  it('shows the gain amount even without a percentage', () => {
+    hook = { ...hook, data: portfolio({ total: { value: 700000, cost: 0, gain: 700000, gainPct: null } }) };
+    renderPage();
+    expect(screen.getByText(/\+Rp\s?700,000/)).toBeTruthy();
+  });
+
   it('notes stale prices', () => {
     hook = { ...hook, data: portfolio({ stale: true }) };
     renderPage();

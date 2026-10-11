@@ -71,6 +71,24 @@ describe('ManualClassCard', () => {
     await waitFor(() => expect(axios.post).toHaveBeenCalledWith('/api/assets/lots', expect.objectContaining({ quantity: -2, totalPaid: -3000000 })));
   });
 
+  it('hides the average line when the cost base is not positive', () => {
+    render(<ManualClassCard assetClass="GOLD" holding={{ ...holding, cost: -1000000 }} currency="IDR" onChanged={vi.fn()} />);
+    expect(document.body.textContent).not.toContain('Avg');
+  });
+
+  it('edits a sale lot with absolute values and saves negated numbers', async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole('button', { name: /Gold/ }));
+    await screen.findByText(/−2 g/);
+    await user.click(screen.getAllByRole('button', { name: 'Edit' })[1]);
+    expect(screen.getByRole('radio', { name: 'Sell' }).getAttribute('aria-checked')).toBe('true');
+    expect((screen.getByLabelText('Grams') as HTMLInputElement).value).toBe('2');
+    expect((screen.getByLabelText('Total received') as HTMLInputElement).value).toBe('2500000');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(axios.patch).toHaveBeenCalledWith('/api/assets/lots/l2', expect.objectContaining({ quantity: -2, totalPaid: -2500000 })));
+  });
+
   it('lists purchases and deletes one after confirming', async () => {
     const user = userEvent.setup();
     const onChanged = setup();

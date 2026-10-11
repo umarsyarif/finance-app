@@ -25,6 +25,7 @@ const p = prisma as any;
 const dec = (n: number) => ({ toNumber: () => n });
 
 beforeEach(() => {
+  jest.restoreAllMocks();
   jest.clearAllMocks();
   resetBinanceCache();
   (decrypt as jest.Mock).mockImplementation(() => 'secret');
@@ -88,6 +89,7 @@ describe('getPortfolio', () => {
 
   it('Binance failing keeps gold and reports the error; cached coins are reused', async () => {
     await getPortfolio('u1', 'IDR', false); // fills the cache
+    jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 31_000); // past the forced-resync throttle
     (fetchBalances as jest.Mock).mockRejectedValue(new BinanceError('Invalid API-key, IP, or permissions for action.'));
     const pf = await getPortfolio('u1', 'IDR', true);
     expect(pf.holdings.find((h) => h.symbol === 'XAU')).toBeDefined();
@@ -103,6 +105,17 @@ describe('getPortfolio', () => {
     const pf = await getPortfolio('u1', 'IDR', false);
     expect(pf.holdings.find((h) => h.symbol === 'XAU')!.value).toBe(8 * 100 * 16000);
     expect(pf.holdings.find((h) => h.symbol === 'BTC')!.value).toBeNull();
+  });
+
+  it('every priced class failing on a cold cache throws instead of reporting zero', async () => {
+    (usdPrices as jest.Mock).mockRejectedValue(new PriceUnavailableError('Prices are unavailable right now'));
+    await expect(getPortfolio('u1', 'IDR', false)).rejects.toBeInstanceOf(PriceUnavailableError);
+  });
+
+  it('forced resyncs within 30s reuse the cached balances', async () => {
+    await getPortfolio('u1', 'IDR', true);
+    await getPortfolio('u1', 'IDR', true);
+    expect(fetchBalances).toHaveBeenCalledTimes(1);
   });
 
   it('not connected: no Binance call', async () => {
@@ -145,6 +158,7 @@ describe('getPortfolio', () => {
     await getPortfolio('u1', 'IDR', false);
     expect(p.binanceConnection.update).toHaveBeenCalledWith({ where: { userId: 'u1' }, data: { lastSyncedAt: expect.any(Date), lastError: null } });
     (fetchBalances as jest.Mock).mockRejectedValue(new BinanceError('nope'));
+    jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 31_000);
     await getPortfolio('u1', 'IDR', true);
     expect(p.binanceConnection.update).toHaveBeenLastCalledWith({ where: { userId: 'u1' }, data: { lastError: 'nope' } });
   });

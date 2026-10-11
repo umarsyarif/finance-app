@@ -20,19 +20,23 @@ export async function getPortfolio(userId: string, currency: Currency, refresh: 
 
   // Price each class separately so one failing source doesn't hide the others
   let stale = fxStale;
+  let classes = 0, failed = 0;
   const usd: Record<string, number | null> = {};
   for (const cls of Object.keys(ASSET_CLASSES) as AssetClass[]) {
     const symbols = [...new Set(holdings.filter((h) => h.assetClass === cls).map((h) => h.symbol))];
     if (symbols.length === 0) continue;
+    classes++;
     try {
       const r = await usdPrices(cls, symbols);
       stale ||= r.stale;
       for (const s of symbols) usd[`${cls}:${s}`] = r.prices[s];
     } catch (err) {
       if (!(err instanceof PriceUnavailableError)) throw err;
+      failed++;
       for (const s of symbols) usd[`${cls}:${s}`] = null;
     }
   }
+  if (classes > 0 && failed === classes) throw new PriceUnavailableError(); // cold cache everywhere: 503, not a fake ₩0
 
   const rate = rates[currency];
   const costUsd = (h: Holding): number | null => {

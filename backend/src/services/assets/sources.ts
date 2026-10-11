@@ -21,6 +21,7 @@ export async function manualHoldings(userId: string): Promise<Holding[]> {
 }
 
 const BINANCE_TTL = 5 * 60_000;
+const BINANCE_MIN_REFRESH = 30_000; // forced resyncs still reuse a fresh cache: protects the VPS IP from Binance weight bans
 const binanceCache = new Map<string, { at: number; balances: Record<string, number> }>();
 export const resetBinanceCache = () => binanceCache.clear();
 export const clearBinanceCache = (userId: string) => { binanceCache.delete(userId); };
@@ -33,7 +34,7 @@ export async function binanceHoldings(userId: string, refresh: boolean): Promise
   let balances = cached?.balances ?? {};
   let lastSyncedAt = conn.lastSyncedAt;
   let error = conn.lastError;
-  if (refresh || !cached || Date.now() - cached.at >= BINANCE_TTL) {
+  if (!cached || Date.now() - cached.at >= (refresh ? BINANCE_MIN_REFRESH : BINANCE_TTL)) {
     try {
       let apiSecret: string;
       try { apiSecret = decrypt(conn); } catch { throw new BinanceError("Reconnect Binance: the saved key can't be read"); }

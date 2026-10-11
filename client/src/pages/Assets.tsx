@@ -30,9 +30,9 @@ export default function Assets() {
             <section aria-label="Total assets" className="space-y-1 rounded-[24px] bg-card p-5 shadow-resting">
               <p className="text-xs text-muted-foreground">Total assets</p>
               <p className="text-[32px] font-bold tabular-nums">{formatCurrency(total.value, currency)}</p>
-              {gain !== null && total.gainPct !== null && (
+              {gain !== null && (
                 <p className={cn('text-sm font-semibold tabular-nums', gain >= 0 ? 'text-income' : 'text-expense')}>
-                  {gain >= 0 ? '+' : '−'}{formatCurrency(Math.abs(gain), currency)} ({total.gainPct.toFixed(1)}%)
+                  {gain >= 0 ? '+' : '−'}{formatCurrency(Math.abs(gain), currency)}{total.gainPct !== null && ` (${total.gainPct.toFixed(1)}%)`}
                 </p>
               )}
               {data.stale && <p className="text-xs text-muted-foreground">Prices may be out of date</p>}

@@ -60,7 +60,7 @@ export function ManualClassCard({ assetClass, holding, currency, onChanged }: {
               <>
                 <span className="block text-sm text-muted-foreground tabular-nums">{formatNumber(holding.quantity)} {unit}</span>
                 <span className="block text-xl font-bold tabular-nums">{holding.value === null ? '—' : formatCurrency(holding.value, currency)}</span>
-                {holding.quantity > 0 && holding.cost !== null && (
+                {holding.quantity > 0 && holding.cost !== null && holding.cost > 0 && (
                   <span className="block text-xs text-muted-foreground tabular-nums">Avg {formatCurrency(holding.cost / holding.quantity, currency)}/{unit}</span>
                 )}
                 {gain !== null && (

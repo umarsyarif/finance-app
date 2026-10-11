@@ -114,6 +114,14 @@ describe('/api/assets', () => {
     }
   });
 
+  it('rejects mixed-sign and oversized lots', async () => {
+    const u = shared;
+    for (const bad of [{ quantity: 2, totalPaid: -5 }, { quantity: -2, totalPaid: 5 }, { quantity: 1e16 }, { totalPaid: 1e15 }]) {
+      expect((await u.post('/api/assets/lots').send(lot(bad))).status).toBe(400);
+    }
+    expect((await u.post('/api/assets/lots').send(lot({ quantity: 2, totalPaid: 0 }))).status).toBe(201);
+  });
+
   it("doesn't let another user touch a lot", async () => {
     const a = await newUser('owner');
     const b = await newUser('other');

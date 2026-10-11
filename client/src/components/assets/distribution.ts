@@ -1,6 +1,6 @@
 import { ASSET_CLASS_UI, holdingLabel } from './asset-classes';
 
-const PALETTE = ['#F7931A', '#627EEA', '#26A17B', '#8247E5', '#E84142', '#00AAE4', '#9CA3AF'];
+const PALETTE = ['#F7931A', '#627EEA', '#26A17B', '#8247E5', '#E84142', '#00AAE4', '#D946A8'];
 const OTHER = '#9CA3AF';
 
 // Donut slices: each priced holding's share; slices under `threshold`% merge into "Other"
