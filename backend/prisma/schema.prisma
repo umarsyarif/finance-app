@@ -18,6 +18,9 @@ model User {
   wallets    Wallet[]
   categories Category[]
   transfers  Transfer[]
+  assetLots  AssetLot[]
+  assetCosts AssetCost[]
+  binanceConnection BinanceConnection?
   avatar     UserAvatar?
   avatarUpdatedAt DateTime?
 
@@ -131,4 +134,47 @@ model UserAvatar {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_avatars")
+}
+
+// A manual buy (quantity > 0) or sell (quantity < 0) of any manually tracked asset
+model AssetLot {
+  id         String   @id @default(uuid())
+  userId     String
+  assetClass String   // GOLD today; STOCK, BOND… later (validated in code)
+  symbol     String   // XAU for gold
+  date       DateTime
+  quantity   Decimal  @db.Decimal(24, 8)   // grams for gold; negative = sale
+  totalPaid  Decimal  @db.Decimal(19, 4)   // money paid; negative for a sale (money received)
+  currency   String   // IDR | KRW | USD
+  note       String?
+  createdAt  DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, assetClass, symbol])
+  @@map("asset_lots")
+}
+
+// What the user paid in total for a holding that comes from a sync source (no per-lot history)
+model AssetCost {
+  userId       String
+  assetClass   String   // CRYPTO today
+  symbol       String   // BTC
+  costAmount   Decimal  @db.Decimal(19, 4)
+  costCurrency String   // USD | KRW | IDR
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([userId, assetClass, symbol])
+  @@map("asset_costs")
+}
+
+// Credentials of one sync source (each source has its own shape)
+model BinanceConnection {
+  userId       String    @id
+  apiKey       String
+  secretEnc    String    // base64 ciphertext
+  iv           String    // base64, 12 bytes
+  authTag      String    // base64, 16 bytes
+  lastSyncedAt DateTime?
+  lastError    String?
+  createdAt    DateTime  @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("binance_connections")
 }

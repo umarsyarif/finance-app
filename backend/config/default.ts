@@ -6,4 +6,6 @@ export default {
   // AI capture: empty key disables the capture endpoints (503)
   geminiApiKey: '',
   geminiModel: 'gemini-2.5-flash',
+  // Asset sync secrets (AES-256-GCM key, base64 32 bytes); empty = asset sync disabled
+  assetsEncryptionKey: '',
 };
