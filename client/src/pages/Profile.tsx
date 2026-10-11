@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { Camera, ChevronRight, KeyRound, LogOut, Pencil, ScanFace, Smartphone, Trash2 } from 'lucide-react';
+import { Camera, ChevronRight, KeyRound, LogOut, Pencil, ScanFace, Smartphone, Trash2, Wallet } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 import { ApiTokenSettings } from '@/components/api-token-settings';
@@ -42,6 +43,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export default function Profile() {
   const { user, refreshUser, logout, biometricEnabled, biometricSupported, enableBiometric, disableBiometric } = useAuth();
+  const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const { wallets } = useWallets();
   const [sheet, setSheet] = useState<SheetName>(null);
@@ -149,6 +151,11 @@ export default function Profile() {
           <div><p className="text-xs text-muted-foreground">Wallets</p><p className="font-bold">{wallets.length}</p></div>
           <div><p className="text-xs text-muted-foreground">Currencies</p><p className="font-bold">{currenciesOf(wallets).join(' · ') || '—'}</p></div>
           <div className="min-w-0"><p className="text-xs text-muted-foreground">Main</p><p className="truncate font-bold">{mains || '—'}</p></div>
+        </section>
+
+        <SectionLabel>Money</SectionLabel>
+        <section aria-label="Money" className="rounded-[24px] bg-card px-5 py-1 shadow-resting">
+          <Row icon={Wallet} title="Wallets & categories" subtitle="Accounts, balances and categories" onClick={() => navigate('/wallets')} />
         </section>
 
         <SectionLabel>Preferences</SectionLabel>

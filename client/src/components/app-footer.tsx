@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, Plus, ReceiptText, UserRound, Wallet } from 'lucide-react';
+import { LayoutGrid, Plus, ReceiptText, UserRound, Gem } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tabs = [
     { to: '/', label: 'Home', icon: LayoutGrid },
     { to: '/transactions', label: 'Transactions', icon: ReceiptText },
     null, // center slot: Add
-    { to: '/wallets', label: 'Wallets', icon: Wallet },
+    { to: '/assets', label: 'Assets', icon: Gem },
     { to: '/profile', label: 'Profile', icon: UserRound },
 ];
 
