@@ -1,4 +1,6 @@
 import { CurrencyToggle } from '@/components/finance/currency-toggle';
+import { ManualClassCard } from '@/components/assets/manual-class-card';
+import { ASSET_CLASS_UI } from '@/components/assets/asset-classes';
 import { DistributionChart } from '@/components/assets/distribution-chart';
 import { PageTitle } from '@/components/page-header';
 import { useAppShell } from '@/components/app-layout';
@@ -9,7 +11,7 @@ import { cn } from '@/lib/utils';
 export default function Assets() {
   const { selectedCurrency, setSelectedCurrency, dataVersion } = useAppShell();
   const currency = selectedCurrency ?? 'KRW';
-  const { data, loading, error } = usePortfolio(currency, dataVersion);
+  const { data, loading, error, refetch } = usePortfolio(currency, dataVersion);
   const { total } = data ?? {};
   const gain = total?.gain ?? null;
 
@@ -40,7 +42,10 @@ export default function Assets() {
             {data.holdings.length === 0 && !data.sources.binance.connected && (
               <p className="py-6 text-center text-muted-foreground">Add your first asset</p>
             )}
-            {/* Task 7/8: one AssetClassCard per ASSET_CLASS_UI entry */}
+            {Object.entries(ASSET_CLASS_UI).filter(([, ui]) => ui.manual).map(([cls]) => (
+              <ManualClassCard key={cls} assetClass={cls} holding={data.holdings.find((h) => h.assetClass === cls)} currency={currency} onChanged={() => refetch()} />
+            ))}
+            {/* Task 8: the synced (Crypto) card */}
           </>
         )}
       </div>

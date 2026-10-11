@@ -97,3 +97,6 @@ export const formatCurrency = (amount: number, currency: string = 'KRW'): string
 // Wallet card subtitle: "Shinhan debit · KRW", or just "KRW" without a description
 export const walletCaption = (wallet: { description?: string | null; currency: string }): string =>
   [wallet.description, wallet.currency].filter(Boolean).join(' · ');
+
+// Quantities such as grams: "8", "1.25" (up to 4 decimals)
+export const formatNumber = (n: number): string => new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(n);
