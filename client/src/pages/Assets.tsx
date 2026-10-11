@@ -1,4 +1,5 @@
 import { CurrencyToggle } from '@/components/finance/currency-toggle';
+import { SyncedClassCard } from '@/components/assets/synced-class-card';
 import { ManualClassCard } from '@/components/assets/manual-class-card';
 import { ASSET_CLASS_UI } from '@/components/assets/asset-classes';
 import { DistributionChart } from '@/components/assets/distribution-chart';
@@ -45,7 +46,9 @@ export default function Assets() {
             {Object.entries(ASSET_CLASS_UI).filter(([, ui]) => ui.manual).map(([cls]) => (
               <ManualClassCard key={cls} assetClass={cls} holding={data.holdings.find((h) => h.assetClass === cls)} currency={currency} onChanged={() => refetch()} />
             ))}
-            {/* Task 8: the synced (Crypto) card */}
+            {Object.entries(ASSET_CLASS_UI).filter(([, ui]) => !ui.manual).map(([cls]) => (
+              <SyncedClassCard key={cls} assetClass={cls} holdings={data.holdings.filter((h) => h.assetClass === cls)} status={data.sources.binance} currency={currency} onChanged={() => refetch()} onSync={() => refetch(true)} />
+            ))}
           </>
         )}
       </div>

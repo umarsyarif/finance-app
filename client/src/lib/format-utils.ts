@@ -99,4 +99,5 @@ export const walletCaption = (wallet: { description?: string | null; currency: s
   [wallet.description, wallet.currency].filter(Boolean).join(' · ');
 
 // Quantities such as grams: "8", "1.25" (up to 4 decimals)
-export const formatNumber = (n: number): string => new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(n);
+export const formatNumber = (n: number, opts?: Intl.NumberFormatOptions): string =>
+  new Intl.NumberFormat('en-US', opts ?? { maximumFractionDigits: 4 }).format(n);

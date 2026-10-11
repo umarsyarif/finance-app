@@ -12,7 +12,7 @@ import type { Holding } from '@/hooks/use-portfolio';
 import { formatCurrency, formatDateDetailed, formatNumber } from '@/lib/format-utils';
 import { cn } from '@/lib/utils';
 
-function FormSheet({ open, onOpenChange, title, children }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; children: React.ReactNode }) {
+export function FormSheet({ open, onOpenChange, title, children }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; children: React.ReactNode }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="mx-auto max-h-[92vh] max-w-[480px] overflow-y-auto rounded-t-[28px] px-6 pb-8">
