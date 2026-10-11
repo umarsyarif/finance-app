@@ -21,7 +21,7 @@ test('AS2 add two purchases, sell one gram, delete a lot', async ({ page }) => {
   const posts: Record<string, unknown>[] = [];
   page.on('request', (r) => { if (r.method() === 'POST' && new URL(r.url()).pathname === '/api/assets/lots') posts.push(r.postDataJSON()); });
 
-  await page.goto('/assets');
+  await page.goto('/portfolio');
   const card = page.getByRole('region', { name: 'Gold' });
   await expect(card).toContainText('No gold yet');
 
@@ -66,7 +66,7 @@ test('AS2 add two purchases, sell one gram, delete a lot', async ({ page }) => {
 test('AS3 Gold and BTC in the cards and the legend', async ({ page }) => {
   await signUp(page, 'as3');
   await mockPortfolio(page, { body: (c) => portfolio(c, [gold(10, 1000000), btc], true) });
-  await page.goto('/assets');
+  await page.goto('/portfolio');
   const crypto = page.getByRole('region', { name: 'Crypto' });
   await expect(crypto).toContainText('BTC');
   await expect(crypto).toContainText('3,000,000');
@@ -82,7 +82,7 @@ test('AS4 toggling KRW to IDR requests IDR and shows Rp', async ({ page }) => {
   await seedWallet(page, 'KRW', 1000, 'Won');
   await seedWallet(page, 'IDR', 1000, 'Jago');
   const gets = await mockPortfolio(page, { body: (c) => portfolio(c, [gold(10, c === 'IDR' ? 15000000 : 1000000)]) });
-  await page.goto('/assets');
+  await page.goto('/portfolio');
   await expect(page.getByRole('region', { name: 'Total assets' })).toContainText('1,000,000');
   await page.getByRole('radio', { name: 'IDR' }).click();
   await expect.poll(() => gets.some((r) => new URL(r.url()).searchParams.get('currency') === 'IDR')).toBe(true);
@@ -95,7 +95,7 @@ test('AS5 connect sheet shows instructions and a rejected key clears the secret'
   await mockPortfolio(page, { body: (c) => portfolio(c, []) });
   await page.route((url) => url.pathname === '/api/assets/sources/binance', (route) =>
     route.fulfill({ status: 400, json: { status: 'fail', message: 'Use a read-only key: turn off trading, withdrawals and transfers' } }));
-  await page.goto('/assets');
+  await page.goto('/portfolio');
   await page.getByRole('button', { name: 'Connect Binance' }).click();
   const sheet = page.getByRole('dialog', { name: 'Connect Binance' });
   await expect(sheet).toContainText('Enable Reading');

@@ -6,7 +6,7 @@ const tabs = [
     { to: '/', label: 'Home', icon: LayoutGrid },
     { to: '/transactions', label: 'Transactions', icon: ReceiptText },
     null, // center slot: Add
-    { to: '/assets', label: 'Assets', icon: Gem },
+    { to: '/portfolio', label: 'Assets', icon: Gem },
     { to: '/profile', label: 'Profile', icon: UserRound },
 ];
 

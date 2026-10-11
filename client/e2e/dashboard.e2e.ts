@@ -174,7 +174,7 @@ test('D10 bottom navigation opens each page', async ({ page }) => {
   await nav('Transactions').click();
   await expect(page).toHaveURL(/\/transactions$/);
   await nav('Assets').click();
-  await expect(page).toHaveURL(/\/assets$/);
+  await expect(page).toHaveURL(/\/portfolio$/);
   await expect(page.getByRole('heading', { name: 'Assets' })).toBeVisible();
   await nav('Profile').click();
   await expect(page).toHaveURL(/\/profile$/);

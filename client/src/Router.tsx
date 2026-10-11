@@ -26,7 +26,8 @@ export default function Router() {
             <Route element={<ProtectedRoutes><AppLayout /></ProtectedRoutes>}>
                 <Route path="" element={<Dashboard />} />
                 <Route path="transactions" element={<MonthlyTransactionsView />} />
-                <Route path="assets" element={<Assets />} />
+                {/* not /assets: that is the build folder, so a reload would hit nginx, not the app */}
+                <Route path="portfolio" element={<Assets />} />
                 <Route path="wallets" element={<Wallets />} />
                 <Route path="stats" element={<Navigate to="/" replace />} />
                 <Route path="profile" element={<Profile />} />
