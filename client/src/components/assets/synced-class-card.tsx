@@ -65,6 +65,8 @@ export function SyncedClassCard({ assetClass, holdings, status, currency, onChan
 
       {status?.connected && status.error && <p className="text-sm text-expense">Couldn't sync: {status.error}</p>}
 
+      {status?.connected && holdings.length === 0 && <p className="text-sm text-muted-foreground">No coins over $1 yet</p>}
+
       {status?.connected && holdings.length > 0 && (
         <ul className="divide-y divide-border">
           {holdings.map((h) => (
@@ -79,17 +81,16 @@ export function SyncedClassCard({ assetClass, holdings, status, currency, onChan
                   <p className={cn('text-xs font-semibold', h.gain >= 0 ? 'text-income' : 'text-expense')}>
                     {h.gain >= 0 ? '+' : '−'}{formatCurrency(Math.abs(h.gain), currency)}{h.gainPct !== null && ` (${h.gainPct.toFixed(1)}%)`}
                   </p>
-                ) : h.cost === null && (
-                  <button type="button" onClick={() => setCostFor(h)} className="text-xs font-semibold underline focus-visible:outline-2 focus-visible:outline-ring">Add cost</button>
-                )}
+                ) : null}
+                <button type="button" onClick={() => setCostFor(h)} className="text-xs font-semibold underline focus-visible:outline-2 focus-visible:outline-ring">{h.cost === null ? 'Add cost' : 'Edit cost'}</button>
               </div>
             </li>
           ))}
         </ul>
       )}
 
-      <ConnectBinanceSheet open={connectOpen} onOpenChange={setConnectOpen} onConnected={() => { setConnectOpen(false); onChanged(); }} />
-      <CostSheet assetClass={assetClass} symbol={costFor?.symbol ?? null} hasCost={costFor?.cost != null} onClose={() => setCostFor(null)} onSaved={() => { setCostFor(null); onChanged(); }} />
+      <ConnectBinanceSheet key={String(connectOpen)} open={connectOpen} onOpenChange={setConnectOpen} onConnected={() => { setConnectOpen(false); onChanged(); }} />
+      <CostSheet key={costFor?.symbol ?? ''} assetClass={assetClass} symbol={costFor?.symbol ?? null} hasCost={costFor?.cost != null} onClose={() => setCostFor(null)} onSaved={() => { setCostFor(null); onChanged(); }} />
       <ConfirmationModal isOpen={confirmOff} onClose={() => setConfirmOff(false)} onConfirm={disconnect} title="Disconnect Binance" description="Your coins are removed from Assets and the stored key is deleted." confirmText="Disconnect" />
     </section>
   );

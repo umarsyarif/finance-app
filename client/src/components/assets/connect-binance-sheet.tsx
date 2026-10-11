@@ -4,7 +4,7 @@ import axios from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FormSheet } from '@/components/assets/manual-class-card';
+import { FormSheet } from '@/components/assets/form-sheet';
 
 const field = 'h-[52px] rounded-[20px] bg-card px-[18px]';
 

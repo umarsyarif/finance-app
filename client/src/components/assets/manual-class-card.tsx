@@ -4,27 +4,13 @@ import { toast } from 'sonner';
 import { isAxiosError } from 'axios';
 import axios from '@/lib/axios';
 import { PillButton } from '@/components/page-header';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { FormSheet } from '@/components/assets/form-sheet';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { ASSET_CLASS_UI } from '@/components/assets/asset-classes';
 import { LotForm, type Lot } from '@/components/assets/lot-form';
 import type { Holding } from '@/hooks/use-portfolio';
 import { formatCurrency, formatDateDetailed, formatNumber } from '@/lib/format-utils';
 import { cn } from '@/lib/utils';
-
-export function FormSheet({ open, onOpenChange, title, children }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; children: React.ReactNode }) {
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="mx-auto max-h-[92vh] max-w-[480px] overflow-y-auto rounded-t-[28px] px-6 pb-8">
-        <SheetHeader className="px-0">
-          <SheetTitle className="text-[19px] font-bold">{title}</SheetTitle>
-          <SheetDescription className="sr-only">{title}</SheetDescription>
-        </SheetHeader>
-        {children}
-      </SheetContent>
-    </Sheet>
-  );
-}
 
 const iconBtn = 'flex size-9 shrink-0 items-center justify-center rounded-full bg-muted hover:bg-border focus-visible:outline-2 focus-visible:outline-ring [&_svg]:size-4';
 

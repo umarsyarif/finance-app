@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FilterChips } from '@/components/finance/filter-chips';
-import { FormSheet } from '@/components/assets/manual-class-card';
+import { FormSheet } from '@/components/assets/form-sheet';
 
 export function CostSheet({ assetClass, symbol, hasCost, onClose, onSaved }: { assetClass: string; symbol: string | null; hasCost: boolean; onClose: () => void; onSaved: () => void }) {
   const [amount, setAmount] = useState('');
