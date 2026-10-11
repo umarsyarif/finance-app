@@ -12,11 +12,12 @@ jest.mock('../src/services/assets/prices', () => ({
   usdRates: jest.fn(),
 }));
 jest.mock('../src/services/binance.service', () => ({ ...jest.requireActual('../src/services/binance.service'), fetchBalances: jest.fn() }));
-jest.mock('../src/services/crypto-box', () => ({ decrypt: () => 'secret' }));
+jest.mock('../src/services/crypto-box', () => ({ decrypt: jest.fn(() => 'secret') }));
 
 import prisma from '../src/middleware/prismaMiddleware';
 import { usdPrices, usdRates, PriceUnavailableError } from '../src/services/assets/prices';
 import { fetchBalances, BinanceError } from '../src/services/binance.service';
+import { decrypt } from '../src/services/crypto-box';
 import { getPortfolio } from '../src/services/assets/portfolio.service';
 import { resetBinanceCache } from '../src/services/assets/sources';
 
@@ -26,6 +27,7 @@ const dec = (n: number) => ({ toNumber: () => n });
 beforeEach(() => {
   jest.clearAllMocks();
   resetBinanceCache();
+  (decrypt as jest.Mock).mockImplementation(() => 'secret');
   (usdRates as jest.Mock).mockResolvedValue({ rates: { KRW: 1400, IDR: 16000 }, stale: false });
   (usdPrices as jest.Mock).mockImplementation(async (cls: string, symbols: string[]) => ({
     prices: Object.fromEntries(symbols.map((s) => [s, ({ XAU: 100, BTC: 80000, ETH: 3000, DUST: 0.0001, NOPE: null } as Record<string, number | null>)[s] ?? null])),
@@ -108,5 +110,42 @@ describe('getPortfolio', () => {
     const pf = await getPortfolio('u1', 'IDR', false);
     expect(fetchBalances).not.toHaveBeenCalled();
     expect(pf.sources.binance).toEqual({ connected: false, lastSyncedAt: null, error: null });
+  });
+
+  it('gainPct is null when the cost base is not positive', async () => {
+    p.assetLot.findMany.mockResolvedValue([
+      { assetClass: 'GOLD', symbol: 'XAU', quantity: dec(10), totalPaid: dec(1_000_000), currency: 'IDR' },
+      { assetClass: 'GOLD', symbol: 'XAU', quantity: dec(-9), totalPaid: dec(-2_000_000), currency: 'IDR' },
+    ]);
+    p.binanceConnection.findUnique.mockResolvedValue(null);
+    p.assetCost.findMany.mockResolvedValue([]);
+    const pf = await getPortfolio('u1', 'IDR', false);
+    const gold = pf.holdings.find((h) => h.symbol === 'XAU')!;
+    expect(gold.cost).toBe(-1_000_000);
+    expect(gold.gain!).toBeGreaterThan(0);
+    expect(gold.gainPct).toBeNull();
+    expect(pf.total.gainPct).toBeNull();
+  });
+
+  it('undecryptable key: gold stays, friendly error reported', async () => {
+    (decrypt as jest.Mock).mockImplementation(() => { throw new Error('bad tag'); });
+    const pf = await getPortfolio('u1', 'IDR', false);
+    expect(pf.holdings.find((h) => h.symbol === 'XAU')).toBeDefined();
+    expect(pf.sources.binance.error).toBe("Reconnect Binance: the saved key can't be read");
+  });
+
+  it('a failing error write does not fail the portfolio', async () => {
+    (fetchBalances as jest.Mock).mockRejectedValue(new Error('net'));
+    p.binanceConnection.update.mockRejectedValue(new Error('db'));
+    const pf = await getPortfolio('u1', 'IDR', false);
+    expect(pf.sources.binance.error).toBe("Couldn't reach Binance");
+  });
+
+  it('records lastSyncedAt on success and lastError on failure', async () => {
+    await getPortfolio('u1', 'IDR', false);
+    expect(p.binanceConnection.update).toHaveBeenCalledWith({ where: { userId: 'u1' }, data: { lastSyncedAt: expect.any(Date), lastError: null } });
+    (fetchBalances as jest.Mock).mockRejectedValue(new BinanceError('nope'));
+    await getPortfolio('u1', 'IDR', true);
+    expect(p.binanceConnection.update).toHaveBeenLastCalledWith({ where: { userId: 'u1' }, data: { lastError: 'nope' } });
   });
 });

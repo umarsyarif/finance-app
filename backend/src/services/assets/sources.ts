@@ -23,6 +23,7 @@ export async function manualHoldings(userId: string): Promise<Holding[]> {
 const BINANCE_TTL = 5 * 60_000;
 const binanceCache = new Map<string, { at: number; balances: Record<string, number> }>();
 export const resetBinanceCache = () => binanceCache.clear();
+export const clearBinanceCache = (userId: string) => { binanceCache.delete(userId); };
 
 export async function binanceHoldings(userId: string, refresh: boolean): Promise<{ holdings: Holding[]; status: BinanceStatus }> {
   const conn = await prisma.binanceConnection.findUnique({ where: { userId } });
@@ -34,14 +35,16 @@ export async function binanceHoldings(userId: string, refresh: boolean): Promise
   let error = conn.lastError;
   if (refresh || !cached || Date.now() - cached.at >= BINANCE_TTL) {
     try {
-      balances = await fetchBalances({ apiKey: conn.apiKey, apiSecret: decrypt(conn) });
+      let apiSecret: string;
+      try { apiSecret = decrypt(conn); } catch { throw new BinanceError("Reconnect Binance: the saved key can't be read"); }
+      balances = await fetchBalances({ apiKey: conn.apiKey, apiSecret });
       binanceCache.set(userId, { at: Date.now(), balances });
       lastSyncedAt = new Date();
       error = null;
       await prisma.binanceConnection.update({ where: { userId }, data: { lastSyncedAt, lastError: null } });
     } catch (err) {
       error = err instanceof BinanceError ? err.message : "Couldn't reach Binance";
-      await prisma.binanceConnection.update({ where: { userId }, data: { lastError: error } });
+      try { await prisma.binanceConnection.update({ where: { userId }, data: { lastError: error } }); } catch { /* never fail the portfolio */ }
     }
   }
   const holdings = Object.entries(balances)

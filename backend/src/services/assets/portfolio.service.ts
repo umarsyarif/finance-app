@@ -56,7 +56,7 @@ export async function getPortfolio(userId: string, currency: Currency, refresh: 
       return {
         assetClass: h.assetClass, symbol: h.symbol, quantity: h.quantity,
         unit: ASSET_CLASSES[h.assetClass].unit, source: h.source,
-        value, cost, gain, gainPct: gain !== null && cost ? (gain / cost) * 100 : null,
+        value, cost, gain, gainPct: gain !== null && cost !== null && cost > 0 ? (gain / cost) * 100 : null,
         valueUsd,
       };
     })
@@ -73,7 +73,7 @@ export async function getPortfolio(userId: string, currency: Currency, refresh: 
 
   return {
     currency,
-    total: { value: totalValue, cost: totalCost, gain: totalGain, gainPct: totalGain !== null && totalCost ? (totalGain / totalCost) * 100 : null },
+    total: { value: totalValue, cost: totalCost, gain: totalGain, gainPct: totalGain !== null && totalCost !== null && totalCost > 0 ? (totalGain / totalCost) * 100 : null },
     holdings: rows,
     sources: { binance: binance.status },
     stale,
