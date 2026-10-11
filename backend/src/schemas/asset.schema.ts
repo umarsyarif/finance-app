@@ -17,7 +17,7 @@ export const createLotSchema = object({ body: lotBody });
 export const updateLotSchema = object({ params: object({ id: string() }), body: lotBody.partial() });
 export const lotParamsSchema = object({ params: object({ id: string() }) });
 export const putCostSchema = object({
-  params: object({ assetClass: string(), symbol: string().regex(/^[A-Z0-9]+$/) }),
+  params: object({ assetClass: string(), symbol: string().min(1).max(20).regex(/^[A-Z0-9]+$/) }),
   body: object({ costAmount: number().min(0).nullable(), costCurrency: currency.optional() })
     .refine((b) => b.costAmount === null || b.costCurrency, 'Currency is required'),
 });

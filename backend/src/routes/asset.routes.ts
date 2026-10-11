@@ -1,4 +1,5 @@
 import express from 'express';
+import { object } from 'zod';
 import { deserializeUser } from '../middleware/deserializeUser';
 import { requireUser } from '../middleware/requireUser';
 import { validate } from '../middleware/validate';
@@ -21,6 +22,6 @@ router.patch('/lots/:id', validate(updateLotSchema), updateLotHandler);
 router.delete('/lots/:id', validate(lotParamsSchema), deleteLotHandler);
 router.put('/costs/:assetClass/:symbol', validate(putCostSchema), putCostHandler);
 router.put('/sources/binance', validate(putBinanceSchema), putBinanceHandler);
-router.delete('/sources/binance', deleteBinanceHandler);
+router.delete('/sources/binance', validate(object({})), deleteBinanceHandler);
 
 export default router;

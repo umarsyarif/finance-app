@@ -9,6 +9,11 @@ import { isAssetClass, isManualClass } from '../services/assets/asset-classes';
 import { PriceUnavailableError } from '../services/assets/prices';
 
 const MANUAL_ONLY = 'This asset class is synced, not entered by hand';
+// Explicit pick: the validate middleware keeps unknown keys, so never spread the body into Prisma
+const lotData = (b: Record<string, any>) => {
+  const d = { assetClass: b.assetClass, symbol: b.symbol, date: b.date === undefined ? undefined : new Date(b.date), quantity: b.quantity, totalPaid: b.totalPaid, currency: b.currency, note: b.note };
+  return Object.fromEntries(Object.entries(d).filter(([, v]) => v !== undefined));
+};
 const uid = (res: Response): string => res.locals.user.id;
 
 async function ownLot(userId: string, id: string) {
@@ -44,7 +49,7 @@ export const createLotHandler = async (req: Request, res: Response, next: NextFu
   try {
     const body = req.body;
     if (!isManualClass(body.assetClass)) throw new AppError(400, MANUAL_ONLY);
-    const lot = await prisma.assetLot.create({ data: { ...body, userId: uid(res), date: new Date(body.date) } });
+    const lot = await prisma.assetLot.create({ data: { ...(lotData(body) as any), userId: uid(res) } });
     res.status(201).json({ status: 'success', data: { lot } });
   } catch (err) {
     next(err);
@@ -58,7 +63,7 @@ export const updateLotHandler = async (req: Request, res: Response, next: NextFu
     if (body.assetClass !== undefined && !isManualClass(body.assetClass)) throw new AppError(400, MANUAL_ONLY);
     const lot = await prisma.assetLot.update({
       where: { id: req.params.id },
-      data: { ...body, ...(body.date && { date: new Date(body.date) }) },
+      data: lotData(body),
     });
     res.status(200).json({ status: 'success', data: { lot } });
   } catch (err) {

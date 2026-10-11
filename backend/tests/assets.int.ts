@@ -77,6 +77,9 @@ afterAll(async () => {
   await redisClient.quit();
 });
 
+let shared: Agent;
+beforeAll(async () => { shared = await newUser('shared'); });
+
 const lot = (over: object = {}) => ({
   assetClass: 'GOLD', symbol: 'XAU', date: '2026-01-10T00:00:00.000Z', quantity: 10, totalPaid: 14000000, currency: 'IDR', ...over,
 });
@@ -105,7 +108,7 @@ describe('/api/assets', () => {
   });
 
   it('validates lots', async () => {
-    const u = await newUser('validation');
+    const u = shared;
     for (const bad of [{ assetClass: 'CRYPTO' }, { assetClass: 'STOCKZ' }, { quantity: 0 }, { currency: 'EUR' }]) {
       expect((await u.post('/api/assets/lots').send(lot(bad))).status).toBe(400);
     }
@@ -121,6 +124,39 @@ describe('/api/assets', () => {
     expect(row?.quantity.toNumber()).toBe(10);
     expect((await a.patch(`/api/assets/lots/${id}`).send({ quantity: 5 })).status).toBe(200);
     expect((await a.delete(`/api/assets/lots/${id}`)).status).toBe(204);
+  });
+
+  it('ignores unknown body keys on lot create and update', async () => {
+    const a = await newUser('mass-a');
+    const b = await newUser('mass-b');
+    const user = (e: string) => prisma.user.findUnique({ where: { email: `assets-${e}-${run}@example.test` } });
+    const ua = (await user('mass-a'))!;
+    const ub = (await user('mass-b'))!;
+    const bLot = (await b.post('/api/assets/lots').send(lot())).body.data.lot;
+
+    const created = await a.post('/api/assets/lots').send(lot({ id: 'chosen-id', userId: ub.id }));
+    expect(created.status).toBe(201);
+    expect(created.body.data.lot.id).not.toBe('chosen-id');
+    expect(created.body.data.lot.userId).toBe(ua.id);
+
+    const id = created.body.data.lot.id;
+    expect((await a.patch(`/api/assets/lots/${id}`).send({ quantity: 5, userId: ub.id })).status).toBe(200);
+    expect((await prisma.assetLot.findUnique({ where: { id } }))!.userId).toBe(ua.id);
+    expect((await b.get('/api/assets/lots')).body.data.lots.map((l: any) => l.id)).toEqual([bLot.id]);
+
+    const nested = await a.patch(`/api/assets/lots/${id}`).send({ user: { update: { role: 'admin', email: 'x@example.test' } } });
+    expect([200, 400]).toContain(nested.status);
+    const after = (await user('mass-a'))!;
+    expect(after.email).toBe(ua.email);
+    expect((after as any).role).toBe((ua as any).role);
+  });
+
+  it('rejects a too-short key without echoing it', async () => {
+    const u = shared;
+    const res = await u.put('/api/assets/sources/binance').send({ apiKey: 'short', apiSecret: 'tiny-secret' });
+    expect(res.status).toBe(400);
+    expect(res.text).not.toContain('tiny-secret');
+    expect(res.text).not.toMatch(/"received":"short"/);
   });
 
   it('connects Binance with a read-only key only, and never leaks the secret', async () => {
@@ -167,7 +203,7 @@ describe('/api/assets', () => {
   });
 
   it('disconnects Binance', async () => {
-    const u = await newUser('disconnect');
+    const u = shared;
     await u.put('/api/assets/sources/binance').send({ apiKey: API_KEY, apiSecret: API_SECRET });
     expect((await u.get('/api/assets?currency=KRW')).body.data.sources.binance.connected).toBe(true);
     expect((await u.delete('/api/assets/sources/binance')).status).toBe(204);
@@ -175,7 +211,7 @@ describe('/api/assets', () => {
   });
 
   it('answers 503 for Binance when encryption is not configured, gold still works', async () => {
-    const u = await newUser('noenc');
+    const u = shared;
     jest.spyOn(cryptoBox, 'isEncryptionConfigured').mockReturnValue(false);
     const res = await u.put('/api/assets/sources/binance').send({ apiKey: API_KEY, apiSecret: API_SECRET });
     expect(res.status).toBe(503);
