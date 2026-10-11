@@ -22,29 +22,34 @@ export interface Portfolio {
   stale: boolean;
 }
 
-// refreshKey: bump to refetch; every bump after the first load asks the server for fresh prices
+// refreshKey: bump to refetch; a bump (not a currency change) asks the server for fresh prices
 export function usePortfolio(currency: string, refreshKey = 0) {
   const [data, setData] = useState<Portfolio | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const firstKey = useRef(refreshKey);
+  const prevKey = useRef(refreshKey);
+  const latest = useRef(0);
 
   const refetch = useCallback(async (refresh = false) => {
+    const id = ++latest.current; // a newer request supersedes this one
     setLoading(true);
     setError(null);
     try {
       const res = await axios.get('/api/assets', { params: { currency, ...(refresh && { refresh: '1' }) } });
-      setData(res.data.data);
+      if (id === latest.current) setData(res.data.data);
     } catch (err) {
-      setError((err instanceof AxiosError && err.response?.data?.message) || "Couldn't load your assets");
+      if (id === latest.current) setError((err instanceof AxiosError && err.response?.data?.message) || "Couldn't load your assets");
     } finally {
-      setLoading(false);
+      if (id === latest.current) setLoading(false);
     }
   }, [currency]);
 
   useEffect(() => {
-    refetch(refreshKey !== firstKey.current);
+    const refresh = refreshKey !== prevKey.current;
+    prevKey.current = refreshKey;
+    refetch(refresh);
   }, [refetch, refreshKey]);
 
-  return { data, loading, error, refetch };
+  // never expose another currency's numbers
+  return { data: data?.currency === currency ? data : null, loading, error, refetch };
 }

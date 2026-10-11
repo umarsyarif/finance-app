@@ -52,6 +52,14 @@ describe('Assets page', () => {
     expect(dist.textContent).toContain('40%');
   });
 
+  it('shows a negative gain with a minus sign', () => {
+    hook = { ...hook, data: portfolio({ total: { value: 700000, cost: 800000, gain: -100000, gainPct: -12.5 } }) };
+    renderPage();
+    const gain = screen.getByText(/12\.5%/);
+    expect(gain.textContent).toContain('−');
+    expect(gain.className).toContain('text-expense');
+  });
+
   it('notes stale prices', () => {
     hook = { ...hook, data: portfolio({ stale: true }) };
     renderPage();
