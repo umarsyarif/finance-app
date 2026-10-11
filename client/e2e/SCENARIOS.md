@@ -5,7 +5,7 @@ scenario is driven through the UI for the feature under test; the API is only
 used to set up preconditions and to verify what was persisted.
 
 Files: `auth.e2e.ts`, `dashboard.e2e.ts`, `transactions.e2e.ts`,
-`wallets.e2e.ts`, `home.e2e.ts`, `settings.e2e.ts`, `profile.e2e.ts`, `capture.e2e.ts`, `transfers.e2e.ts`, plus the earlier
+`wallets.e2e.ts`, `home.e2e.ts`, `settings.e2e.ts`, `profile.e2e.ts`, `capture.e2e.ts`, `transfers.e2e.ts`, `assets.e2e.ts`, plus the earlier
 regression suite `app.e2e.ts`.
 
 ## Auth (`auth.e2e.ts`)
@@ -34,7 +34,7 @@ regression suite `app.e2e.ts`.
 | D7 | Add from the + sheet while the 2nd wallet is shown on Transactions | Saved to that wallet; Transactions stays on it |
 | D8 | Long-press a wallet card on Transactions | That wallet becomes Main (tag moves, persists after reload) |
 | D9 | "See all transactions" link | Opens /transactions |
-| D10 | Bottom navigation (Home, Transactions, Wallets, Profile) | Each tab opens its page |
+| D10 | Bottom navigation (Home, Transactions, Assets, Profile) | Each tab opens its page |
 | D11 | Long-press an IDR card while a KRW wallet is Main | Both stay Main: one Main wallet per currency |
 
 ## Transactions (`transactions.e2e.ts`)
@@ -127,3 +127,13 @@ regression suite `app.e2e.ts`.
 | TR3 | Edit from the details sheet | Both sides show the new amounts; balances follow |
 | TR4 | Delete from the details sheet | Both rows gone; balances restored |
 | TR5 | Income/Expense filter chips | Transfer rows hidden; shown under All |
+
+## Assets (`assets.e2e.ts`)
+`GET /api/assets` and the Binance connect PUT are mocked with `page.route` (the real ones call the internet); the lots endpoints are real.
+| ID | Scenario | Expected |
+|---|---|---|
+| AS1 | Nav shows Assets; Profile → "Wallets & categories" | Tabs Home, Transactions, Assets, Profile; the row opens `/wallets` with the wallet list |
+| AS2 | Add two gold purchases, sell one gram, delete a lot | `POST /api/assets/lots` bodies are correct (direction, sign); the card shows the mocked grams and value; the purchase list shows the lots; after delete, the portfolio is refetched |
+| AS3 | Portfolio with Gold and BTC | The crypto card lists BTC with its value; the legend shows "Gold" and "BTC" with percentages |
+| AS4 | Toggle KRW → IDR | The portfolio is requested with `currency=IDR`; the total shows `Rp` |
+| AS5 | Connect sheet, PUT answers 400 (not read-only) | Instructions show "Enable Reading" and the IP; the error shows inline; the secret field is cleared |
