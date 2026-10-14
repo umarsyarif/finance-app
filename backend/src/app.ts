@@ -17,6 +17,8 @@ import walletRouter from './routes/wallet.routes';
 import statsRouter from './routes/stats.routes';
 import captureRouter from './routes/capture.routes';
 import assetRouter from './routes/asset.routes';
+import notificationRouter from './routes/notification.routes';
+import pushRouter from './routes/push.routes';
 import AppError from './utils/appError';
 
 // import nodemailer from 'nodemailer';
@@ -71,6 +73,8 @@ async function bootstrap() {
   app.use('/api/stats', statsRouter);
   app.use('/api/capture', captureRouter);
   app.use('/api/assets', assetRouter);
+  app.use('/api/notifications', notificationRouter);
+  app.use('/api/push', pushRouter);
 
   // Testing
   app.get('/api/healthchecker', (_, res: Response) => {
