@@ -18,6 +18,7 @@ import statsRouter from './routes/stats.routes';
 import captureRouter from './routes/capture.routes';
 import assetRouter from './routes/asset.routes';
 import notificationRouter from './routes/notification.routes';
+import billRouter from './routes/bill.routes';
 import pushRouter from './routes/push.routes';
 import AppError from './utils/appError';
 
@@ -74,6 +75,7 @@ async function bootstrap() {
   app.use('/api/capture', captureRouter);
   app.use('/api/assets', assetRouter);
   app.use('/api/notifications', notificationRouter);
+  app.use('/api/bills', billRouter);
   app.use('/api/push', pushRouter);
 
   // Testing

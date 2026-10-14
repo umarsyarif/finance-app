@@ -1,3 +1,4 @@
+import prisma from '../middleware/prismaMiddleware';
 import { NextFunction, Request, Response } from 'express';
 import {
   CreateWalletInput,
@@ -197,6 +198,11 @@ export const deleteWalletHandler = async (
     const txCount = await countTransactionsForWallet(walletId);
     if (txCount > 0) {
       return next(new AppError(400, `Cannot delete wallet with ${txCount} existing transaction(s)`));
+    }
+
+    const billCount = await prisma.bill.count({ where: { walletId } });
+    if (billCount > 0) {
+      return next(new AppError(400, `Cannot delete wallet with ${billCount} bill(s)`));
     }
 
     await deleteWallet(walletId);
