@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
 import { CapturePhotoInput, CaptureTextInput } from '../schemas/capture.schema';
 import { AiInput, AiNotConfiguredError, AiUnavailableError, extractTransaction } from '../services/ai.service';
-import { CaptureError, findOrCreateOtherCategory, resolveDraft, summarize, TransactionDraft } from '../services/capture.service';
+import * as notifications from '../services/notifications/notification.service';
+import { CaptureError, findOrCreateOtherCategory, money, resolveDraft, summarize, TransactionDraft } from '../services/capture.service';
 import { findCategories } from '../services/category.service';
 import { createTransaction } from '../services/transaction.service';
 import { findWalletsByUserId } from '../services/wallet.service';
@@ -43,6 +44,21 @@ export const captureTextHandler = async (req: Request<{}, {}, CaptureTextInput>,
       description: draft.description,
       date: new Date(draft.date),
     });
+    // Never fails the capture: a missing push or DB hiccup must not lose the Shortcut's response
+    try {
+      const settings = await notifications.getSettings(res.locals.user.id);
+      if (settings.shortcutEnabled) {
+        const sign = draft.type === 'INCOME' ? '+' : '−';
+        await notifications.notify(res.locals.user.id, 'SHORTCUT_SAVED', {
+          title: 'Saved from Shortcut',
+          body: `${sign}${money(draft.amount, draft.currency)} · ${draft.categoryName} → ${draft.walletName}`,
+          url: `/transactions?wallet=${draft.walletId}`,
+          dedupeKey: `tx:${transaction.id}`,
+        });
+      }
+    } catch (err) {
+      console.error('Shortcut notification failed:', (err as Error)?.message);
+    }
     res.status(201).json({ status: 'success', message: summarize(draft), data: { transaction } });
   } catch (err) {
     captureFailure(err, next);

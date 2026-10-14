@@ -111,7 +111,7 @@ export async function findOrCreateOtherCategory(userId: string, type: 'INCOME' |
   return { id: category.id, name: category.name, type };
 }
 
-const money = (amount: number, currency: string) =>
+export const money = (amount: number, currency: string) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,

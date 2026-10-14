@@ -20,6 +20,7 @@ import assetRouter from './routes/asset.routes';
 import notificationRouter from './routes/notification.routes';
 import billRouter from './routes/bill.routes';
 import pushRouter from './routes/push.routes';
+import { startScheduler } from './services/notifications/scheduler';
 import AppError from './utils/appError';
 
 // import nodemailer from 'nodemailer';
@@ -138,6 +139,7 @@ if (require.main === module) {
       const port = config.get<number>('port');
       app.listen(port, () => {
         console.log(`Server on port: ${port}`);
+        startScheduler();
       });
     })
     .catch(async (err) => {

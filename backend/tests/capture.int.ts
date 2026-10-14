@@ -5,6 +5,10 @@
  */
 process.env.TZ = 'Asia/Seoul';
 jest.setTimeout(30000);
+jest.mock('web-push', () => ({
+  setVapidDetails: jest.fn(),
+  sendNotification: jest.fn().mockResolvedValue({ statusCode: 201 }),
+}));
 
 jest.mock('../src/services/ai.service', () => ({
   ...jest.requireActual('../src/services/ai.service'),
@@ -16,6 +20,7 @@ import request from 'supertest';
 import app, { ready } from '../src/app';
 import prisma from '../src/middleware/prismaMiddleware';
 import redisClient from '../src/utils/connectRedis';
+import * as notificationService from '../src/services/notifications/notification.service';
 import { deleteAllSessions } from '../src/services/user.service';
 import { extractTransaction, AiUnavailableError, AiNotConfiguredError, type AiExtraction } from '../src/services/ai.service';
 
@@ -171,6 +176,30 @@ describe('capture', () => {
     const wallet = await shortcut.get(`/api/wallets/${walletId}`);
     expect(wallet.body.data.wallet.balance).toBe(3500);
     expect(mockedExtract).toHaveBeenLastCalledWith({ text: 'STARBUCKS 6,500원 승인' }, expect.objectContaining({ timeZone: 'Asia/Seoul' }));
+  });
+
+  it('text: records a Shortcut notification, honours the setting, survives notify failing', async () => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: `cap-shortcut-${run}@example.test` } });
+    mockedExtract.mockResolvedValueOnce(extraction());
+    const res = await sendText();
+    expect(res.status).toBe(201);
+    const rows = await prisma.notification.findMany({ where: { userId: user.id, dedupeKey: `tx:${res.body.data.transaction.id}` } });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      dedupeKey: `tx:${res.body.data.transaction.id}`, title: 'Saved from Shortcut', url: `/transactions?wallet=${walletId}`,
+    });
+
+    const afterFirst = await prisma.notification.count({ where: { userId: user.id, kind: 'SHORTCUT_SAVED' } });
+    mockedExtract.mockResolvedValueOnce(extraction());
+    const spy = jest.spyOn(notificationService, 'notify').mockRejectedValueOnce(new Error('db down'));
+    expect((await sendText()).status).toBe(201);
+    spy.mockRestore();
+
+    expect((await shortcut.put('/api/notifications/settings').send({ shortcutEnabled: false })).status).toBe(200);
+    mockedExtract.mockResolvedValueOnce(extraction());
+    expect((await sendText()).status).toBe(201);
+    expect(await prisma.notification.count({ where: { userId: user.id, kind: 'SHORTCUT_SAVED' } })).toBe(afterFirst);
+    await shortcut.put('/api/notifications/settings').send({ shortcutEnabled: true });
   });
 
   it('text: unknown category lands in an auto-created Other', async () => {
