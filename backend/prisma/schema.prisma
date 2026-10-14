@@ -21,6 +21,10 @@ model User {
   assetLots  AssetLot[]
   assetCosts AssetCost[]
   binanceConnection BinanceConnection?
+  notifications Notification[]
+  pushSubscriptions PushSubscription[]
+  bills Bill[]
+  notificationSettings NotificationSettings?
   avatar     UserAvatar?
   avatarUpdatedAt DateTime?
 
@@ -66,6 +70,7 @@ model Wallet {
 
   user        User        @relation(fields: [userId], references: [id])
   transactions Transaction[]
+  bills Bill[]
 
   @@map("wallets")
 }
@@ -82,6 +87,7 @@ model Category {
 
   user         User?      @relation(fields: [userId], references: [id])
   transactions Transaction[]
+  bills Bill[]
 
   @@map("categories")
 }
@@ -177,4 +183,60 @@ model BinanceConnection {
   createdAt    DateTime  @default(now())
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@map("binance_connections")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  kind      String    // NUDGE | BILL | SHORTCUT_SAVED | MONTHLY_SUMMARY (validated in code)
+  title     String
+  body      String
+  url       String    // same-origin path, built by the server
+  dedupeKey String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, dedupeKey])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("push_subscriptions")
+}
+
+model Bill {
+  id               String  @id @default(uuid())
+  userId           String
+  name             String  // ≤ 60 chars
+  amount           Decimal @db.Decimal(19, 4)
+  currency         String  // KRW | IDR
+  walletId         String?
+  categoryId       String?
+  dayOfMonth       Int     // 1–31; short months use their last day
+  remindDaysBefore Int     // 0 | 1 | 3
+  active           Boolean @default(true)
+  createdAt        DateTime @default(now())
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet   Wallet?   @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  @@map("bills")
+}
+
+model NotificationSettings {
+  userId                String  @id
+  nudgeEnabled          Boolean @default(true)
+  nudgeTime             String  @default("21:00") // HH:mm
+  timezone              String  @default("Asia/Seoul") // IANA, sent by the browser
+  shortcutEnabled       Boolean @default(true)
+  monthlySummaryEnabled Boolean @default(true)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("notification_settings")
 }

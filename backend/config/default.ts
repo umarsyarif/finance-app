@@ -8,4 +8,7 @@ export default {
   geminiModel: 'gemini-2.5-flash',
   // Asset sync secrets (AES-256-GCM key, base64 32 bytes); empty = asset sync disabled
   assetsEncryptionKey: '',
+  vapidPublicKey: '',
+  vapidPrivateKey: '',
+  vapidSubject: '',
 };
