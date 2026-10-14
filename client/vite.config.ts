@@ -47,6 +47,7 @@ export default defineConfig(({ mode }) => {
         workbox: {
           // API responses are not cached by the service worker; offline data lives in use-offline
           globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          importScripts: ['push-sw.js'],
         },
         devOptions: {
           enabled: true

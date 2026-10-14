@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
-import { Camera, ChevronRight, KeyRound, LogOut, Pencil, ScanFace, Smartphone, Trash2, Wallet } from 'lucide-react';
+import { Camera, ChevronRight, KeyRound, LogOut, Pencil, Receipt, ScanFace, Smartphone, Trash2, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 import { ApiTokenSettings } from '@/components/api-token-settings';
+import { NotificationSettings } from '@/components/notification-settings';
 import { PageTitle, PillButton } from '@/components/page-header';
 import { FilterChips } from '@/components/finance/filter-chips';
 import { UserAvatar } from '@/components/user-avatar';
@@ -156,6 +157,7 @@ export default function Profile() {
         <SectionLabel>Money</SectionLabel>
         <section aria-label="Money" className="rounded-[24px] bg-card px-5 py-1 shadow-resting">
           <Row icon={Wallet} title="Wallets & categories" subtitle="Accounts, balances and categories" onClick={() => navigate('/wallets')} />
+          <Row icon={Receipt} title="Bills" subtitle="Monthly reminders" onClick={() => navigate('/bills')} />
         </section>
 
         <SectionLabel>Preferences</SectionLabel>
@@ -164,6 +166,9 @@ export default function Profile() {
           <FilterChips label="Theme" value={theme} onChange={setTheme}
             options={(['light', 'dark', 'system'] as const).map((value) => ({ value, label: themeLabel[value] }))} />
         </section>
+
+        <SectionLabel>Notifications</SectionLabel>
+        <NotificationSettings />
 
         <SectionLabel>Security</SectionLabel>
         <section aria-label="Security" className="rounded-[24px] bg-card px-5 py-1 shadow-resting [&>*+*]:border-t [&>*+*]:border-border">

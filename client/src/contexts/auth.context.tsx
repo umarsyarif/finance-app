@@ -4,6 +4,7 @@ import axios from '@/lib/axios';
 import { AxiosError } from 'axios';
 import { biometricService } from '@/services/biometric.service';
 import { secureStorage } from '@/services/secure-storage.service';
+import { unsubscribePush } from '@/services/push.service';
 import { clearOfflineStorage } from '@/hooks/use-offline';
 
 interface User {
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const logout = async () => {
     try {
+      await unsubscribePush(); // needs the session cookie, so before logout
       await axios.get('/api/auth/logout');
     } catch (error) {
       console.error('Logout failed:', error);

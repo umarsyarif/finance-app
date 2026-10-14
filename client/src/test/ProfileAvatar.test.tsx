@@ -15,6 +15,7 @@ vi.mock('@/contexts/auth.context', () => ({
     refreshUser, logout: vi.fn(),
   }),
 }));
+vi.mock('@/components/notification-settings', () => ({ NotificationSettings: () => null }));
 vi.mock('@/contexts/theme.context', () => ({ useTheme: () => ({ theme: 'light', setTheme: vi.fn() }) }));
 vi.mock('@/services/secure-storage.service', () => ({ secureStorage: { getItem: () => null, setItem: vi.fn() } }));
 vi.mock('@/hooks/use-wallets', () => ({ useWallets: () => ({ wallets: [] }) }));
