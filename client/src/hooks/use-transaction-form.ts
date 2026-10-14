@@ -103,8 +103,8 @@ export function useTransactionForm({ type, transaction, onSuccess, defaultWallet
       description: draft.description,
       amount: String(draft.amount),
       date: draft.date,
-      walletId: draft.walletId,
-      categoryId: draft.categoryId,
+      walletId: draft.walletId || prev.walletId, // a bill without a wallet keeps the default
+      categoryId: draft.categoryId || prev.categoryId,
     }));
     setSubmitError(null);
   };

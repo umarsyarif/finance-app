@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import axios from '@/lib/axios';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/app-layout';
@@ -29,7 +29,8 @@ vi.mock('@/components/finance/year-chart', () => ({ YearChart: () => null }));
 vi.mock('@/components/app-header', () => ({ AppHeader: () => null }));
 vi.mock('@/components/app-footer', () => ({ AppFooter: () => null }));
 
-const Probe = () => <div data-testid="loc">{useLocation().pathname + useLocation().search}</div>;
+let go: (to: string) => void = () => {};
+const Probe = () => { const l = useLocation(); go = useNavigate(); return <div data-testid="loc">{l.pathname + l.search}</div>; };
 const renderAt = (url: string) =>
   render(
     <MemoryRouter initialEntries={[url]}>
@@ -93,5 +94,27 @@ describe('deep links', () => {
     renderAt('/?month=abc');
     const now = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
     expect(await screen.findByText(now)).toBeInTheDocument();
+  });
+
+  it('?month= works while Home is already mounted', async () => {
+    renderAt('/');
+    await screen.findByText(new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }));
+    act(() => go('/?month=2026-09'));
+    expect(await screen.findByText('September 2026')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('loc').textContent).toBe('/'));
+  });
+
+  it('a bill without a wallet keeps the default wallet', async () => {
+    vi.mocked(axios.get).mockResolvedValue({ data: { data: { bills: [{ ...bill, walletId: null }] } } });
+    renderAt('/?add=bill:b1');
+    await waitFor(() => expect(screen.getByLabelText('Amount')).toHaveValue(500000));
+    expect(screen.getByRole('combobox', { name: 'Wallet' })).toHaveTextContent('Cash');
+  });
+
+  it('a failed bill fetch says so and opens an empty sheet', async () => {
+    vi.mocked(axios.get).mockRejectedValue(new Error('x'));
+    renderAt('/?add=bill:b1');
+    expect(await screen.findByText('Add transaction')).toBeInTheDocument();
+    expect(toast.error).toHaveBeenCalledWith("Couldn't load that bill");
   });
 });

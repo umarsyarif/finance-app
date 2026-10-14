@@ -26,17 +26,17 @@ export default function Dashboard() {
   const { wallets, loading: walletsLoading, error: walletsError, refetch } = useWallets();
   // Notification deep link: ?month=yyyy-mm opens that month, then the param goes away
   const [searchParams, setSearchParams] = useSearchParams();
-  const [month, setMonth] = useState(() => {
-    const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(searchParams.get('month') ?? '');
-    return m ? new Date(Number(m[1]), Number(m[2]) - 1, 1) : new Date();
-  });
+  const monthParam = searchParams.get('month');
+  const [month, setMonth] = useState(() => new Date());
   useEffect(() => {
-    if (!searchParams.has('month')) return;
+    if (monthParam === null) return;
+    const m = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(monthParam);
+    if (m) setMonth(new Date(Number(m[1]), Number(m[2]) - 1, 1));
     const next = new URLSearchParams(searchParams);
     next.delete('month');
     setSearchParams(next, { replace: true });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [monthParam]);
   const [selected, setSelected] = useState<Transaction | null>(null);
 
   useEffect(() => {

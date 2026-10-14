@@ -57,7 +57,7 @@ export function AppLayout() {
       if (!bill) toast.error('That bill no longer exists');
       setDraft(bill ? { type: 'EXPENSE', amount: bill.amount, description: bill.name, date: new Date().toISOString(), walletId: bill.walletId ?? '', categoryId: bill.categoryId ?? '' } : undefined);
       setIsAddOpen(true);
-    }).catch(() => setIsAddOpen(true));
+    }).catch(() => { toast.error("Couldn't load that bill"); setIsAddOpen(true); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [add]);
   const [selectedWalletId, setSelectedWalletId] = usePersisted('selected_wallet');
