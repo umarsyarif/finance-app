@@ -2,14 +2,13 @@ jest.mock('web-push', () => ({ setVapidDetails: jest.fn(), sendNotification: jes
 jest.mock('../src/middleware/prismaMiddleware', () => ({
   __esModule: true,
   default: {
-    notification: { create: jest.fn() },
+    notification: { createMany: jest.fn() },
     pushSubscription: { findMany: jest.fn(), delete: jest.fn() },
     notificationSettings: { findUnique: jest.fn() },
   },
 }));
-jest.mock('config', () => ({
-  get: (k: string) => ({ vapidPublicKey: 'pub', vapidPrivateKey: 'priv', vapidSubject: 'mailto:a@b.c' } as Record<string, string>)[k] ?? '',
-}));
+const mockCfg: Record<string, string> = { vapidPublicKey: 'pub', vapidPrivateKey: 'priv', vapidSubject: 'mailto:a@b.c' };
+jest.mock('config', () => ({ get: (k: string) => mockCfg[k] ?? '' }));
 
 import webpush from 'web-push';
 import prisma from '../src/middleware/prismaMiddleware';
@@ -26,21 +25,30 @@ const subs = [
 describe('notify', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    db.notification.create.mockResolvedValue({ id: 'n1' });
+    mockCfg.vapidSubject = 'mailto:a@b.c';
+    db.notification.createMany.mockResolvedValue({ count: 1 });
     db.pushSubscription.findMany.mockResolvedValue(subs);
     send.mockResolvedValue({ statusCode: 201 });
   });
 
   it('stores the row and pushes to every subscription', async () => {
     await expect(notify('u1', 'NUDGE', n)).resolves.toBe(true);
-    expect(db.notification.create).toHaveBeenCalledWith({ data: { userId: 'u1', kind: 'NUDGE', ...n } });
+    expect(db.notification.createMany).toHaveBeenCalledWith({ data: [{ userId: 'u1', kind: 'NUDGE', ...n }], skipDuplicates: true });
     expect(send).toHaveBeenCalledTimes(2);
+    expect(send.mock.calls[0][2]).toMatchObject({ TTL: 43200 });
     expect(JSON.parse(send.mock.calls[0][1])).toEqual({ title: 'T', body: 'B', url: '/?add=new' });
   });
 
   it('does nothing more when the dedupe key already exists', async () => {
-    db.notification.create.mockRejectedValue(Object.assign(new Error('dup'), { code: 'P2002' }));
+    db.notification.createMany.mockResolvedValue({ count: 0 });
     await expect(notify('u1', 'NUDGE', n)).resolves.toBe(false);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it('stores the row but skips push when the VAPID subject is unset', async () => {
+    mockCfg.vapidSubject = '';
+    await expect(notify('u1', 'NUDGE', n)).resolves.toBe(true);
+    expect(db.notification.createMany).toHaveBeenCalled();
     expect(send).not.toHaveBeenCalled();
   });
 

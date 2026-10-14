@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AxiosError } from 'axios';
 import axios from '@/lib/axios';
 
@@ -35,7 +35,12 @@ export function useNotifications() {
 
   useEffect(() => { load(); }, [load]);
 
-  const loadMore = useCallback(async () => { if (cursor) await load(cursor); }, [cursor, load]);
+  const loadingMore = useRef(false);
+  const loadMore = useCallback(async () => {
+    if (!cursor || loadingMore.current) return;
+    loadingMore.current = true;
+    try { await load(cursor); } finally { loadingMore.current = false; }
+  }, [cursor, load]);
 
   const markRead = useCallback(async (ids: string[] | 'all') => {
     const { data } = await axios.post('/api/notifications/read', ids === 'all' ? { all: true } : { ids });

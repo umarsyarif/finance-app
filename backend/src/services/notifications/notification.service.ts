@@ -10,9 +10,9 @@ export const SETTINGS_DEFAULTS = {
 const vapid = () => ({
   publicKey: config.get<string>('vapidPublicKey'),
   privateKey: config.get<string>('vapidPrivateKey'),
-  subject: config.get<string>('vapidSubject') || 'mailto:admin@localhost',
+  subject: config.get<string>('vapidSubject'),
 });
-export const isPushConfigured = () => Boolean(vapid().publicKey && vapid().privateKey);
+export const isPushConfigured = () => Object.values(vapid()).every(Boolean);
 
 let warned = false;
 const host = (endpoint: string) => { try { return new URL(endpoint).host; } catch { return 'invalid-endpoint'; } };
@@ -28,7 +28,7 @@ async function push(userId: string, payload: { title: string; body: string; url:
   const subs = await prisma.pushSubscription.findMany({ where: { userId } });
   await Promise.all(subs.map(async (s) => {
     try {
-      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload), { timeout: 5000 });
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(payload), { timeout: 5000, TTL: 43200 });
     } catch (err: any) {
       if (err?.statusCode === 404 || err?.statusCode === 410) {
         await prisma.pushSubscription.delete({ where: { id: s.id } }).catch(() => {});
@@ -41,12 +41,9 @@ async function push(userId: string, payload: { title: string; body: string; url:
 
 // The only way to create a notification: stored once per dedupeKey, then pushed to every device
 export async function notify(userId: string, kind: NotificationKind, n: { title: string; body: string; url: string; dedupeKey: string }) {
-  try {
-    await prisma.notification.create({ data: { userId, kind, ...n } });
-  } catch (err: any) {
-    if (err?.code === 'P2002') return false;
-    throw err;
-  }
+  // skipDuplicates: no unique-violation error (and Postgres log line) on every repeat tick
+  const { count } = await prisma.notification.createMany({ data: [{ userId, kind, ...n }], skipDuplicates: true });
+  if (count === 0) return false;
   try {
     await push(userId, { title: n.title, body: n.body, url: n.url });
   } catch (err) {

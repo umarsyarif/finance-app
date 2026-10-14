@@ -32,6 +32,7 @@ async function nudge(userId: string, now: Date, s: Awaited<ReturnType<typeof get
 
 async function bills(userId: string, now: Date, timezone: string) {
   const local = localParts(now, timezone);
+  if (local.hour < 9) return;
   const rows = await prisma.bill.findMany({ where: { userId, active: true }, include: { wallet: { select: { name: true } } } });
   for (const b of rows) {
     const dueMonth = billReminderDue(local.ymd, b.dayOfMonth, b.remindDaysBefore);
@@ -52,6 +53,7 @@ async function summary(userId: string, now: Date, s: Awaited<ReturnType<typeof g
   const local = localParts(now, s.timezone);
   if (local.day !== 1 || local.hour < 9) return;
   const ym = previousMonth(local.ym);
+  if (await prisma.notification.findFirst({ where: { userId, dedupeKey: `summary:${ym}` }, select: { id: true } })) return;
   const { start, end } = monthRangeUtc(ym, s.timezone);
   const txs = await prisma.transaction.findMany({
     where: { ...nonTransfer(userId), date: { gte: start, lt: end } },
@@ -72,13 +74,14 @@ async function summary(userId: string, now: Date, s: Awaited<ReturnType<typeof g
 }
 
 let lastCleanup = 0;
-export async function runTick(now = new Date()) {
+// onlyUserIds (tests) narrows the visit (still only scheduled users) and the retention sweep to those users
+export async function runTick(now = new Date(), onlyUserIds?: string[]) {
   // Retention uses the real clock, never the tick's (a test clock must not wipe real rows)
   if (Date.now() - lastCleanup > 86_400_000) {
     lastCleanup = Date.now();
-    await prisma.notification.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - RETENTION_DAYS * 86_400_000) } } });
+    await prisma.notification.deleteMany({ where: { createdAt: { lt: new Date(Date.now() - RETENTION_DAYS * 86_400_000) }, ...(onlyUserIds ? { userId: { in: onlyUserIds } } : {}) } });
   }
-  for (const userId of await scheduledUserIds()) {
+  for (const userId of (await scheduledUserIds()).filter((id) => !onlyUserIds || onlyUserIds.includes(id))) {
     try {
       const s = await getSettings(userId);
       await nudge(userId, now, s);

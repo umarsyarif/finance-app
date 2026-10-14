@@ -13,9 +13,16 @@ export const putSettingsSchema = object({
     monthlySummaryEnabled: boolean().optional(),
   }),
 });
+const PUSH_HOSTS = ['.googleapis.com', '.push.apple.com', '.notify.windows.com', '.push.services.mozilla.com'];
+const isPushHost = (u: string) => {
+  try {
+    const { protocol, hostname } = new URL(u);
+    return protocol === 'https:' && (hostname === 'fcm.googleapis.com' || hostname === 'web.push.apple.com' || PUSH_HOSTS.some((h) => hostname.endsWith(h)));
+  } catch { return false; }
+};
 export const subscribeSchema = object({
   body: object({
-    endpoint: string().url().max(1000).refine((u) => u.startsWith('https://'), 'Push endpoint must be https'),
+    endpoint: string().url().max(1000).refine(isPushHost, 'Unsupported push service'),
     keys: object({ p256dh: string().min(1).max(200), auth: string().min(1).max(100) }),
   }),
 });

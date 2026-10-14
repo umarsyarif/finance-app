@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Camera, ChevronRight, KeyRound, LogOut, Pencil, Receipt, ScanFace, Smartphone, Trash2, Wallet } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 import { ApiTokenSettings } from '@/components/api-token-settings';
@@ -45,6 +45,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export default function Profile() {
   const { user, refreshUser, logout, biometricEnabled, biometricSupported, enableBiometric, disableBiometric } = useAuth();
   const navigate = useNavigate();
+  const { hash } = useLocation();
+  useEffect(() => { if (hash === '#notifications') document.getElementById('notifications')?.scrollIntoView(); }, [hash]);
   const { theme, setTheme } = useTheme();
   const { wallets } = useWallets();
   const [sheet, setSheet] = useState<SheetName>(null);

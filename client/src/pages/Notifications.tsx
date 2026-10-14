@@ -68,7 +68,7 @@ export default function Notifications() {
         </div>
         <div className="flex shrink-0 gap-2">
           <button type="button" aria-label="Mark all read" onClick={() => markRead('all').catch(() => toast.error("Couldn't mark as read"))} className={roundBtn}><CheckCheck className="size-5" /></button>
-          <button type="button" aria-label="Notification settings" onClick={() => navigate('/profile')} className={roundBtn}><SlidersHorizontal className="size-5" /></button>
+          <button type="button" aria-label="Notification settings" onClick={() => navigate('/profile#notifications')} className={roundBtn}><SlidersHorizontal className="size-5" /></button>
         </div>
       </section>
       <FilterChips<Filter>

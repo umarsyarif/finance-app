@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { isAxiosError } from 'axios';
 import axios from '@/lib/axios';
@@ -34,14 +34,16 @@ export function NotificationSettings() {
   const [time, setTime] = useState('');
   const [push, setPush] = useState<PushStatus | null>(null);
   const [pushError, setPushError] = useState('');
+  const serverTime = useRef(''); // last nudgeTime the server confirmed
 
   const save = async (patch: Partial<Settings>) => {
     try {
       const { data } = await axios.put('/api/notifications/settings', patch);
       setSettings(data.data.settings);
-      setTime(data.data.settings.nudgeTime);
+      serverTime.current = data.data.settings.nudgeTime;
+      setTime(serverTime.current);
     } catch (err) {
-      setTime(settings?.nudgeTime ?? '');
+      setTime(serverTime.current);
       toast.error(apiMessage(err) ?? "Couldn't save");
     }
   };
@@ -51,11 +53,11 @@ export function NotificationSettings() {
     axios.get('/api/notifications/settings').then(({ data }) => {
       const s: Settings = data.data.settings;
       setSettings(s);
+      serverTime.current = s.nudgeTime;
       setTime(s.nudgeTime);
       const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (zone && zone !== s.timezone) save({ timezone: zone });
     }).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const enablePush = async () => {
@@ -74,7 +76,7 @@ export function NotificationSettings() {
   };
 
   return (
-    <section aria-label="Notifications" className="space-y-4 rounded-[24px] bg-card p-5 shadow-resting">
+    <section id="notifications" aria-label="Notifications" className="scroll-mt-4 space-y-4 rounded-[24px] bg-card p-5 shadow-resting">
       <ToggleRow title="Push on this device">
         {push === 'on' && <Switch aria-label="Push on this device" checked onCheckedChange={disablePush} />}
         {push === 'off' && <PillButton onClick={enablePush}>Enable push</PillButton>}

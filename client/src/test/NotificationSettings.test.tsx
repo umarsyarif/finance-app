@@ -56,6 +56,14 @@ describe('NotificationSettings', () => {
     expect(axios.put).not.toHaveBeenCalled();
   });
 
+  it('keeps the reminder time when the timezone auto-save fails', async () => {
+    tz('Asia/Jakarta');
+    vi.mocked(axios.put).mockRejectedValueOnce(new Error('offline'));
+    render(<NotificationSettings />);
+    await waitFor(() => expect(axios.put).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect((screen.getByLabelText('Reminder time') as HTMLInputElement).value).toBe('21:00'));
+  });
+
   it('shows push hints and enables push', async () => {
     vi.mocked(pushStatus).mockResolvedValue('needs-install');
     const a = render(<NotificationSettings />);

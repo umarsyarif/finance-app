@@ -17,7 +17,7 @@ const items = [
 ];
 const serve = (list: unknown[], nextCursor: string | null = null, unreadCount = list.filter((i) => !(i as { readAt: unknown }).readAt).length) =>
   vi.mocked(axios.get).mockResolvedValue({ data: { data: { notifications: list, nextCursor, unreadCount } } });
-const Probe = () => { const l = useLocation(); return <div data-testid="loc">{l.pathname + l.search}</div>; };
+const Probe = () => { const l = useLocation(); return <div data-testid="loc">{l.pathname + l.search + l.hash}</div>; };
 const renderPage = () => render(
   <MemoryRouter initialEntries={['/notifications']}>
     <Probe />
@@ -102,6 +102,6 @@ describe('Notifications page', () => {
     serve(items);
     renderPage();
     fireEvent.click(await screen.findByLabelText('Notification settings'));
-    expect(screen.getByTestId('loc')).toHaveTextContent('/profile');
+    expect(screen.getByTestId('loc')).toHaveTextContent('/profile#notifications');
   });
 });

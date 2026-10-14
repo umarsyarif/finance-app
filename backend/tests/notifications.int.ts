@@ -108,7 +108,7 @@ describe('notifications', () => {
   it('subscribes, reassigns an endpoint and unsubscribes per owner', async () => {
     const a = await newUser('sub-a');
     const b = await newUser('sub-b');
-    const endpoint = `https://push.example.test/abc-${run}`;
+    const endpoint = `https://fcm.googleapis.com/fcm/send/abc-${run}`;
     const body = { endpoint, keys: { p256dh: 'p', auth: 'a' } };
     expect((await a.agent.post('/api/push/subscribe').send(body)).status).toBe(201);
     expect(await prisma.pushSubscription.count({ where: { userId: a.id } })).toBe(1);
@@ -121,5 +121,6 @@ describe('notifications', () => {
     expect((await b.agent.delete('/api/push/subscribe').send({ endpoint })).status).toBe(204);
     expect(await prisma.pushSubscription.count({ where: { endpoint } })).toBe(0);
     expect((await a.agent.post('/api/push/subscribe').send({ ...body, endpoint: 'http://insecure' })).status).toBe(400);
+    expect((await a.agent.post('/api/push/subscribe').send({ ...body, endpoint: 'https://internal.example.test/x' })).status).toBe(400);
   });
 });
