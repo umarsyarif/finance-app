@@ -72,7 +72,7 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen flex flex-col w-full">
-      {pathname === '/' && <AppHeader />}
+      {pathname === '/' && <AppHeader refreshKey={dataVersion} />}
       {(pull > 0 || refreshing) && (
         <div
           role="status"
