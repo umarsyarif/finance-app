@@ -1,4 +1,5 @@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../ui/sheet';
+import type { TransactionDraft } from '../../hooks/use-transaction-form';
 import { TransactionForm } from './transaction-form';
 
 interface AddTransactionSheetProps {
@@ -6,10 +7,11 @@ interface AddTransactionSheetProps {
   onOpenChange: (open: boolean) => void;
   onTransactionChange?: () => void;
   defaultWalletId?: string;
+  initialDraft?: TransactionDraft;
 }
 
 // Opened from the bottom bar's Add button
-export function AddTransactionSheet({ open, onOpenChange, onTransactionChange, defaultWalletId }: AddTransactionSheetProps) {
+export function AddTransactionSheet({ open, onOpenChange, onTransactionChange, defaultWalletId, initialDraft }: AddTransactionSheetProps) {
   const handleSuccess = () => {
     onTransactionChange?.();
     onOpenChange(false);
@@ -22,7 +24,7 @@ export function AddTransactionSheet({ open, onOpenChange, onTransactionChange, d
           <SheetTitle className="text-[19px] font-bold">Add transaction</SheetTitle>
           <SheetDescription className="sr-only">Record an expense or income.</SheetDescription>
         </SheetHeader>
-        {open && <TransactionForm onSuccess={handleSuccess} defaultWalletId={defaultWalletId} />}
+        {open && <TransactionForm onSuccess={handleSuccess} defaultWalletId={defaultWalletId} initialDraft={initialDraft} />}
       </SheetContent>
     </Sheet>
   );

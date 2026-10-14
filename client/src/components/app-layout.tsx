@@ -1,5 +1,9 @@
-import { useState } from 'react';
-import { Outlet, useLocation, useOutletContext } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, useLocation, useOutletContext, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import axios from '@/lib/axios';
+import type { Bill } from '@/hooks/use-bills';
+import type { TransactionDraft } from '@/hooks/use-transaction-form';
 import { AppHeader } from './app-header';
 import { AppFooter } from './app-footer';
 import { AddTransactionSheet } from './finance/add-transaction-sheet';
@@ -36,6 +40,26 @@ function usePersisted(key: string) {
 export function AppLayout() {
   const { pathname } = useLocation();
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [draft, setDraft] = useState<TransactionDraft | undefined>();
+  const add = searchParams.get('add');
+  // Notification deep link: ?add=new or ?add=bill:<id> opens the Add sheet (prefilled from the bill)
+  useEffect(() => {
+    if (!add) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('add');
+    setSearchParams(next, { replace: true }); // a re-render or Back must not reopen it
+    if (add === 'new') { setDraft(undefined); setIsAddOpen(true); return; }
+    const billId = add.startsWith('bill:') ? add.slice(5) : null;
+    if (!billId) return;
+    axios.get('/api/bills').then(({ data }) => {
+      const bill = (data.data.bills as Bill[]).find((b) => b.id === billId);
+      if (!bill) toast.error('That bill no longer exists');
+      setDraft(bill ? { type: 'EXPENSE', amount: bill.amount, description: bill.name, date: new Date().toISOString(), walletId: bill.walletId ?? '', categoryId: bill.categoryId ?? '' } : undefined);
+      setIsAddOpen(true);
+    }).catch(() => setIsAddOpen(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [add]);
   const [selectedWalletId, setSelectedWalletId] = usePersisted('selected_wallet');
   const [selectedCurrency, setSelectedCurrency] = usePersisted('selected_currency');
   const [dataVersion, setDataVersion] = useState(0);
@@ -67,10 +91,11 @@ export function AppLayout() {
           context={{ selectedWalletId, setSelectedWalletId, selectedCurrency, setSelectedCurrency, dataVersion, notifyDataChanged } satisfies AppShellContext}
         />
       </main>
-      <AppFooter onAdd={() => setIsAddOpen(true)} />
+      <AppFooter onAdd={() => { setDraft(undefined); setIsAddOpen(true); }} />
       <AddTransactionSheet
         open={isAddOpen}
-        onOpenChange={setIsAddOpen}
+        onOpenChange={(o) => { setIsAddOpen(o); if (!o) setDraft(undefined); }}
+        initialDraft={draft}
         defaultWalletId={selectedWalletId}
         onTransactionChange={notifyDataChanged}
       />

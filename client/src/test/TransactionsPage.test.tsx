@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { MonthlyTransactionsView } from '@/pages/Transactions';
 
 const listProps = vi.fn();
@@ -18,13 +19,13 @@ vi.mock('@/components/app-layout', () => ({ useAppShell: () => shell }));
 
 describe('Transactions page', () => {
   it('lists only the resolved wallet (main when the stored one is gone)', () => {
-    render(<MonthlyTransactionsView />);
+    render(<MemoryRouter><MonthlyTransactionsView /></MemoryRouter>);
     expect(listProps).toHaveBeenLastCalledWith(expect.objectContaining({ walletId: 'k1' }));
     expect(cardProps).toHaveBeenLastCalledWith(expect.objectContaining({ selectedWalletId: 'k1', onSelect: shell.setSelectedWalletId }));
   });
 
   it('cards follow the page month', () => {
-    render(<MonthlyTransactionsView />);
+    render(<MemoryRouter><MonthlyTransactionsView /></MemoryRouter>);
     const { month } = cardProps.mock.lastCall![0] as { month: Date };
     const list = listProps.mock.lastCall![0] as { currentDate: Date };
     expect(month).toBe(list.currentDate);

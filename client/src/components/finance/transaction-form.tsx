@@ -22,6 +22,7 @@ interface TransactionFormProps {
   onSuccess?: () => void;
   submitButtonText?: string;
   defaultWalletId?: string;
+  initialDraft?: TransactionDraft;
 }
 
 const CURRENCY_SYMBOL: Record<string, string> = { KRW: '₩', IDR: 'Rp' };
@@ -48,8 +49,9 @@ export function TransactionForm({
   onSuccess,
   submitButtonText,
   defaultWalletId,
+  initialDraft,
 }: TransactionFormProps) {
-  const [type, setType] = useState<TransactionType | 'TRANSFER'>(initialType ?? transaction?.type ?? 'EXPENSE');
+  const [type, setType] = useState<TransactionType | 'TRANSFER'>(initialDraft?.type ?? initialType ?? transaction?.type ?? 'EXPENSE');
   const [newCategory, setNewCategory] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [scanning, setScanning] = useState(false);
@@ -74,6 +76,12 @@ export function TransactionForm({
     categoriesError,
     refetchCategories,
   } = useTransactionForm({ type: type === 'TRANSFER' ? undefined : type, transaction, onSuccess, defaultWalletId });
+
+  // Prefill once (e.g. from a bill reminder); the user still taps Save
+  useEffect(() => {
+    if (initialDraft) applyDraft(initialDraft);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const wallet = wallets.find((w) => w.id === formData.walletId);
 

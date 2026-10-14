@@ -8,6 +8,7 @@ import { MonthlyTransactionsView } from './pages/Transactions';
 import { Wallets } from './pages/Wallets';
 import Profile from './pages/Profile';
 import Assets from './pages/Assets';
+import Bills from './pages/Bills';
 import { useAuth } from '@/contexts/auth.context';
 
 const ProtectedRoutes = ({ children }: { children: React.ReactNode }) => {
@@ -28,6 +29,7 @@ export default function Router() {
                 <Route path="transactions" element={<MonthlyTransactionsView />} />
                 {/* not /assets: that is the build folder, so a reload would hit nginx, not the app */}
                 <Route path="portfolio" element={<Assets />} />
+                <Route path="bills" element={<Bills />} />
                 <Route path="wallets" element={<Wallets />} />
                 <Route path="stats" element={<Navigate to="/" replace />} />
                 <Route path="profile" element={<Profile />} />
