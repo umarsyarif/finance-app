@@ -35,7 +35,7 @@ export default function Notifications() {
 
   useEffect(() => {
     if (!hasMore || !sentinel.current) return;
-    const io = new IntersectionObserver((entries) => { if (!entries.length || entries.some((e) => e.isIntersecting !== false)) more.current(); });
+    const io = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) more.current(); });
     io.observe(sentinel.current);
     return () => io.disconnect();
   }, [hasMore, items.length]);

@@ -31,7 +31,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(new Date('2026-10-15T10:00:00+09:00'));
   vi.mocked(pushStatus).mockResolvedValue('on');
-  globalThis.IntersectionObserver = class { constructor(cb: () => void) { trigger = () => cb(); } observe() {} disconnect() {} } as never;
+  globalThis.IntersectionObserver = class { constructor(cb: (e: unknown[]) => void) { trigger = () => cb([{ isIntersecting: true }]); } observe() {} disconnect() {} } as never;
 });
 afterEach(() => vi.useRealTimers());
 
