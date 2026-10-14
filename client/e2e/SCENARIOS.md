@@ -5,7 +5,7 @@ scenario is driven through the UI for the feature under test; the API is only
 used to set up preconditions and to verify what was persisted.
 
 Files: `auth.e2e.ts`, `dashboard.e2e.ts`, `transactions.e2e.ts`,
-`wallets.e2e.ts`, `home.e2e.ts`, `settings.e2e.ts`, `profile.e2e.ts`, `capture.e2e.ts`, `transfers.e2e.ts`, `assets.e2e.ts`, plus the earlier
+`wallets.e2e.ts`, `home.e2e.ts`, `settings.e2e.ts`, `profile.e2e.ts`, `capture.e2e.ts`, `transfers.e2e.ts`, `assets.e2e.ts`, `notifications.e2e.ts`, plus the earlier
 regression suite `app.e2e.ts`.
 
 ## Auth (`auth.e2e.ts`)
@@ -137,3 +137,11 @@ regression suite `app.e2e.ts`.
 | AS3 | Portfolio with Gold and BTC | The crypto card lists BTC with its value; the legend shows "Gold" and "BTC" with percentages |
 | AS4 | Toggle KRW → IDR | The portfolio is requested with `currency=IDR`; the total shows `Rp` |
 | AS5 | Connect sheet, PUT answers 400 (not read-only) | Instructions show "Enable Reading" and the IP; the error shows inline; the secret field is cleared |
+
+## Notifications (`notifications.e2e.ts`)
+`GET /api/notifications` and `POST /api/notifications/read` are mocked with `page.route`; bills and settings are real. The e2e backend runs with empty VAPID keys, so no push is ever sent.
+| ID | Scenario | Expected |
+|---|---|---|
+| N1 | Mocked list: a BILL (unread, today) and a SHORTCUT_SAVED (read, yesterday) | Home bell reads "Notifications, 1 unread"; the page shows "Today"/"Yesterday", "Record payment" and "View"; "Mark all read" posts `{ all: true }` |
+| N2 | Create a bill via Profile → Bills → Add bill, then open `/?add=bill:<id>` | The list shows the bill and "Every month on the 5th"; the Add transaction sheet opens with the bill's amount, name and wallet "Cash"; saving creates one transaction |
+| N3 | Profile → Notifications: Daily reminder off, time 20:30, Monthly summary off; reload | `GET /api/notifications/settings` returns the saved values and the switches show them |

@@ -69,6 +69,7 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 - `services/` — all Prisma queries live here; no DB access in controllers
 - `services/ai.service.ts`: the only Gemini caller (`@google/genai`, JSON-schema output, 20s timeout, untrusted input kept out of the system instruction); `services/capture.service.ts`: deterministic rules turning the AI's labels into a transaction draft (a wallet named in the text, else the main wallet of the detected currency; no readable currency → 422; "Other" category; date window). `POST /api/capture/text` (iOS Shortcut, personal API token via `middleware/requireApiToken.ts`) saves; `POST /api/capture/photo` (session) returns a draft only. `GEMINI_API_KEY` unset → 503. See `docs/shortcut-setup.md`.
 - `services/assets/` — `portfolio.service` merges holding sources (`manual`, `binance`) and prices them per class (`prices.ts`: Binance tickers, PAXG÷31.1035 per gram for gold, open.er-api USD rates; cached 60s/1h with stale fallback); `binance.service.ts` is the only signed-Binance caller (read-only key check, spot+funding+Simple Earn balances); `crypto-box.ts` AES-256-GCM with `ASSETS_ENCRYPTION_KEY`. Never call real Binance or exchange-rate APIs in tests.
+- `services/notifications/` — `notify()` is the only way to create a notification (deduped by `(userId, dedupeKey)`, then pushed with `web-push`; 404/410 subscriptions deleted); `scheduler.ts` runs every 60 s in the server process (started only when listening) for daily nudges, bill reminders and the monthly summary, using the pure calendar logic in `schedule.ts`; notifications older than 90 days are deleted. Never call a real push service in tests.
 - `schemas/` — Zod schemas for input validation (used by the `validate` middleware)
 - `middleware/deserializeUser.ts` — extracts `access_token` cookie (or Bearer header), verifies JWT via RS256, checks Redis session, attaches user to `res.locals.user`
 - `middleware/prismaMiddleware.ts` — shared PrismaClient, balance-adjustment helpers, and a `Decimal.toJSON` override so money fields serialize as JSON numbers
@@ -92,6 +93,7 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 - `services/secure-storage.service.ts` — prefixed localStorage/sessionStorage wrapper for client-side flags (preferences); no tokens are stored client-side
 - `components/app-layout.tsx` — app shell: bottom nav (Home, Transactions, center **+**, Assets, Profile; the greeting header renders only on Home) and the global Add Transaction sheet. Pages read shared state via `useAppShell()`: `selectedWalletId` (Transactions' wallet; persisted) and `selectedCurrency` (Home's KRW/IDR; persisted), both resolved with `lib/selection.ts`, plus `dataVersion`, bumped after the sheet saves so pages refetch. Home is a per-currency overview (total, wallet cards, latest 5, month Summary, year chart); Transactions is a per-wallet ledger; `/stats` redirects to Home
 - `components/finance/` — domain components (wallet cards, transaction rows/list, filter chips, month switcher, transaction/wallet/category forms, details sheet)
+- `/notifications` (bell on Home), `/bills` (Profile → Bills), notification settings in Profile; `public/push-sw.js` is imported into the generated service worker; deep links `/?add=new|bill:<id>`, `/transactions?wallet=<id>`, `/?month=<yyyy-mm>`
 - Visual design follows `DESIGN.md` (tokens in `src/index.css`: canvas/surface/ink, `lime`, `income`, `expense`; Plus Jakarta Sans). Reference mockups live in `docs/design/stitch/`
 - `components/ui/` — shadcn/ui component library files (do not hand-edit; use `npx shadcn@latest add <component>` to add new ones)
 - `config/app.ts` — app-wide config
@@ -104,6 +106,7 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 - `UserAvatar` → the profile photo (bytes, ≤200 KB), kept out of `users` because `deserializeUser` loads that row on every request; `User.avatarUpdatedAt` versions `/api/users/me/avatar`
 - `Transfer` → links exactly two `Transaction` rows (out on the source wallet, in on the destination) via `transferId`; they use the hidden global categories `transfer-out`/`transfer-in` (`isTransfer`), are edited only through `/api/transfers`, and are excluded from stats
 - `AssetLot` / `AssetCost` / `BinanceConnection` → generic holdings: manual lots (gold today) and per-holding cost for synced sources; asset classes are strings validated in `services/assets/asset-classes.ts` (GOLD, CRYPTO)
+- `Notification` / `PushSubscription` / `Bill` / `NotificationSettings` → in-app history, per-device push endpoints, monthly bills (remind only), per-user settings (defaults when no row)
 
 ### Infrastructure
 - Traefik reverse proxy routes `finance.umeh.me` → prod frontend, `finance-api.umeh.me` → backend
@@ -119,6 +122,7 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 - Month/date filters are sent as exact ISO instants computed in the browser's timezone (`startDate`/`endDate`, plus `tz` for the stats trend), so the server timezone never decides which month a transaction belongs to
 - Frontend env vars use `VITE_` prefix; `VITE_API_URL` controls the backend base URL
 - `ASSETS_ENCRYPTION_KEY` (base64 32 bytes) enables Binance sync; unset → 503
+- `VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` enable push (`npx web-push generate-vapid-keys`); unset → in-app only, `GET /api/push/key` 503
 - The `@` path alias maps to `client/src/` in both Vite and TypeScript configs
 - Currency support is intentionally limited to KRW and IDR in wallet creation
 - Schema changes need a migration (`npx prisma migrate dev`); never change `schema.prisma` without one
