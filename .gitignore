@@ -1,3 +1,6 @@
 # Local screenshots and personal bank statements
 screenshots/
 data/
+
+# Git worktrees for feature branches
+.claude/worktrees/
