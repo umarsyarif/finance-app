@@ -5,7 +5,7 @@ import axios from '@/lib/axios';
 import { PillButton } from '@/components/page-header';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { BLOCKED, pushStatus, subscribePush, unsubscribePush, type PushStatus } from '@/services/push.service';
+import { BLOCKED, pushStatus, resyncPush, subscribePush, unsubscribePush, type PushStatus } from '@/services/push.service';
 
 interface Settings {
   nudgeEnabled: boolean;
@@ -41,12 +41,13 @@ export function NotificationSettings() {
       setSettings(data.data.settings);
       setTime(data.data.settings.nudgeTime);
     } catch (err) {
+      setTime(settings?.nudgeTime ?? '');
       toast.error(apiMessage(err) ?? "Couldn't save");
     }
   };
 
   useEffect(() => {
-    pushStatus().then(setPush).catch(() => setPush('unsupported'));
+    pushStatus().then((st) => { setPush(st); if (st === 'on') resyncPush(); }).catch(() => setPush('unsupported'));
     axios.get('/api/notifications/settings').then(({ data }) => {
       const s: Settings = data.data.settings;
       setSettings(s);
@@ -54,6 +55,7 @@ export function NotificationSettings() {
       const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (zone && zone !== s.timezone) save({ timezone: zone });
     }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const enablePush = async () => {

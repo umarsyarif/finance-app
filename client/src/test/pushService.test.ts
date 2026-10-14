@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import axios from '@/lib/axios';
-import { pushStatus, subscribePush, unsubscribePush } from '@/services/push.service';
+import { pushStatus, resyncPush, subscribePush, unsubscribePush } from '@/services/push.service';
 
 vi.mock('@/lib/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), delete: vi.fn(), defaults: {} } }));
 
@@ -8,7 +8,7 @@ const sub = { endpoint: 'https://push.example/abc', toJSON: () => ({ endpoint: '
 const pushManager = { getSubscription: vi.fn(), subscribe: vi.fn() };
 
 const setup = ({ ua = 'Mozilla Chrome', standalone = false, permission = 'default', push = true } = {}) => {
-  vi.stubGlobal('navigator', { userAgent: ua, serviceWorker: { ready: Promise.resolve({ pushManager }) } });
+  vi.stubGlobal('navigator', { userAgent: ua, serviceWorker: { ready: Promise.resolve({ pushManager }), getRegistration: vi.fn().mockResolvedValue({ pushManager }) } });
   vi.stubGlobal('matchMedia', () => ({ matches: standalone }));
   if (push) vi.stubGlobal('PushManager', class {}); else delete (window as unknown as Record<string, unknown>).PushManager;
   vi.stubGlobal('Notification', { permission, requestPermission: vi.fn().mockResolvedValue(permission === 'default' ? 'granted' : permission) });
@@ -63,5 +63,42 @@ describe('push.service', () => {
     setup();
     await unsubscribePush();
     expect(axios.delete).not.toHaveBeenCalled();
+  });
+
+  it('does not hang without a service worker registration', async () => {
+    setup();
+    (navigator.serviceWorker.getRegistration as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    expect(await pushStatus()).toBe('off');
+    await unsubscribePush();
+    expect(axios.delete).not.toHaveBeenCalled();
+  });
+  it('shows the server message when the key is unavailable', async () => {
+    setup();
+    vi.mocked(axios.get).mockRejectedValue(Object.assign(new Error('x'), { isAxiosError: true, response: { data: { message: "Push isn't set up" } } }));
+    await expect(subscribePush()).rejects.toThrow("Push isn't set up");
+  });
+  it('times out when no service worker becomes ready', async () => {
+    setup();
+    vi.useFakeTimers();
+    Object.assign(navigator.serviceWorker, { ready: new Promise(() => {}) });
+    vi.mocked(axios.get).mockResolvedValue({ data: { data: { publicKey: 'AQID' } } });
+    const p = expect(subscribePush()).rejects.toThrow("Push isn't available right now");
+    await vi.advanceTimersByTimeAsync(3100);
+    await p;
+    vi.useRealTimers();
+  });
+  it('drops the browser subscription when registering fails', async () => {
+    setup();
+    vi.mocked(axios.get).mockResolvedValue({ data: { data: { publicKey: 'AQID' } } });
+    vi.mocked(axios.post).mockRejectedValue(new Error('boom'));
+    await expect(subscribePush()).rejects.toThrow('boom');
+    expect(sub.unsubscribe).toHaveBeenCalled();
+  });
+  it('resyncs the current subscription', async () => {
+    setup();
+    pushManager.getSubscription.mockResolvedValue(sub);
+    vi.mocked(axios.post).mockResolvedValue({});
+    await resyncPush();
+    expect(axios.post).toHaveBeenCalledWith('/api/push/subscribe', { endpoint: sub.endpoint, keys: { p256dh: 'p', auth: 'a' } });
   });
 });

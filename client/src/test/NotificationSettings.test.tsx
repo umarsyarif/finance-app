@@ -3,11 +3,11 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axios from '@/lib/axios';
 import { NotificationSettings } from '@/components/notification-settings';
-import { pushStatus, subscribePush } from '@/services/push.service';
+import { pushStatus, resyncPush, subscribePush, unsubscribePush } from '@/services/push.service';
 
 vi.mock('@/lib/axios', () => ({ default: { get: vi.fn(), put: vi.fn(), defaults: {} } }));
 vi.mock('@/services/push.service', () => ({
-  pushStatus: vi.fn(), subscribePush: vi.fn(), unsubscribePush: vi.fn(),
+  pushStatus: vi.fn(), resyncPush: vi.fn(), subscribePush: vi.fn(), unsubscribePush: vi.fn(),
   BLOCKED: 'Notifications are blocked — allow them in Settings → Finance',
 }));
 
@@ -77,5 +77,35 @@ describe('NotificationSettings', () => {
     render(<NotificationSettings />);
     await userEvent.click(await screen.findByRole('button', { name: 'Enable push' }));
     expect((await screen.findByRole('alert')).textContent).toBe('nope');
+  });
+
+  it('turns push off with the switch', async () => {
+    vi.mocked(pushStatus).mockResolvedValue('on');
+    render(<NotificationSettings />);
+    await userEvent.click(await screen.findByLabelText('Push on this device'));
+    expect(unsubscribePush).toHaveBeenCalled();
+    expect(await screen.findByRole('button', { name: 'Enable push' })).toBeTruthy();
+  });
+
+  it('resyncs an existing subscription on load', async () => {
+    vi.mocked(pushStatus).mockResolvedValue('on');
+    render(<NotificationSettings />);
+    await waitFor(() => expect(resyncPush).toHaveBeenCalled());
+  });
+
+  it('reverts the time when saving fails', async () => {
+    render(<NotificationSettings />);
+    const time = (await screen.findByLabelText('Reminder time')) as HTMLInputElement;
+    vi.mocked(axios.put).mockRejectedValueOnce(new Error('x'));
+    fireEvent.change(time, { target: { value: '20:30' } });
+    fireEvent.blur(time);
+    await waitFor(() => expect(time.value).toBe('21:00'));
+  });
+
+  it('shows a 503 message from subscribe', async () => {
+    vi.mocked(subscribePush).mockRejectedValueOnce(new Error("Push isn't set up"));
+    render(<NotificationSettings />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Enable push' }));
+    expect((await screen.findByRole('alert')).textContent).toBe("Push isn't set up");
   });
 });

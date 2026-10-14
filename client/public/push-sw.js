@@ -14,11 +14,13 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const raw = (event.notification.data && event.notification.data.url) || '/';
   // Same-origin paths only
-  const url = new URL(raw.startsWith('/') ? raw : '/', self.location.origin).href;
+  let target = new URL(raw, self.location.origin);
+  if (target.origin !== self.location.origin) target = new URL('/', self.location.origin);
+  const url = target.href;
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const open = windows.find((w) => new URL(w.url).origin === self.location.origin);
-    if (open) { await open.focus(); return open.navigate(url); }
+    if (open) { await open.focus(); return open.navigate(url).catch(() => self.clients.openWindow(url)); }
     return self.clients.openWindow(url);
   })());
 });
