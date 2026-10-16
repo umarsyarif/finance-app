@@ -11,5 +11,7 @@ const sql = `
   DELETE FROM users WHERE email LIKE 'e2e-%@example.test';`;
 
 export default function teardown() {
+  // GitHub Actions uses a throwaway database (and has no `postgres` container to exec into)
+  if (process.env.CI) return;
   execFileSync('docker', ['exec', 'postgres', 'psql', '-U', 'postgres', '-d', 'finance-app', '-qc', sql]);
 }
