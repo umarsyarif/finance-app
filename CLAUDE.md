@@ -112,6 +112,13 @@ Layered Express app following the pattern: **Routes → Controllers → Services
 - Traefik reverse proxy routes `finance.umeh.me` → prod frontend, `finance-api.umeh.me` → backend
 - Backend port 4000 in Docker (8000 when run locally via `npm run start`), frontend Nginx on 80 (mapped to 3000 prod / 3001 dev). The backend container runs `prisma migrate deploy` on start
 - PostgreSQL exposed on 6500 locally (user/password `postgres`), Redis on 6379
+- Production today: a VPS (Cloudflare tunnel → nginx serves `/var/www/finance` and proxies `/api` to the `finance-api` systemd user service on :4100, which runs `prisma migrate deploy` on start)
+
+### Deploy (GitHub Actions)
+- `.github/workflows/release.yml`: every push to `main` runs all suites (backend tsc/unit/integration, client tsc/unit, Playwright) against throwaway Postgres + Redis. If they pass and the commits since the last `vX.Y.Z` tag include `feat:` (minor), `fix:` (patch) or `!`/`BREAKING CHANGE` (major), it tags the next version and deploys it. Other commit types (`docs:`, `test:`, `chore:`, `ci:`) never release.
+- Rollback: Actions → Release → "Run workflow" with an existing tag (skips tests).
+- Deploy goes over SSH with a key that `~/.ssh/authorized_keys` locks to `~/finance-app/deploy.sh` (source: `scripts/deploy/deploy.sh`; copy it to the VPS by hand when it changes). The script backs up the DB to `~/finance-app/backups/` (last 5), replaces the backend source (never `.env`), builds, restarts the service, health-checks, then swaps the frontend. Secrets: `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, `DEPLOY_HOST`.
+- The repo is public: workflow and deploy output must never print `.env` or secrets.
 
 ---
 

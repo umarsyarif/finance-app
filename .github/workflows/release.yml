@@ -1,0 +1,179 @@
+# Push to main: run every test suite; if all pass and the new commits include feat:/fix:,
+# tag the next version and deploy it to the VPS. "Run workflow" redeploys an existing tag (rollback).
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to redeploy (e.g. v1.2.0)
+        required: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: finance_test
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NODE_ENV: development
+      PORT: 8000
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/finance_test?schema=public
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: finance_test
+      REDIS_URL: redis://localhost:6379
+      EMAIL_USER: test
+      EMAIL_PASS: test
+      EMAIL_HOST: localhost
+      EMAIL_PORT: 2525
+      GEMINI_API_KEY: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            client/package-lock.json
+
+      - name: Throwaway JWT keys
+        run: |
+          for k in ACCESS REFRESH; do
+            openssl genrsa -out "$RUNNER_TEMP/$k.pem" 2048 2>/dev/null
+            openssl rsa -in "$RUNNER_TEMP/$k.pem" -pubout -out "$RUNNER_TEMP/$k.pub" 2>/dev/null
+            echo "JWT_${k}_TOKEN_PRIVATE_KEY=$(base64 -w0 "$RUNNER_TEMP/$k.pem")" >> "$GITHUB_ENV"
+            echo "JWT_${k}_TOKEN_PUBLIC_KEY=$(base64 -w0 "$RUNNER_TEMP/$k.pub")" >> "$GITHUB_ENV"
+          done
+
+      - name: Backend install and migrate
+        working-directory: backend
+        run: npm ci --no-audit --no-fund && npx prisma migrate deploy
+      - name: Backend types
+        working-directory: backend
+        run: npx tsc --noEmit
+      - name: Backend unit tests
+        working-directory: backend
+        run: npm test
+      - name: Backend integration tests
+        working-directory: backend
+        run: npm run test:int
+
+      - name: Client install
+        working-directory: client
+        run: npm ci --no-audit --no-fund
+      - name: Client types
+        working-directory: client
+        run: npx tsc --noEmit -p tsconfig.app.json
+      - name: Client unit tests
+        working-directory: client
+        run: npm run test:run
+      - name: Browser tests
+        working-directory: client
+        run: npx playwright install --with-deps chromium && npm run test:e2e
+
+  version:
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.next.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Next version from commit messages
+        id: next
+        run: |
+          last=$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null || echo v0.0.0)
+          range="HEAD"; [ "$last" != v0.0.0 ] && range="$last..HEAD"
+          subjects=$(git log --format=%s "$range")
+          if git log --format=%B "$range" | grep -qE '^[a-z]+(\([^)]*\))?!:|^BREAKING CHANGE'; then bump=major
+          elif echo "$subjects" | grep -qE '^feat(\([^)]*\))?:'; then bump=minor
+          elif echo "$subjects" | grep -qE '^fix(\([^)]*\))?:'; then bump=patch
+          else echo "No feat:/fix: commits since $last, so no release"; exit 0; fi
+          IFS=. read -r major minor patch <<< "${last#v}"
+          case $bump in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          tag="v$major.$minor.$patch"
+          git tag "$tag" && git push origin "$tag"
+          echo "Released $tag ($bump after $last)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: version
+    # always(): a manual redeploy skips test/version
+    if: always() && ((github.event_name == 'push' && needs.version.outputs.tag != '') || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TAG: ${{ needs.version.outputs.tag || inputs.tag }}
+    steps:
+      - name: Check tag
+        run: '[[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Not a version tag: $TAG"; exit 1; }'
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Build frontend
+        working-directory: client
+        # Empty API URL: the frontend calls /api on its own origin (nginx proxies it)
+        run: npm ci --no-audit --no-fund && VITE_API_URL= npx vite build
+
+      - name: Bundle
+        run: |
+          mkdir -p "$RUNNER_TEMP/bundle"
+          git archive HEAD backend | tar -x -C "$RUNNER_TEMP/bundle"
+          cp -r client/dist "$RUNNER_TEMP/bundle/client-dist"
+          tar -czf "$RUNNER_TEMP/bundle.tgz" -C "$RUNNER_TEMP/bundle" .
+
+      - name: Deploy to VPS
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          install -m 600 /dev/null "$RUNNER_TEMP/key" && printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+          ssh -i "$RUNNER_TEMP/key" -o IdentitiesOnly=yes -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" -o StrictHostKeyChecking=yes \
+            "ubuntu@$DEPLOY_HOST" "$TAG" < "$RUNNER_TEMP/bundle.tgz"
+
+      - name: Check the live site
+        run: |
+          curl -fsS https://finance.umeh.me/ -o /dev/null
+          curl -fsS https://finance.umeh.me/api/healthchecker -o /dev/null
+          echo "$TAG is live"
