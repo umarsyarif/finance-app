@@ -38,7 +38,10 @@ function usePersisted(key: string) {
 }
 
 export function AppLayout() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
+  // A new page starts at the top (the router keeps the previous page's scroll otherwise);
+  // a #hash link is left to the page, whose own scrollIntoView runs before this effect
+  useEffect(() => { if (!hash) window.scrollTo(0, 0); }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [draft, setDraft] = useState<TransactionDraft | undefined>();

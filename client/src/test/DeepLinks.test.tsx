@@ -117,4 +117,18 @@ describe('deep links', () => {
     expect(await screen.findByText('Add transaction')).toBeInTheDocument();
     expect(toast.error).toHaveBeenCalledWith("Couldn't load that bill");
   });
+
+  it('a new page starts at the top, a query-only change keeps the scroll', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    renderAt('/');
+    scrollTo.mockClear();
+    await act(async () => go('/transactions?wallet=w2'));
+    expect(scrollTo).toHaveBeenCalledWith(0, 0);
+    scrollTo.mockClear();
+    await act(async () => go('/transactions?x=1'));
+    expect(scrollTo).not.toHaveBeenCalled();
+    await act(async () => go('/#anchor'));
+    expect(scrollTo).not.toHaveBeenCalled();
+    scrollTo.mockRestore();
+  });
 });
