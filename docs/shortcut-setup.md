@@ -24,6 +24,6 @@ Tip: run it from Back Tap or the Action button right after paying.
 
 ## Server setup
 
-Set `GEMINI_API_KEY` (a Google AI Studio key) in `backend/.env`. Optional: `GEMINI_MODEL` (default `gemini-2.5-flash`). Without a key, capture answers "AI capture isn't set up". On the Gemini free tier, Google may use the text and images you send to improve its products.
+Set `GEMINI_API_KEY` (a Google AI Studio key) in `backend/.env`. Optional: `GEMINI_MODEL` (default `gemini-3.8-flash`). Without a key, capture answers "AI capture isn't set up". On the Gemini free tier, Google may use the text and images you send to improve its products.
 
 To try extraction without the Shortcut: `cd backend && npm run try-capture -- "STARBUCKS 6,500원 10/09 14:20 신한카드 승인"` (uses your quota).
