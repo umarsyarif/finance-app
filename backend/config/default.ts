@@ -5,7 +5,7 @@ export default {
   origin: 'http://localhost:5173',
   // AI capture: empty key disables the capture endpoints (503)
   geminiApiKey: '',
-  geminiModel: 'gemini-3.8-flash',
+  geminiModel: 'gemini-3.5-flash-lite,gemini-3.1-flash-lite',
   // Asset sync secrets (AES-256-GCM key, base64 32 bytes); empty = asset sync disabled
   assetsEncryptionKey: '',
   vapidPublicKey: '',

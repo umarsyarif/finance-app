@@ -122,4 +122,27 @@ describe('extractTransaction', () => {
     expect(typeof errSpy.mock.calls[0][0]).toBe('string');
     expect(errSpy.mock.calls[0][0]).toContain('403');
   });
+
+  it('falls back to the next model when Google is overloaded or times out', async () => {
+    mockConfigGet.mockImplementation((k: string) => (k === 'geminiApiKey' ? 'k' : 'busy-model, spare-model'));
+    mockGenerate
+      .mockRejectedValueOnce(Object.assign(new Error('high demand'), { status: 503 }))
+      .mockResolvedValueOnce({ text: JSON.stringify(reply) });
+    await expect(extractTransaction({ text: 'x' }, ctx)).resolves.toEqual(reply);
+    expect(mockGenerate.mock.calls.map((c) => c[0].model)).toEqual(['busy-model', 'spare-model']);
+
+    mockGenerate.mockReset();
+    mockGenerate
+      .mockRejectedValueOnce(new Error('request timed out')) // no status: network timeout
+      .mockRejectedValueOnce(Object.assign(new Error('deadline'), { status: 504 }));
+    await expect(extractTransaction({ text: 'x' }, ctx)).rejects.toThrow(AiUnavailableError);
+    expect(mockGenerate).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not try another model for errors a retry cannot fix', async () => {
+    mockConfigGet.mockImplementation((k: string) => (k === 'geminiApiKey' ? 'k' : 'm1,m2'));
+    mockGenerate.mockRejectedValue(Object.assign(new Error('bad key'), { status: 403 }));
+    await expect(extractTransaction({ text: 'x' }, ctx)).rejects.toThrow(AiUnavailableError);
+    expect(mockGenerate).toHaveBeenCalledTimes(1);
+  });
 });

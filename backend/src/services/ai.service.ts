@@ -101,24 +101,29 @@ export async function extractTransaction(input: AiInput, ctx: AiContext): Promis
     'text' in input
       ? { text: `<ocr_text>\n${input.text.split('</ocr_text>').join('</ocr-text>')}\n</ocr_text>` }
       : { inlineData: { mimeType: input.mimeType, data: input.image } };
-  let reply: string | undefined;
-  try {
-    const response = await ai.models.generateContent({
-      model: config.get<string>('geminiModel'),
-      contents: [{ role: 'user', parts: [content] }],
-      config: {
-        systemInstruction: buildPrompt(ctx),
-        responseMimeType: 'application/json',
-        responseJsonSchema,
-        temperature: 0,
-        httpOptions: { timeout: GEMINI_TIMEOUT_MS },
-      },
-    });
-    reply = response.text;
-  } catch (err) {
-    const e = err as { name?: string; message?: string; status?: number };
-    console.error(`Gemini request failed: ${e?.name ?? 'Error'} ${e?.status ?? ''}: ${String(e?.message ?? '').slice(0, 300)}`);
-    throw new AiUnavailableError('Gemini request failed');
+  // GEMINI_MODEL may list fallbacks ("a,b"): a busy or slow model hands the request to the next one
+  const models = config.get<string>('geminiModel').split(',').map((m) => m.trim()).filter(Boolean);
+  for (const [i, model] of models.entries()) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents: [{ role: 'user', parts: [content] }],
+        config: {
+          systemInstruction: buildPrompt(ctx),
+          responseMimeType: 'application/json',
+          responseJsonSchema,
+          temperature: 0,
+          httpOptions: { timeout: GEMINI_TIMEOUT_MS },
+        },
+      });
+      return parseExtraction(response.text);
+    } catch (err) {
+      if (err instanceof AiUnavailableError) throw err; // a bad reply, not a busy model
+      const e = err as { name?: string; message?: string; status?: number };
+      console.error(`Gemini request failed (${model}): ${e?.name ?? 'Error'} ${e?.status ?? ''}: ${String(e?.message ?? '').slice(0, 300)}`);
+      const transient = e?.status === undefined || [429, 500, 502, 503, 504].includes(e.status);
+      if (!transient || i === models.length - 1) throw new AiUnavailableError('Gemini request failed');
+    }
   }
-  return parseExtraction(reply);
+  throw new AiUnavailableError('Gemini request failed');
 }
