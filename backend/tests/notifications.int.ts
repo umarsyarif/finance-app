@@ -49,8 +49,11 @@ describe('notifications', () => {
   it('lists with paging and unread count, scoped per user', async () => {
     const a = await newUser('list-a');
     const b = await newUser('list-b');
+    const base = Date.now();
     for (let i = 0; i < 32; i++) {
       await svc.notify(a.id, 'NUDGE', { title: 'T' + i, body: 'B', url: '/?add=new', dedupeKey: 'k' + i });
+      // Rows made in the same millisecond tie on createdAt; space them so "newest first" is deterministic
+      await prisma.notification.updateMany({ where: { userId: a.id, dedupeKey: 'k' + i }, data: { createdAt: new Date(base + i * 1000) } });
     }
     const p1 = (await a.agent.get('/api/notifications')).body.data;
     expect(p1.notifications).toHaveLength(30);
