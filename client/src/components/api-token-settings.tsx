@@ -4,6 +4,7 @@ import { isAxiosError } from 'axios';
 import axios from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
+import { Bone, Loading } from '@/components/skeletons';
 
 interface TokenStatus {
   exists: boolean;
@@ -89,7 +90,7 @@ export function ApiTokenSettings() {
         </div>
       ) : (
       <p className="text-sm">
-        {!status ? 'Loading…' : !status.exists ? 'No token yet' : (
+        {!status ? <Loading label="Loading token status"><Bone className="h-3.5 w-48" /></Loading> : !status.exists ? 'No token yet' : (
           <>
             Created {formatDateTime(status.createdAt!)} · {status.lastUsedAt ? `last used ${formatDateTime(status.lastUsedAt)}` : 'not used yet'}
           </>

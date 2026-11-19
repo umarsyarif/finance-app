@@ -6,6 +6,7 @@ import { FilterChips } from '@/components/finance/filter-chips';
 import { NotificationCard } from '@/components/notifications/notification-card';
 import { useNotifications, type AppNotification } from '@/hooks/use-notifications';
 import { pushStatus, type PushStatus } from '@/services/push.service';
+import { Bone, CardSkeleton, Loading } from '@/components/skeletons';
 
 type Filter = 'all' | 'reminders' | 'activity';
 const isReminder = (i: AppNotification) => i.kind === 'BILL' || i.kind === 'NUDGE';
@@ -64,7 +65,9 @@ export default function Notifications() {
       <section className="flex items-end justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-[32px] font-bold leading-[1.1] tracking-[-0.02em]">Notifications</h1>
-          <p className="text-sm text-muted-foreground">{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</p>
+          {loading && items.length === 0
+            ? <Bone className="mt-1.5 h-3.5 w-24" />
+            : <p className="text-sm text-muted-foreground">{unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}</p>}
         </div>
         <div className="flex shrink-0 gap-2">
           <button type="button" aria-label="Mark all read" onClick={() => markRead('all').catch(() => toast.error("Couldn't mark as read"))} className={roundBtn}><CheckCheck className="size-5" /></button>
@@ -82,6 +85,14 @@ export default function Notifications() {
         ]}
       />
       {error && <p role="alert" className="text-sm text-expense">{error}</p>}
+      {loading && items.length === 0 && !error && (
+        <Loading className="flex flex-col gap-3">
+          <Bone className="ml-1 h-3.5 w-16" />
+          <CardSkeleton />
+          <CardSkeleton />
+          <CardSkeleton />
+        </Loading>
+      )}
       {!loading && !error && items.length === 0 && (
         <div className="flex flex-col items-center gap-2 py-16 text-center text-muted-foreground">
           <Bell className="size-8" />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { WalletCards } from '@/components/finance/wallet-cards';
@@ -16,6 +16,7 @@ import { useStats } from '@/hooks/use-stats';
 import { currenciesOf, resolveCurrency, resolveWalletId } from '@/lib/selection';
 import { formatAmount } from '@/lib/format-utils';
 import { formatDateForDateInput, getStartOfMonth, getEndOfMonth } from '@/lib/date-utils';
+import { Bone, ChartSkeleton, Loading, RowsSkeleton, SummarySkeleton, TotalSkeleton, WalletCardSkeleton } from '@/components/skeletons';
 
 const LATEST = 5;
 
@@ -64,6 +65,10 @@ export default function Dashboard() {
   }), [y, m, walletIds.join(','), dataVersion, ready]);
   const { monthlySummary, categoryBreakdown, incomeBreakdown, trendData, loading: statsLoading, error: statsError } = useStats(filters);
   const noStats = !monthlySummary && trendData.length === 0;
+  // A refresh keeps the shown numbers; another month or currency is different data, so it gets the skeleton
+  const statsKey = `${month.getFullYear()}-${month.getMonth()}-${currency}`;
+  const shownStatsKey = useRef<string | null>(null);
+  if (!statsLoading) shownStatsKey.current = statsKey;
   const monthLabel = month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const openWallet = (walletId: string) => {
@@ -82,7 +87,12 @@ export default function Dashboard() {
       <PageTitle eyebrow="Overview" title="Home" />
 
       {wallets.length === 0 && walletsLoading ? (
-        <div className="h-40 animate-pulse rounded-[24px] bg-card" />
+        <Loading className="space-y-6">
+          <div className="flex gap-2"><Bone className="h-11 w-20" /><Bone className="h-11 w-20" /></div>
+          <TotalSkeleton />
+          <WalletCardSkeleton />
+          <RowsSkeleton rows={5} />
+        </Loading>
       ) : walletsError && wallets.length === 0 ? (
         <div className="space-y-3 text-center">
           <p className="text-expense">{walletsError}</p>
@@ -104,8 +114,8 @@ export default function Dashboard() {
 
           <section className="space-y-2">
             <h2 className="px-1 text-[19px] font-bold">Latest</h2>
-            {latestLoading ? (
-              <div className="h-40 animate-pulse rounded-[24px] bg-card" />
+            {latestLoading && latest.length === 0 ? (
+              <Loading><RowsSkeleton rows={5} /></Loading>
             ) : latest.length === 0 ? (
               <p className="rounded-[24px] bg-card p-6 text-center text-muted-foreground shadow-resting">No transactions yet. Tap + to add one.</p>
             ) : (
@@ -119,8 +129,8 @@ export default function Dashboard() {
           </section>
 
           <MonthSwitcher date={month} onChange={setMonth} />
-          {statsLoading ? (
-            <div className="h-40 animate-pulse rounded-[24px] bg-card" />
+          {statsLoading && (noStats || shownStatsKey.current !== statsKey) ? (
+            <Loading className="space-y-6"><SummarySkeleton /><ChartSkeleton /></Loading>
           ) : statsError && noStats ? (
             <p className="text-center text-expense">{statsError}</p>
           ) : (

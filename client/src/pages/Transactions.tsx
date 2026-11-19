@@ -7,6 +7,7 @@ import { PageTitle } from '@/components/page-header';
 import { useAppShell } from '@/components/app-layout';
 import { useWallets } from '@/hooks/use-wallets';
 import { resolveWalletId } from '@/lib/selection';
+import { DayListSkeleton, Loading } from '@/components/skeletons';
 
 // One wallet's ledger: swipe the cards to pick the wallet; the month drives the list and the cards' in/out
 export function MonthlyTransactionsView() {
@@ -23,13 +24,14 @@ export function MonthlyTransactionsView() {
     setSearchParams(next, { replace: true });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [walletParam]);
-  const { wallets } = useWallets();
+  const { wallets, loading: walletsLoading } = useWallets();
   const walletId = resolveWalletId(wallets, selectedWalletId);
 
   return (
     <>
       <PageTitle eyebrow="Monthly ledger" title="Transactions" />
       <WalletCards selectedWalletId={walletId ?? selectedWalletId} onSelect={setSelectedWalletId} month={currentDate} refreshKey={dataVersion} />
+      {!walletId && walletsLoading && <Loading className="mt-6"><DayListSkeleton /></Loading>}
       {walletId && (
         <div className="mt-6">
           <TransactionsList

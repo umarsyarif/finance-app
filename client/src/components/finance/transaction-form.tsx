@@ -13,6 +13,7 @@ import { CategoryIcon } from './category-icon';
 import { TransferForm } from './transfer-form';
 import { cn } from '@/lib/utils';
 import axios from '@/lib/axios';
+import { FormSkeleton, Loading } from '@/components/skeletons';
 
 type TransactionType = 'INCOME' | 'EXPENSE';
 
@@ -139,7 +140,7 @@ export function TransactionForm({
   };
 
   if ((loadingWallets && wallets.length === 0) || (loadingCategories && categories.length === 0)) {
-    return <p className="py-8 text-center text-muted-foreground">Loading…</p>;
+    return <Loading><FormSkeleton /></Loading>;
   }
 
   if ((walletsError && wallets.length === 0) || (categoriesError && categories.length === 0)) {

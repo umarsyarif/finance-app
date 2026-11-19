@@ -16,6 +16,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { useAppShell } from '@/components/app-layout';
 import axios from '@/lib/axios';
+import { Loading, RowsSkeleton } from '@/components/skeletons';
 
 type Tab = 'wallets' | 'categories';
 type Wallet = ReturnType<typeof useWallets>['wallets'][number];
@@ -117,7 +118,7 @@ export function Wallets() {
       />
 
       {loading ? (
-        <p className="py-8 text-center text-muted-foreground">Loading…</p>
+        <Loading><RowsSkeleton rows={4} /></Loading>
       ) : error ? (
         <p className="py-8 text-center text-expense">{error}</p>
       ) : tab === 'wallets' ? (

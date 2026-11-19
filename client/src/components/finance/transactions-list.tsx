@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ArrowLeftRight, Search } from 'lucide-react';
 import { TransactionDetailsModal } from './transaction-details-modal';
 import { FilterChips } from './filter-chips';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useTransactions } from '@/hooks/use-transactions';
 import { formatAmount } from '@/lib/format-utils';
 import { CategoryIcon } from './category-icon';
+import { DayListSkeleton, Loading } from '@/components/skeletons';
 
 export interface Transaction {
   id: string;
@@ -108,6 +109,10 @@ interface TransactionsListProps {
 // The Transactions page body: month switcher, search, type chips, rows grouped by day
 export function TransactionsList({ walletId, month, year, currentDate, onMonthChange, limit = 100, refreshKey, onTransactionChange }: TransactionsListProps) {
   const { transactions, loading, error, refetch, loadMore, loadingMore, hasMore } = useTransactions({ limit, month, year, refreshKey, walletId });
+  // A refresh keeps the list on screen; another wallet or month is different data, so it gets the skeleton
+  const listKey = `${walletId}-${year}-${month}`;
+  const shownKey = useRef<string | null>(null);
+  if (!loading) shownKey.current = listKey;
   const [selected, setSelected] = useState<Transaction | null>(null);
   const [query, setQuery] = useState('');
   const [type, setType] = useState<TypeFilter>('ALL');
@@ -164,10 +169,8 @@ export function TransactionsList({ walletId, month, year, currentDate, onMonthCh
 
       <FilterChips label="Transaction type" options={typeOptions(typeCounts(searched))} value={type} onChange={setType} />
 
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <div className="size-8 animate-spin rounded-full border-2 border-muted border-t-foreground" />
-        </div>
+      {loading && (transactions.length === 0 || shownKey.current !== listKey) ? (
+        <Loading><DayListSkeleton /></Loading>
       ) : error && transactions.length === 0 ? (
         <div className="space-y-4 py-8 text-center">
           <p className="text-expense">{error}</p>

@@ -8,6 +8,7 @@ import { BillForm } from '@/components/bills/bill-form';
 import { ConfirmationModal } from '@/components/ui/confirmation-modal';
 import { useBills, type Bill } from '@/hooks/use-bills';
 import { formatCurrency } from '@/lib/format-utils';
+import { CardSkeleton, Loading } from '@/components/skeletons';
 
 const ordinal = (n: number) => {
   const s = ['th', 'st', 'nd', 'rd'];
@@ -38,6 +39,9 @@ export default function Bills() {
     <>
       <PageTitle eyebrow="Money" title="Bills" action={<PillButton onClick={() => setEditing('new')}><Plus />Add bill</PillButton>} />
       {error && <p role="alert" className="text-sm text-expense">{error}</p>}
+      {loading && bills.length === 0 && !error && (
+        <Loading className="space-y-3"><CardSkeleton lines={1} /><CardSkeleton lines={1} /><CardSkeleton lines={1} /></Loading>
+      )}
       {!loading && !error && bills.length === 0 && <p className="py-8 text-center text-muted-foreground">No bills yet</p>}
       <div className="space-y-3">
         {bills.map((bill) => (

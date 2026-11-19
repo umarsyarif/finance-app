@@ -8,6 +8,7 @@ import { formatAmount, walletCaption } from '@/lib/format-utils';
 import { cn } from '@/lib/utils';
 import { PillButton } from '@/components/page-header';
 import { WalletTile } from '@/components/finance/wallet-icon';
+import { Loading, WalletCardSkeleton } from '@/components/skeletons';
 
 type MonthStats = { income: number; expense: number };
 
@@ -108,7 +109,7 @@ export function WalletCards({ selectedWalletId, onSelect, onOpen, walletIds, mon
   const cancelPress = () => window.clearTimeout(pressTimer.current);
 
   if (loading && wallets.length === 0) {
-    return <div className="h-[212px] animate-pulse rounded-[24px] bg-card" />;
+    return <Loading><WalletCardSkeleton /></Loading>;
   }
   if (error) {
     return (

@@ -8,6 +8,7 @@ import { useAppShell } from '@/components/app-layout';
 import { usePortfolio } from '@/hooks/use-portfolio';
 import { formatCurrency } from '@/lib/format-utils';
 import { cn } from '@/lib/utils';
+import { CardSkeleton, DonutSkeleton, Loading, TotalSkeleton } from '@/components/skeletons';
 
 export default function Assets() {
   const { selectedCurrency, setSelectedCurrency, dataVersion } = useAppShell();
@@ -23,7 +24,14 @@ export default function Assets() {
         <CurrencyToggle currencies={['KRW', 'IDR']} value={currency} onChange={setSelectedCurrency} />
 
         {!data && error && <p role="alert" className="py-10 text-center text-muted-foreground">{error}</p>}
-        {!data && !error && loading && <p className="py-10 text-center text-muted-foreground">Loading…</p>}
+        {!data && !error && loading && (
+          <Loading className="space-y-4">
+            <TotalSkeleton />
+            <DonutSkeleton />
+            <CardSkeleton lines={1} />
+            <CardSkeleton lines={3} />
+          </Loading>
+        )}
 
         {data && total && (
           <>

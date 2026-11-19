@@ -6,6 +6,7 @@ import { PillButton } from '@/components/page-header';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { BLOCKED, pushStatus, resyncPush, subscribePush, unsubscribePush, type PushStatus } from '@/services/push.service';
+import { Loading, SettingRowSkeleton } from '@/components/skeletons';
 
 interface Settings {
   nudgeEnabled: boolean;
@@ -33,6 +34,7 @@ export function NotificationSettings() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [time, setTime] = useState('');
   const [push, setPush] = useState<PushStatus | null>(null);
+  const [settingsFailed, setSettingsFailed] = useState(false);
   const [pushError, setPushError] = useState('');
   const serverTime = useRef(''); // last nudgeTime the server confirmed
 
@@ -57,7 +59,7 @@ export function NotificationSettings() {
       setTime(s.nudgeTime);
       const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       if (zone && zone !== s.timezone) save({ timezone: zone });
-    }).catch(() => {});
+    }).catch(() => setSettingsFailed(true));
   }, []);
 
   const enablePush = async () => {
@@ -86,6 +88,9 @@ export function NotificationSettings() {
       {push === 'unsupported' && <p className="text-xs text-muted-foreground">This browser can't receive push</p>}
       {pushError && <p role="alert" className="text-xs text-destructive">{pushError}</p>}
 
+      {!settings && !settingsFailed && (
+        <Loading><SettingRowSkeleton /><SettingRowSkeleton /><SettingRowSkeleton /></Loading>
+      )}
       {settings && (
         <>
           <ToggleRow title="Daily reminder" subtitle="Nudge if nothing is logged today">

@@ -7,6 +7,7 @@ import { Label } from '../ui/label';
 import { useWallets } from '@/hooks/use-wallets';
 import { counterpart, type Transaction } from './transactions-list';
 import axios from '@/lib/axios';
+import { FormSkeleton, Loading } from '@/components/skeletons';
 
 const CURRENCY_SYMBOL: Record<string, string> = { KRW: '₩', IDR: 'Rp' };
 
@@ -90,7 +91,7 @@ export function TransferForm({ transaction, defaultWalletId, onSuccess }: Transf
     }
   };
 
-  if (loading && wallets.length === 0) return <p className="py-8 text-center text-muted-foreground">Loading…</p>;
+  if (loading && wallets.length === 0) return <Loading><FormSkeleton /></Loading>;
   if (error && wallets.length === 0) return <p className="py-8 text-center text-expense">Couldn't load your wallets: {error}</p>;
 
   const field = 'h-[52px] w-full rounded-[20px] border border-border bg-card px-[18px] text-[15px] outline-none placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring';
