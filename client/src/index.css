@@ -141,6 +141,7 @@
   .shadow-resting { box-shadow: 0 1px 2px rgb(23 24 26 / 0.04); }
   .shadow-floating-bar { box-shadow: 0 -8px 24px rgb(23 24 26 / 0.06); }
   .shadow-raised { box-shadow: 0 8px 20px rgb(23 24 26 / 0.18); }
+  .shadow-sheet { box-shadow: 0 -12px 40px rgb(23 24 26 / 0.12); }
   .dark .shadow-resting { box-shadow: none; }
 }
 

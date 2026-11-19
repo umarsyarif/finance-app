@@ -5,7 +5,7 @@ import { test, expect, API, signUp, api, seedWallet, seedCategory, seedTx, walle
 const sheet = (page: Page) => page.getByRole('dialog');
 
 async function confirmDelete(page: Page) {
-  await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
 }
 
 async function openCategories(page: Page) {

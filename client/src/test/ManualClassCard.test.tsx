@@ -97,7 +97,7 @@ describe('ManualClassCard', () => {
     expect(axios.get).toHaveBeenCalledWith('/api/assets/lots', { params: { assetClass: 'GOLD' } });
     await screen.findByText(/−2 g/);
     await user.click(screen.getAllByRole('button', { name: 'Delete' })[0]);
-    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(axios.delete).toHaveBeenCalledWith('/api/assets/lots/l1'));
     await waitFor(() => expect(onChanged).toHaveBeenCalled());
   });

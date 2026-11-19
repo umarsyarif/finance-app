@@ -72,7 +72,7 @@ test('T5 delete with confirmation removes the row and restores the balance', asy
   const { wallet } = await setup(page, 't5');
   await row(page, 'Lunch').click();
   await details(page).getByRole('button', { name: 'Delete' }).click();
-  await page.getByRole('dialog', { name: 'Delete transaction?' }).getByRole('button', { name: 'Delete' }).click();
+  await page.getByRole('alertdialog', { name: 'Delete transaction?' }).getByRole('button', { name: 'Delete' }).click();
 
   await expect(row(page, 'Lunch')).toBeHidden();
   await expect(page.getByText('No transactions this month.')).toBeVisible();
@@ -84,7 +84,7 @@ test('T6 cancelling delete keeps the row', async ({ page }) => {
   const { wallet } = await setup(page, 't6');
   await row(page, 'Lunch').click();
   await details(page).getByRole('button', { name: 'Delete' }).click();
-  await page.getByRole('dialog', { name: 'Delete transaction?' }).getByRole('button', { name: 'Cancel' }).click();
+  await page.getByRole('alertdialog', { name: 'Delete transaction?' }).getByRole('button', { name: 'Cancel' }).click();
 
   await expect(row(page, 'Lunch')).toBeVisible();
   expect(await walletBalance(page, wallet)).toBe(88000);

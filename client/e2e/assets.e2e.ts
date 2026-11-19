@@ -56,7 +56,7 @@ test('AS2 add two purchases, sell one gram, delete a lot', async ({ page }) => {
   const before = gets.length;
   state.body = (c) => portfolio(c, [gold(8, 960000)]);
   await list.getByRole('button', { name: 'Delete' }).first().click();
-  await page.getByRole('dialog').filter({ hasText: 'Delete entry' }).getByRole('button', { name: 'Delete' }).click();
+  await page.getByRole('alertdialog').filter({ hasText: 'Delete entry' }).getByRole('button', { name: 'Delete' }).click();
   await expect(list.getByRole('listitem')).toHaveCount(2);
   await expect.poll(() => gets.length).toBeGreaterThan(before);
   await page.keyboard.press('Escape');

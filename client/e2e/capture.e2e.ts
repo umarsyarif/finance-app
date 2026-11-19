@@ -17,7 +17,7 @@ test('C1 generate, use and revoke the Shortcut token', async ({ page }) => {
   expect((await send()).status()).toBe(503);
 
   await page.getByRole('button', { name: 'Revoke' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Revoke' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Revoke' }).click();
   await expect(page.getByText('No token yet')).toBeVisible();
   expect((await send()).status()).toBe(401);
 });
@@ -30,7 +30,7 @@ test('C1b regenerating replaces the token', async ({ page }) => {
   const a = (await page.getByTestId('new-api-token').textContent())!.trim();
 
   await page.getByRole('button', { name: 'Regenerate' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Replace' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Replace' }).click();
   await expect(page.getByTestId('new-api-token')).not.toHaveText(a);
   const b = (await page.getByTestId('new-api-token').textContent())!.trim();
 
