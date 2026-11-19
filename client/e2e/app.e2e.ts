@@ -6,7 +6,7 @@
  * cookies and token refresh, browser timezone, offline mode, double taps,
  * data left behind across users.
  */
-import { test, expect, signUp, api, seedWallet, seedCategory, seedTx, txCount, prevMonth, logOutViaUi, row, openAddSheet, fillTransaction, saveButton } from './helpers';
+import { test, expect, signUp, api, seedWallet, seedCategory, seedTx, txCount, prevMonth, logOutViaUi, row, openAddSheet, fillTransaction, saveButton, thisMonth, monthLabel } from './helpers';
 
 test('stays signed in after the access token cookie expires', async ({ page, context }) => {
   await signUp(page, 'refresh');
@@ -40,7 +40,8 @@ test('saving an edit without changes keeps the date, time and amount', async ({ 
   await signUp(page, 'edit');
   const wallet = await seedWallet(page);
   const cat = await seedCategory(page, 'EXPENSE');
-  const id = await seedTx(page, wallet, cat, 'edit-me', '2026-10-05T03:07:00.000Z', 1234.5);
+  const when = thisMonth(5, 12, 7);
+  const id = await seedTx(page, wallet, cat, 'edit-me', when, 1234.5);
   await page.goto('/transactions');
 
   await row(page, 'edit-me').click();
@@ -49,7 +50,7 @@ test('saving an edit without changes keeps the date, time and amount', async ({ 
   await expect(page.getByRole('button', { name: 'Save changes' })).toBeHidden();
 
   const { data } = await api(page, 'get', `/api/transactions/${id}`);
-  expect(data.transaction.date).toBe('2026-10-05T03:07:00.000Z');
+  expect(data.transaction.date).toBe(when);
   expect(data.transaction.amount).toBe(1234.5);
 });
 
@@ -58,7 +59,7 @@ test('Transactions page shows every transaction of a busy month', async ({ page 
   const wallet = await seedWallet(page);
   const cat = await seedCategory(page, 'EXPENSE');
   for (let i = 0; i < 105; i++) {
-    await seedTx(page, wallet, cat, `bulk-${i}`, `2026-10-0${1 + (i % 8)}T05:00:00.000Z`, 10);
+    await seedTx(page, wallet, cat, `bulk-${i}`, thisMonth(1 + (i % 8), 14), 10);
   }
   await page.goto('/transactions');
 
@@ -73,14 +74,14 @@ test('offline: browsing to another month does not show this month\'s transaction
   await signUp(page, 'offline');
   const wallet = await seedWallet(page);
   const cat = await seedCategory(page, 'EXPENSE');
-  await seedTx(page, wallet, cat, 'oct-only', '2026-10-05T05:00:00.000Z');
+  await seedTx(page, wallet, cat, 'oct-only', thisMonth(5));
   await page.goto('/transactions');
   await expect(page.getByText('oct-only')).toBeVisible();
 
   await context.setOffline(true);
   await prevMonth(page);
 
-  await expect(page.getByText('September 2026')).toBeVisible();
+  await expect(page.getByText(monthLabel(-1))).toBeVisible();
   await expect(page.getByText('oct-only')).toBeHidden();
   await context.setOffline(false);
 });
@@ -89,7 +90,7 @@ test('logging out removes the user\'s transactions from this device', async ({ p
   await signUp(page, 'alice');
   const wallet = await seedWallet(page);
   const cat = await seedCategory(page, 'EXPENSE');
-  await seedTx(page, wallet, cat, 'alice-secret', '2026-10-05T05:00:00.000Z');
+  await seedTx(page, wallet, cat, 'alice-secret', thisMonth(5));
   await page.goto('/transactions');
   await expect(page.getByText('alice-secret')).toBeVisible();
 
@@ -104,12 +105,12 @@ test('offline with nothing cached still lets you change month', async ({ page, c
   await signUp(page, 'offline-empty');
   await seedWallet(page);
   await page.goto('/transactions');
-  await expect(page.getByText('October 2026')).toBeVisible();
+  await expect(page.getByText(monthLabel(0))).toBeVisible();
 
   await context.setOffline(true);
   await prevMonth(page);
 
-  await expect(page.getByText('September 2026')).toBeVisible();
+  await expect(page.getByText(monthLabel(-1))).toBeVisible();
   await context.setOffline(false);
 });
 
@@ -117,7 +118,7 @@ test('back button after logout does not reveal the previous page\'s data', async
   await signUp(page, 'back');
   const wallet = await seedWallet(page);
   const cat = await seedCategory(page, 'EXPENSE');
-  await seedTx(page, wallet, cat, 'private-row', '2026-10-05T05:00:00.000Z');
+  await seedTx(page, wallet, cat, 'private-row', thisMonth(5));
   await page.goto('/transactions');
   await expect(page.getByText('private-row')).toBeVisible();
   await logOutViaUi(page);
@@ -166,13 +167,17 @@ test.describe('in Jakarta (UTC+7)', () => {
     await signUp(page, 'jkt');
     const wallet = await seedWallet(page, 'IDR');
     const cat = await seedCategory(page, 'EXPENSE');
-    await seedTx(page, wallet, cat, 'jkt-late', '2026-09-30T23:30:00+07:00');
+    // 23:30 Jakarta time on the last day of last month
+    const now = new Date();
+    const last = new Date(now.getFullYear(), now.getMonth(), 0);
+    const ymd = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}-${String(last.getDate()).padStart(2, '0')}`;
+    await seedTx(page, wallet, cat, 'jkt-late', `${ymd}T23:30:00+07:00`);
     await page.goto('/transactions');
-    await expect(page.getByText('October 2026')).toBeVisible();
+    await expect(page.getByText(monthLabel(0))).toBeVisible();
 
     await prevMonth(page);
 
-    await expect(page.getByText('September 2026')).toBeVisible();
+    await expect(page.getByText(monthLabel(-1))).toBeVisible();
     await expect(page.getByText('jkt-late')).toBeVisible({ timeout: 3000 });
   });
 });

@@ -93,7 +93,7 @@ test('TR4 delete a transfer from the details sheet', async ({ page }) => {
 
   await row(page, 'Transfer to Rupiah').click();
   await page.getByRole('button', { name: 'Delete' }).click();
-  await page.getByRole('dialog', { name: 'Delete transfer?' }).getByRole('button', { name: 'Delete' }).click();
+  await page.getByRole('alertdialog', { name: 'Delete transfer?' }).getByRole('button', { name: 'Delete' }).click();
 
   await expect(row(page, 'Transfer to Rupiah')).toHaveCount(0);
   await card(page, 'Rupiah').scrollIntoViewIfNeeded();

@@ -105,9 +105,15 @@ export async function fillTransaction(
 export const saveButton = (sheet: ReturnType<Page['getByRole']>) => sheet.getByRole('button', { name: /^Save (expense|income|changes)$/ });
 
 // A local date-time this month, as an ISO instant
-export function thisMonth(day: number, hour = 12) {
+export function thisMonth(day: number, hour = 12, minute = 0) {
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), day, hour).toISOString();
+  return new Date(now.getFullYear(), now.getMonth(), day, hour, minute).toISOString();
+}
+
+// "November 2026" for this month (offset 0), last month (-1), …: the month switcher's label
+export function monthLabel(offset = 0) {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth() + offset, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
 // Mocked portfolio: the real GET /api/assets calls the internet (exchange rates, Binance)
