@@ -37,6 +37,9 @@ export function usePullToRefresh(onRefresh: () => Promise<void> | void) {
         setPull(0);
         return;
       }
+      // Our indicator replaces iOS's own rubber-band: letting both run reflows the page mid-bounce,
+      // and WebKit then paints the fixed bottom nav at a stale spot (stuck mid-screen)
+      if (e.cancelable) e.preventDefault();
       distance = Math.min(dy * RESISTANCE, MAX_PULL);
       setPull(distance);
     };
@@ -56,7 +59,7 @@ export function usePullToRefresh(onRefresh: () => Promise<void> | void) {
     };
 
     window.addEventListener('touchstart', onStart, { passive: true });
-    window.addEventListener('touchmove', onMove, { passive: true });
+    window.addEventListener('touchmove', onMove, { passive: false });
     window.addEventListener('touchend', onEnd);
     window.addEventListener('touchcancel', onEnd);
     return () => {

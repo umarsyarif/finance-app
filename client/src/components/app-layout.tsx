@@ -80,13 +80,16 @@ export function AppLayout() {
         <div
           role="status"
           aria-label={refreshing ? 'Refreshing' : 'Pull to refresh'}
-          className="flex items-end justify-center overflow-hidden text-muted-foreground"
+          // Overlay, not in the page flow: the document height must not change during a pull (iOS fixed-nav bug)
+          className="pointer-events-none fixed inset-x-0 top-[env(safe-area-inset-top)] z-30 flex items-end justify-center overflow-hidden text-muted-foreground"
           style={{ height: refreshing ? 48 : pull }}
         >
-          <RefreshCw
-            className={refreshing ? 'mb-3 size-5 animate-spin' : 'mb-3 size-5'}
-            style={refreshing ? undefined : { transform: `rotate(${(pull / PULL_THRESHOLD) * 270}deg)`, opacity: Math.min(1, pull / PULL_THRESHOLD) }}
-          />
+          <span className="mb-2 rounded-full bg-card p-2 shadow-resting" style={refreshing ? undefined : { opacity: Math.min(1, pull / PULL_THRESHOLD) }}>
+            <RefreshCw
+              className={refreshing ? 'size-5 animate-spin' : 'size-5'}
+              style={refreshing ? undefined : { transform: `rotate(${(pull / PULL_THRESHOLD) * 270}deg)` }}
+            />
+          </span>
         </div>
       )}
       <main className={cn('w-full max-w-[480px] mx-auto px-6 flex flex-grow flex-col pb-32', pathname !== '/' && 'pt-6')}>

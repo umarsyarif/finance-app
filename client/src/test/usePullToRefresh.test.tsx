@@ -73,4 +73,30 @@ describe('usePullToRefresh', () => {
     await act(async () => touch('touchend', 0, 0));
     expect(result.current.pull).toBe(0);
   });
+
+  // iOS: the native rubber-band bounce must not run under our own pull, or fixed bars get stuck mid-screen
+  it('cancels the native bounce while pulling down from the top, and only then', async () => {
+    renderHook(() => usePullToRefresh(vi.fn()));
+    const move = (y: number) => {
+      const e = new Event('touchmove', { bubbles: true, cancelable: true }) as Event & { touches: unknown };
+      Object.defineProperty(e, 'touches', { value: [{ clientX: 100, clientY: y }] });
+      document.body.dispatchEvent(e);
+      return e.defaultPrevented;
+    };
+    let prevented: boolean[] = [];
+    await act(async () => {
+      touch('touchstart', 100, 100);
+      prevented = [move(130), move(160)];
+      touch('touchend', 0, 0);
+    });
+    expect(prevented).toEqual([true, true]);
+
+    // Scrolling up (finger moving up) is normal scrolling: untouched
+    await act(async () => {
+      touch('touchstart', 100, 300);
+      prevented = [move(250)];
+      touch('touchend', 0, 0);
+    });
+    expect(prevented).toEqual([false]);
+  });
 });
